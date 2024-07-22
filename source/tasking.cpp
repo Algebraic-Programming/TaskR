@@ -1,5 +1,5 @@
 #include <pthread.h>
-#include <hicr/frontends/tasking/tasking.hpp>
+#include <taskr/tasking.hpp>
 
 namespace HiCR
 {

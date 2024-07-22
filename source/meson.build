@@ -1,27 +1,60 @@
-# HiCR Tasking frontend Configuration
+####### Getting HiCR dependency
 
-frontendIncludes = include_directories([
-])
+HiCRBackends = [ 'host/hwloc', 'host/pthreads' ]
+HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends)])
+HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
 
-frontendDependencies = [
-    dependency('threads', required: true),
-]
-    
-frontendCppArgs = [
-   '-D_HICR_USE_TASKING_FRONTEND_'
+####### Creating TaskR dependency
+
+# Warning handling option
+warningAsErrorFlags=[]
+if get_option('compileWarningsAsErrors') == true
+  warningAsErrorFlags=[ '-Werror' ]
+endif
+
+TaskRBuildCppArgs = [
+ '-Wfatal-errors',
+  warningAsErrorFlags
  ]
 
-frontendLinkArgs = [
-]
+TaskRBuildIncludes = include_directories([
+   '../include'
+  ])
+  
+TaskRBuildDep = declare_dependency(
+    compile_args: TaskRBuildCppArgs,
+    include_directories: TaskRBuildIncludes,
+    sources : [ '../source/tasking.cpp' ]
+    )
 
-frontendSrcFiles = [
-    'tasking.cpp'
-]
 
-HiCRFrontendDependencies += declare_dependency(
-    dependencies: frontendDependencies,
-    compile_args : frontendCppArgs,
-    link_args : frontendLinkArgs,
-    include_directories : frontendIncludes,
-    sources: frontendSrcFiles
-)    
+####### Creating TaskR test dependencies
+
+if meson.is_subproject() or get_option('buildTests')
+  gtest_dep = dependency('gtest', main: true, required: true)
+  
+  TaskRTestCppFlags = [
+  ]
+  
+  cpp = meson.get_compiler('cpp')
+  if get_option('b_coverage')
+    gcov_args = [
+      '-fno-inline',
+      '-Wno-error=cpp',
+      '-DENABLE_COVERAGE',
+    ]
+    if cpp.get_id().to_lower() == 'gcc'
+      gcov_args += [
+        '-fno-default-inline',
+        '-fno-inline-small-functions',
+      ]
+    endif
+    
+    TaskRTestCppFlags += gcov_args
+  endif  
+  
+  TaskRTestDep = declare_dependency(
+      compile_args: TaskRTestCppFlags,
+      dependencies:  gtest_dep
+      )
+endif

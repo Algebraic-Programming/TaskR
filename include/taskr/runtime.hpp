@@ -15,7 +15,7 @@
 #include <atomic>
 #include <map>
 #include <mutex>
-#include <hicr/frontends/tasking/tasking.hpp>
+#include "./tasking.hpp"
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
 

@@ -6,33 +6,8 @@ project('TaskR', [ 'cpp', 'c'],
   ]
 )
 
-####### Getting HiCR dependency
-
-HiCRBackends = [ 'host/hwloc', 'host/pthreads' ]
-HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends)])
-HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
-
-####### Creating TaskR dependency
-
-# Warning handling option
-warningAsErrorFlags=[]
-if get_option('compileWarningsAsErrors') == true
-  warningAsErrorFlags=[ '-Werror' ]
-endif
-
-TaskRBuildCppArgs = [
- '-Wfatal-errors',
-  warningAsErrorFlags
- ]
-
-TaskRBuildIncludes = include_directories([
-   'include'
-  ])
-  
-TaskRBuildDep = declare_dependency(
-    compile_args: TaskRBuildCppArgs,
-    include_directories: TaskRBuildIncludes,
-    )
+####### Including source folder
+subdir('source')
 
 ####### Build test / example targets only if HiCR is being loaded as a subproject
 
