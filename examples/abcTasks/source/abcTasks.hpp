@@ -13,32 +13,38 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
-  // Creating task functions
-  auto taskAfc = computeManager->createExecutionUnit([&taskr]() { printf("Task A %lu\n", taskr.getCurrentTask()->getLabel()); });
-  auto taskBfc = computeManager->createExecutionUnit([&taskr]() { printf("Task B %lu\n", taskr.getCurrentTask()->getLabel()); });
-  auto taskCfc = computeManager->createExecutionUnit([&taskr]() { printf("Task C %lu\n", taskr.getCurrentTask()->getLabel()); });
+  // Storage for the tasks we'll create
+  std::vector<HiCR::tasking::Task*> tasks(3 * ITERATIONS);
 
-  // Now creating tasks and their dependency graph
+  // Now creating tasks
   for (size_t i = 0; i < ITERATIONS; i++)
   {
-    auto cTask = new HiCR::tasking::Task(i * 3 + 2, taskCfc);
-    cTask->addTaskDependency(i * 3 + 1);
-    taskr.addTask(cTask);
+    size_t taskId = i * 3 + 2;
+    auto taskfc = computeManager->createExecutionUnit([taskId]() { printf("Task C %lu\n", taskId); });
+    tasks[taskId] = new HiCR::tasking::Task(taskfc);
   }
 
   for (size_t i = 0; i < ITERATIONS; i++)
   {
-    auto bTask = new HiCR::tasking::Task(i * 3 + 1, taskBfc);
-    bTask->addTaskDependency(i * 3 + 0);
-    taskr.addTask(bTask);
+    size_t taskId = i * 3 + 1;
+    auto taskfc = computeManager->createExecutionUnit([taskId]() { printf("Task B %lu\n", taskId); });
+    tasks[taskId] = new HiCR::tasking::Task(taskfc);
   }
 
   for (size_t i = 0; i < ITERATIONS; i++)
   {
-    auto aTask = new HiCR::tasking::Task(i * 3 + 0, taskAfc);
-    if (i > 0) aTask->addTaskDependency(i * 3 - 1);
-    taskr.addTask(aTask);
+    size_t taskId = i * 3 + 0;
+    auto taskfc = computeManager->createExecutionUnit([taskId]() { printf("Task A %lu\n", taskId); });
+    tasks[taskId] = new HiCR::tasking::Task(taskfc);
   }
+
+  // Now creating the dependency graph
+  for (size_t i = 0; i < ITERATIONS; i++) taskr.addTaskDependency(tasks[i * 3 + 2], tasks[i * 3 + 1]);
+  for (size_t i = 0; i < ITERATIONS; i++) taskr.addTaskDependency(tasks[i * 3 + 1], tasks[i * 3 + 0]);
+  for (size_t i = 0; i < ITERATIONS; i++) if (i > 0) taskr.addTaskDependency(tasks[i * 3 + 0], tasks[i * 3 - 1]);
+
+  // Adding tasks to TaskR
+  for (const auto task : tasks) taskr.addTask(task);
 
   // Running taskr
   taskr.run(computeManager);

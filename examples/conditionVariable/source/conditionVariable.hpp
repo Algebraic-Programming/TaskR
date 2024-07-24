@@ -15,7 +15,7 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
   taskr::Runtime taskr;
 
   // Setting event handler on task sync to awaken the task that had been previously suspended on mutex
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskSync, [&](HiCR::tasking::Task *task) { taskr.awakenTask(task); });
+  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskSync, [&](HiCR::tasking::Task *task) { taskr.resumeTask(task); });
 
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
@@ -64,8 +64,8 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
     cv.notifyOne();
   });
 
-  taskr.addTask(new HiCR::tasking::Task(0, thread1Fc));
-  taskr.addTask(new HiCR::tasking::Task(1, thread2Fc));
+  taskr.addTask(new HiCR::tasking::Task(thread1Fc));
+  taskr.addTask(new HiCR::tasking::Task(thread2Fc));
 
   // Running taskr
   taskr.run(computeManager);

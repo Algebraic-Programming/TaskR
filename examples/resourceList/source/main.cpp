@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
   // Adding multiple compute tasks
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());
-  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new HiCR::tasking::Task(i, taskExecutionUnit));
+  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new HiCR::tasking::Task(taskExecutionUnit));
 
   // Running taskr only on the core subset
   auto t0 = std::chrono::high_resolution_clock::now();

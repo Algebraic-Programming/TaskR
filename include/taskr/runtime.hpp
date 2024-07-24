@@ -56,11 +56,6 @@ class Runtime
   std::atomic<uint64_t> _taskCount;
 
   /**
-   * Hash map for quick location of tasks based on their hashed names
-   */
-  HiCR::concurrent::HashSet<HiCR::tasking::Task::label_t> _finishedTaskHashSet;
-
-  /**
    * Mutex for the active worker queue, required for the max active workers mechanism
    */
   std::mutex _activeWorkerQueueLock;
@@ -100,25 +95,6 @@ class Runtime
    * Determines the maximum amount of workers (required by the lock-free queue)
   */
   const size_t _maxWorkers;
-
-  /**
-   * This function checks whether a given task is ready to go (i.e., all its dependencies have been satisfied)
-   *
-   * \param[in] task The task to check
-   * \return true, if the task is ready; false, if the task is not ready
-   */
-  __INLINE__ bool checkTaskReady(HiCR::tasking::Task *task)
-  {
-    const auto &dependencies = task->getDependencies();
-
-    // Checking task dependencies
-    for (size_t i = 0; i < dependencies.size(); i++)
-      if (_finishedTaskHashSet.contains(dependencies[i]) == false)
-        return false; // If any unsatisfied dependency was found, return
-                      // immediately
-
-    return true;
-  }
 
   /**
    * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
@@ -202,15 +178,6 @@ class Runtime
   }
 
   /**
-   * A callback function for HiCR to awaken a task after it had been suspended. Here simply we put it back into the task queue
-   */
-  __INLINE__ void awakenTask(HiCR::tasking::Task *task)
-  {
-    // Adding task label to finished task set
-    _waitingTaskQueue->push(task);
-  }
-
-  /**
    * This function allow setting up an event handler
   */
   __INLINE__ void setEventHandler(const HiCR::tasking::Task::event_t event, HiCR::tasking::eventCallback_t<HiCR::tasking::Task> fc) { _eventMap->setEvent(event, fc); }
@@ -245,8 +212,28 @@ class Runtime
     // Increasing task count
     _taskCount++;
 
-    // Adding task to the waiting lis, it will be cleared out later
-    _waitingTaskQueue->push(task);
+    // If the task has no dependencies, set it as ready to run
+    if (task->getInputDependencyCounter() == 0) _waitingTaskQueue->push(task);
+  }
+
+  /**
+   * Resume a suspended task.
+   *
+   * \param[in] task Task to resume.
+   */
+  __INLINE__ void resumeTask(HiCR::tasking::Task *task)
+  {
+    // If the task has no dependencies, set it as ready to run
+    if (task->getInputDependencyCounter() == 0) _waitingTaskQueue->push(task);
+  }
+
+  __INLINE__ void addTaskDependency(HiCR::tasking::Task* dependentTask, HiCR::tasking::Task* dependedTask)
+  {
+    // Adding increasing dependency counter of the dependent
+    dependentTask->increaseInputDependencyCounter();
+
+    // Adding output dependency in the depended task
+    dependedTask->addOutputTaskDependency(dependentTask);
   }
 
   /**
@@ -258,15 +245,18 @@ class Runtime
    */
   __INLINE__ void onTaskFinish(HiCR::tasking::Task *task)
   {
+    // Decreasing input dependency counter for tasks depending on this one
+    for (const auto dependentTask : task->getOutputTaskDependencies())
+    {
+      // Now decreasing counter  
+      auto previousCounterValue = dependentTask->decreaseInputDependencyCounter();
+   
+      // If the task is now ready, push it to the waiting task queue
+      if (previousCounterValue == 1) _waitingTaskQueue->push(dependentTask);
+    }
+
     // Decreasing overall task count
     _taskCount--;
-
-    // Adding task label to finished task set
-    _finishedTaskHashSet.insert(task->getLabel());
-
-    // Free task's memory to prevent leaks. Could not use unique_ptr because the
-    // type is not supported by boost's lock-free queue
-    delete task;
   }
 
   /**
@@ -301,25 +291,12 @@ class Runtime
     // If no task was found (queue was empty), then return an empty task
     if (task == NULL) return NULL;
 
-    // Check if task is ready now
-    bool isTaskReady = checkTaskReady(task);
+    // If a task was found (queue was not empty), then execute and manage the
+    // task depending on its state
+    task->setEventMap(_eventMap);
 
-    // If it is, put it in the ready-to-go queue
-    if (isTaskReady == true)
-    {
-      // If a task was found (queue was not empty), then execute and manage the
-      // task depending on its state
-      task->setEventMap(_eventMap);
-
-      // Returning ready task
-      return task;
-    }
-
-    // Otherwise, put it at the back of the waiting task pile and return
-    _waitingTaskQueue->push(task);
-
-    // And return a null task
-    return NULL;
+    // Returning ready task
+    return task;
   }
 
   /**

@@ -82,33 +82,32 @@ int main(int argc, char **argv)
     taskr.addProcessingUnit(std::move(processingUnit));
   }
 
-  printf("Starting many work tasks...\n");
-  fflush(stdout);
+  // Creating a single wait task that suspends all workers except for one
+  auto waitTask = new HiCR::tasking::Task(waitExecutionUnit);
 
-  // Building task graph. First a lot of pure work tasks.
+  // Building task graph. First a lot of pure work tasks. The wait task depends on these
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new HiCR::tasking::Task(i, workExecutionUnit);
+    auto workTask = new HiCR::tasking::Task(workExecutionUnit);
+    taskr.addTaskDependency(waitTask, workTask);
     taskr.addTask(workTask);
   }
 
-  // Then creating a single wait task that suspends all workers except for one
-  auto waitTask = new HiCR::tasking::Task(workTaskCount + 1, waitExecutionUnit);
-  for (size_t i = 0; i < workTaskCount; i++) waitTask->addTaskDependency(i);
+  // Then creating another batch of work tasks that depends on the wait task
+  for (size_t i = 0; i < workTaskCount; i++)
+  {
+    auto workTask = new HiCR::tasking::Task(workExecutionUnit);
+    taskr.addTaskDependency(workTask, waitTask);
+    taskr.addTask(workTask);
+  }
+
+  // Adding work task
   taskr.addTask(waitTask);
 
-  // Then creating another batch of work tasks
-  for (size_t i = 0; i < workTaskCount; i++)
-  {
-    auto workTask = new HiCR::tasking::Task(workTaskCount + i + 1, workExecutionUnit);
-    workTask->addTaskDependency(workTaskCount + 1);
-    taskr.addTask(workTask);
-  }
-
   // Running taskr
+  printf("Starting...\n");
   taskr.run(&computeManager);
-
-  printf("Finished all tasks.\n");
+  printf("Finished.\n");
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

@@ -26,18 +26,23 @@ uint64_t fibonacci(const uint64_t x)
   auto     fibFc1  = _computeManager->createExecutionUnit([&]() { result1 = fibonacci(x - 1); });
   auto     fibFc2  = _computeManager->createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
 
-  uint64_t taskId1 = _taskCounter.fetch_add(1);
-  uint64_t taskId2 = _taskCounter.fetch_add(1);
+  // Creating two new tasks
+  _taskCounter.fetch_add(2);
+  auto task1 = new HiCR::tasking::Task(fibFc1);
+  auto task2 = new HiCR::tasking::Task(fibFc2);
 
-  auto task1 = new HiCR::tasking::Task(taskId1, fibFc1);
-  auto task2 = new HiCR::tasking::Task(taskId2, fibFc2);
+   // Getting the current task
+  const auto currentTask = _taskr->getCurrentTask();
 
+   // Adding dependencies with the newly created tasks
+  _taskr->addTaskDependency(currentTask, task1);
+  _taskr->addTaskDependency(currentTask, task2);
+
+   // Adding new tasks to TaskR
   _taskr->addTask(task1);
   _taskr->addTask(task2);
 
-  _taskr->getCurrentTask()->addTaskDependency(taskId1);
-  _taskr->getCurrentTask()->addTaskDependency(taskId2);
-
+  // Suspending current task
   _taskr->getCurrentTask()->suspend();
 
   return result1 + result2;
@@ -48,13 +53,10 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   // Initializing taskr with the appropriate amount of max tasks
   taskr::Runtime taskr(fibonacciTaskCount[initialValue]);
 
-  // Setting event handler to re-add task to the queue after it suspended itself
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskSuspend, [&](HiCR::tasking::Task *task) { taskr.awakenTask(task); });
-
   // Setting global variables
   _taskr          = &taskr;
   _computeManager = computeManager;
-  _taskCounter    = 0;
+  _taskCounter    = 1;
 
   // Assigning processing resource to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
@@ -66,7 +68,7 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   auto initialFc = computeManager->createExecutionUnit([&]() { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
-  auto initialTask = new HiCR::tasking::Task(_taskCounter.fetch_add(1), initialFc);
+  auto initialTask = new HiCR::tasking::Task(initialFc);
   taskr.addTask(initialTask);
 
   // Running taskr

@@ -12,10 +12,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <queue>
 #include <vector>
-#include <mutex>
 #include <hicr/core/definitions.hpp>
 #include <hicr/core/exceptions.hpp>
 #include <hicr/core/L0/executionState.hpp>
@@ -47,11 +47,6 @@ extern pthread_key_t _taskPointerKey;
 class Task
 {
   public:
-
-  /**
-   * Task label type
-   */
-  typedef uint64_t label_t;
 
   /**
    * Enumeration of possible task-related events that can trigger a user-defined function callback
@@ -88,16 +83,14 @@ class Task
   ~Task() = default;
 
   /**
-   * Constructor for the TaskR task class. It requires a user-defined function to execute and a label.
+   * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    *
-   * @param[in] label A user-defined unique identifier for the task. It is required for dependency management
    * @param[in] executionUnit Specifies the function/kernel to execute.
    * @param[in] eventMap Pointer to the event map callbacks to be called by the task
    */
-  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, taskEventMap_t *eventMap = NULL)
-    : _label(label),
-      _executionUnit(executionUnit),
+  __INLINE__ Task(std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, taskEventMap_t *eventMap = NULL)
+    : _executionUnit(executionUnit),
       _eventMap(eventMap){};
 
   /**
@@ -177,9 +170,6 @@ class Task
    */
   __INLINE__ void run()
   {
-    // Preventing this function from being accessed simultaneously (that would be a bug in the callers code)
-    _mutex.lock();
-
     if (_isInitialized == false) HICR_THROW_RUNTIME("HiCR Tasking functionality was not yet initialized");
 
     if (getState() != HiCR::L0::ExecutionState::state_t::initialized && getState() != HiCR::L0::ExecutionState::state_t::suspended)
@@ -212,9 +202,6 @@ class Task
 
     // Relenting current task pointer
     pthread_setspecific(_taskPointerKey, NULL);
-
-    // Releasing lock
-    _mutex.unlock();
   }
 
   /**
@@ -232,38 +219,42 @@ class Task
   }
 
   /**
-   * Returns the task's label
-   *
-   * \return The task's label
-   */
-  __INLINE__ label_t getLabel() const { return _label; }
-
-  /**
    * Adds an execution depedency to this task. This means that this task will not be ready to execute until and unless
-   * the task referenced by this label has finished executing.
+   * the referenced task has finished executing.
    *
-   * \param[in] task The label of the task upon whose completion this task should depend
+   * \param[in] task A pointer to the task whose completion this task should depend
    */
-  __INLINE__ void addTaskDependency(const label_t task) { _taskDependencies.push_back(task); };
+  __INLINE__ void addOutputTaskDependency(Task* task) { _outputTaskDependencies.push_back(task); };
 
-  /**
-   * Returns Returns this task's dependency list.
+    /**
+   * Returns this task's output dependency list.
    *
    * \return A constant reference to this task's dependencies vector.
    */
-  __INLINE__ const std::vector<label_t> &getDependencies() { return _taskDependencies; }
+  __INLINE__ const std::vector<Task*> &getOutputTaskDependencies() { return _outputTaskDependencies; }
+
+   /**
+   * Atomically increases task dependency count by one, representing the addition of a dependency (task or otherwise)
+   * 
+   * @return Returns the previous value
+   */
+  __INLINE__ size_t increaseInputDependencyCounter() { return _inputDependencyCounter.fetch_add(1);  }
+
+  /**
+   * Atomically decreases task dependency count by one, representing the fulfilling of a dependency (task or otherwise)
+   * 
+   * @return Returns the previous value
+   */
+  __INLINE__ size_t decreaseInputDependencyCounter() { return _inputDependencyCounter.fetch_sub(1); }
+
+    /**
+   * Gets the current (not atomic) value of the input dependency counter
+   * 
+   * @return The current value of the input dependency counter
+   */
+  __INLINE__ size_t getInputDependencyCounter() { return _inputDependencyCounter.load(); }
 
   private:
-
-  /**
-   * Tasks's label, chosen by the user
-   */
-  const label_t _label;
-
-  /**
-   * Task execution dependency list. The task will be ready only if this container is empty.
-   */
-  std::vector<label_t> _taskDependencies;
 
   /**
    * Execution unit that will be instantiated and executed by this task
@@ -281,9 +272,14 @@ class Task
   std::unique_ptr<HiCR::L0::ExecutionState> _executionState = NULL;
 
   /**
-   * Mutex to prevent task from being executed concurrently
-  */
-  std::mutex _mutex;
+   * Counter for task dependencies. The task is ready only if this counter is zero
+   */
+  std::atomic<size_t> _inputDependencyCounter = 0;
+
+   /**
+   * Task output task dependency list. These tasks will be notified when this task finishes.
+   */
+  std::vector<Task*> _outputTaskDependencies;
 
 }; // class Task
 

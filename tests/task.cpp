@@ -21,7 +21,7 @@ TEST(Task, Construction)
   HiCR::tasking::Task                     *t = NULL;
   std::shared_ptr<HiCR::L0::ExecutionUnit> u(NULL);
 
-  EXPECT_NO_THROW(t = new HiCR::tasking::Task(0, u, NULL));
+  EXPECT_NO_THROW(t = new HiCR::tasking::Task(u, NULL));
   EXPECT_FALSE(t == nullptr);
   delete t;
 }
@@ -29,7 +29,7 @@ TEST(Task, Construction)
 TEST(Task, SetterAndGetters)
 {
   std::shared_ptr<HiCR::L0::ExecutionUnit> u(NULL);
-  HiCR::tasking::Task                      t(0, u, NULL);
+  HiCR::tasking::Task                      t(u, NULL);
 
   HiCR::tasking::Task::taskEventMap_t e;
   EXPECT_NO_THROW(t.setEventMap(&e));
@@ -77,7 +77,7 @@ TEST(Task, Run)
   auto u = c.createExecutionUnit(f);
 
   // Creating task
-  t = new HiCR::tasking::Task(0, u);
+  t = new HiCR::tasking::Task(u);
 
   // Initializing HWLoc-based host (CPU) topology manager
   HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
@@ -178,7 +178,7 @@ TEST(Task, Events)
   auto u = c.createExecutionUnit(f);
 
   // Creating task
-  t = new HiCR::tasking::Task(0, u);
+  t = new HiCR::tasking::Task(u);
 
   // Initializing HWLoc-based host (CPU) topology manager
   HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
@@ -229,7 +229,7 @@ TEST(Task, Events)
     "Delete worked");
 
   // Creating a task with an event map to make sure the functions are ran
-  t = new HiCR::tasking::Task(1, u);
+  t = new HiCR::tasking::Task(u);
 
   // Creating execution state
   executionState = c.createExecutionState(t->getExecutionUnit());
