@@ -97,6 +97,12 @@ class Runtime
   const size_t _maxWorkers;
 
   /**
+   * Custom callback for task termination. Useful for freeing up task memory during execution
+   */
+  bool _customOnTaskFinishCallbackDefined = false;
+  HiCR::tasking::eventCallback_t<HiCR::tasking::Task> _customOnTaskFinishCallbackFunction;
+
+  /**
    * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
    * It will put any calling worker to sleep if the number of active workers exceed the maximum.
    * If the number of active workers is smaller than the maximum, it will try to 'wake up' other suspended workers, if any,
@@ -175,12 +181,25 @@ class Runtime
   {
     delete _dispatcher;
     delete _eventMap;
+    delete _waitingTaskQueue;
+    delete _suspendedWorkerQueue;
   }
 
   /**
    * This function allow setting up an event handler
   */
-  __INLINE__ void setEventHandler(const HiCR::tasking::Task::event_t event, HiCR::tasking::eventCallback_t<HiCR::tasking::Task> fc) { _eventMap->setEvent(event, fc); }
+  __INLINE__ void setEventHandler(const HiCR::tasking::Task::event_t event, HiCR::tasking::eventCallback_t<HiCR::tasking::Task> fc)
+  { 
+    // Since TaskR needs to use the on task finish, we need to consider this as a special case
+    if (event == HiCR::tasking::Task::event_t::onTaskFinish)
+    {
+      _customOnTaskFinishCallbackFunction = fc;
+      _customOnTaskFinishCallbackDefined = true;
+    }
+
+    // Otherwise, simply assingn the callback into the event map
+    else _eventMap->setEvent(event, fc);
+  }
 
   /**
    * This function adds a processing unit to be used by TaskR in the execution of tasks
@@ -257,6 +276,9 @@ class Runtime
 
     // Decreasing overall task count
     _taskCount--;
+
+    // Calling custom task finish callback, if defined
+    if (_customOnTaskFinishCallbackDefined) _customOnTaskFinishCallbackFunction(task);
   }
 
   /**
