@@ -15,12 +15,13 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include "./common.hpp"
 #include "./tasking.hpp"
 #include <hicr/core/concurrent/queue.hpp>
-#include <hicr/core/concurrent/hashSet.hpp>
+#include <hicr/core/concurrent/hashMap.hpp>
 
-#define __TASKR_DEFAULT_MAX_TASKS 65536
-#define __TASKR_DEFAULT_MAX_WORKERS 1024
+#define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 65536
+#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 4096
 
 namespace taskr
 {
@@ -35,11 +36,6 @@ class Runtime
   private:
 
   /**
-   * Pointer to the internal HiCR event map, required to capture finishing or yielding tasks
-   */
-  HiCR::tasking::Task::taskEventMap_t *_eventMap;
-
-  /**
    * Single dispatcher that distributes pending tasks to idle workers as they become idle
    */
   HiCR::tasking::Dispatcher *_dispatcher;
@@ -50,10 +46,9 @@ class Runtime
   std::vector<HiCR::tasking::Worker *> _workers;
 
   /**
-   * Stores the current number of active tasks. This is an atomic counter that, upon reaching zero,
-   * indicates that no more work remains to be done and the runtime system may return execution to the user.
+   * indicates whether the runtime must continue running or finish
    */
-  std::atomic<uint64_t> _taskCount;
+  bool _continueRunning = false;
 
   /**
    * Mutex for the active worker queue, required for the max active workers mechanism
@@ -72,9 +67,9 @@ class Runtime
   ssize_t _activeWorkerCount;
 
   /**
-   * Lock-free queue for waiting tasks.
+   * Lock-free queue for ready tasks.
    */
-  HiCR::concurrent::Queue<HiCR::tasking::Task> *_waitingTaskQueue;
+  HiCR::concurrent::Queue<HiCR::tasking::Task> *_readyTaskQueue;
 
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism
@@ -87,7 +82,7 @@ class Runtime
   std::vector<std::unique_ptr<HiCR::L0::ProcessingUnit>> _processingUnits;
 
   /**
-   * Determines the maximum amount of tasks (required by the lock-free queue)
+   * Determines the maximum amount of active tasks (required by the lock-free queue)
   */
   const size_t _maxTasks;
 
@@ -100,7 +95,7 @@ class Runtime
    * Custom callback for task termination. Useful for freeing up task memory during execution
    */
   bool _customOnTaskFinishCallbackDefined = false;
-  HiCR::tasking::eventCallback_t<HiCR::tasking::Task> _customOnTaskFinishCallbackFunction;
+  HiCR::tasking::callbackCallback_t<HiCR::tasking::Task> _customOnTaskFinishCallbackFunction;
 
   /**
    * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
@@ -166,13 +161,12 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    */
-  Runtime(const size_t maxTasks = __TASKR_DEFAULT_MAX_TASKS, const size_t maxWorkers = __TASKR_DEFAULT_MAX_WORKERS)
+  Runtime(const size_t maxTasks = __TASKR_DEFAULT_MAX_ACTIVE_TASKS, const size_t maxWorkers = __TASKR_DEFAULT_MAX_ACTIVE_WORKERS)
     : _maxTasks(maxTasks),
       _maxWorkers(maxWorkers)
   {
-    _dispatcher           = new HiCR::tasking::Dispatcher([this]() { return checkWaitingTasks(); });
-    _eventMap             = new HiCR::tasking::Task::taskEventMap_t();
-    _waitingTaskQueue     = new HiCR::concurrent::Queue<HiCR::tasking::Task>(maxTasks);
+    _dispatcher           = new HiCR::tasking::Dispatcher([this]() { return pullReadyTask(); });
+    _readyTaskQueue     = new HiCR::concurrent::Queue<HiCR::tasking::Task>(maxTasks);
     _suspendedWorkerQueue = new HiCR::concurrent::Queue<HiCR::tasking::Worker>(maxWorkers);
   }
 
@@ -180,25 +174,8 @@ class Runtime
   ~Runtime()
   {
     delete _dispatcher;
-    delete _eventMap;
-    delete _waitingTaskQueue;
+    delete _readyTaskQueue;
     delete _suspendedWorkerQueue;
-  }
-
-  /**
-   * This function allow setting up an event handler
-  */
-  __INLINE__ void setEventHandler(const HiCR::tasking::Task::event_t event, HiCR::tasking::eventCallback_t<HiCR::tasking::Task> fc)
-  { 
-    // Since TaskR needs to use the on task finish, we need to consider this as a special case
-    if (event == HiCR::tasking::Task::event_t::onTaskFinish)
-    {
-      _customOnTaskFinishCallbackFunction = fc;
-      _customOnTaskFinishCallbackDefined = true;
-    }
-
-    // Otherwise, simply assingn the callback into the event map
-    else _eventMap->setEvent(event, fc);
   }
 
   /**
@@ -228,57 +205,8 @@ class Runtime
    */
   __INLINE__ void addTask(HiCR::tasking::Task *task)
   {
-    // Increasing task count
-    _taskCount++;
-
-    // If the task has no dependencies, set it as ready to run
-    if (task->getInputDependencyCounter() == 0) _waitingTaskQueue->push(task);
-  }
-
-  /**
-   * Resume a suspended task.
-   *
-   * \param[in] task Task to resume.
-   */
-  __INLINE__ void resumeTask(HiCR::tasking::Task *task)
-  {
-    // If the task has no dependencies, set it as ready to run
-    if (task->getInputDependencyCounter() == 0) _waitingTaskQueue->push(task);
-  }
-
-  __INLINE__ void addTaskDependency(HiCR::tasking::Task* dependentTask, HiCR::tasking::Task* dependedTask)
-  {
-    // Adding increasing dependency counter of the dependent
-    dependentTask->increaseInputDependencyCounter();
-
-    // Adding output dependency in the depended task
-    dependedTask->addOutputTaskDependency(dependentTask);
-  }
-
-  /**
-   * A callback function for HiCR to run upon the finalization of a given task. It adds the finished task's label to the finished task hashmap
-   * (required for dependency management of any tasks that depend on this task) and terminates execution of the current worker if all tasks have
-   * finished.
-   *
-   * \param[in] task Finalized task pointer
-   */
-  __INLINE__ void onTaskFinish(HiCR::tasking::Task *task)
-  {
-    // Decreasing input dependency counter for tasks depending on this one
-    for (const auto dependentTask : task->getOutputTaskDependencies())
-    {
-      // Now decreasing counter  
-      auto previousCounterValue = dependentTask->decreaseInputDependencyCounter();
-   
-      // If the task is now ready, push it to the waiting task queue
-      if (previousCounterValue == 1) _waitingTaskQueue->push(dependentTask);
-    }
-
-    // Decreasing overall task count
-    _taskCount--;
-
-    // Calling custom task finish callback, if defined
-    if (_customOnTaskFinishCallbackDefined) _customOnTaskFinishCallbackFunction(task);
+    // Add task to the ready queue
+    _readyTaskQueue->push(task);
   }
 
   /**
@@ -289,10 +217,10 @@ class Runtime
    *
    * \return A pointer to a HiCR task to execute. NULL if there are no pending tasks.
    */
-  __INLINE__ HiCR::tasking::Task *checkWaitingTasks()
+  __INLINE__ HiCR::tasking::Task *pullReadyTask()
   {
     // If all tasks finished, then terminate execution immediately
-    if (_taskCount == 0)
+    if (_continueRunning == false)
     {
       // Getting a pointer to the currently executing worker
       auto worker = HiCR::tasking::Worker::getCurrentWorker();
@@ -308,14 +236,10 @@ class Runtime
     checkMaximumActiveWorkerCount();
 
     // Poping next task from the lock-free queue
-    auto task = _waitingTaskQueue->pop();
+    auto task = _readyTaskQueue->pop();
 
     // If no task was found (queue was empty), then return an empty task
     if (task == NULL) return NULL;
-
-    // If a task was found (queue was not empty), then execute and manage the
-    // task depending on its state
-    task->setEventMap(_eventMap);
 
     // Returning ready task
     return task;
@@ -333,8 +257,8 @@ class Runtime
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
 
-    // Creating event map ands events
-    _eventMap->setEvent(HiCR::tasking::Task::event_t::onTaskFinish, [this](HiCR::tasking::Task *task) { onTaskFinish(task); });
+    // Set runtime as running
+    _continueRunning = true;
 
     // Creating one worker per processung unit in the list
     for (auto &pu : _processingUnits)
@@ -370,6 +294,14 @@ class Runtime
 
     // Finalizing HiCR tasking
     HiCR::tasking::finalize();
+  }
+ 
+  /*
+  * Signals the runtime to finalize as soon as possible
+  */
+  __INLINE__ void finalize()
+  {
+     _continueRunning = false;
   }
 
   /**
