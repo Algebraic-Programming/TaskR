@@ -77,7 +77,7 @@ class Task
   /**
    * Type definition for the task's callback map
    */
-  typedef HiCR::tasking::CallbackMap<Task, callback_t> taskCallbackMap_t;
+  typedef HiCR::tasking::CallbackMap<Task*, callback_t> taskCallbackMap_t;
 
   Task()  = delete;
   ~Task() = default;

@@ -28,6 +28,12 @@ extern bool _isInitialized;
 */
 typedef uint64_t uniqueId_t;
 
+/**
+ * Definition for an callback callback. It includes a reference to the finished task
+ */
+template <class T>
+using callbackFc_t = std::function<void(T)>;
+
 } // namespace tasking
 
 } // namespace HiCR

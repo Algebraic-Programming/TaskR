@@ -14,18 +14,13 @@
 
 #include <map>
 #include <hicr/core/definitions.hpp>
+#include "./common.hpp"
 
 namespace HiCR
 {
 
 namespace tasking
 {
-
-/**
- * Definition for an callback callback. It includes a reference to the finished task
- */
-template <class T>
-using callbackCallback_t = std::function<void(T *)>;
 
 /**
  * Defines a map that relates task-related callbacks to their corresponding callback.
@@ -55,7 +50,7 @@ class CallbackMap
    * \param[in] callback The callback to add
    * \param[in] fc The callback function to call when the callback is triggered
    */
-  __INLINE__ void setCallback(const E callback, callbackCallback_t<T> fc) { _callbackMap[callback] = fc; }
+  __INLINE__ void setCallback(const E callback, callbackFc_t<T> fc) { _callbackMap[callback] = fc; }
 
   /**
    * Triggers the execution of the callback function for a given callback
@@ -63,7 +58,7 @@ class CallbackMap
    * \param[in] arg The argument to the trigger function.
    * \param[in] callback The triggered callback.
    */
-  __INLINE__ void trigger(T *arg, const E callback) const
+  __INLINE__ void trigger(T arg, const E callback) const
   {
     if (_callbackMap.contains(callback)) _callbackMap.at(callback)(arg);
   }
@@ -73,7 +68,7 @@ class CallbackMap
   /**
    * Internal storage for the callback map
    */
-  std::map<E, callbackCallback_t<T>> _callbackMap;
+  std::map<E, callbackFc_t<T>> _callbackMap;
 };
 
 } // namespace tasking

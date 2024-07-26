@@ -95,7 +95,7 @@ class Runtime
    * Custom callback for task termination. Useful for freeing up task memory during execution
    */
   bool _customOnTaskFinishCallbackDefined = false;
-  HiCR::tasking::callbackCallback_t<HiCR::tasking::Task> _customOnTaskFinishCallbackFunction;
+  HiCR::tasking::callbackFc_t<HiCR::tasking::Task> _customOnTaskFinishCallbackFunction;
 
   /**
    * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
