@@ -54,7 +54,7 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
   callbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [&](HiCR::tasking::Task *task)
   {
     // Getting task label
-    auto taskLabel = ((abcTask*)taskr.getCurrentTask())->getLabel();
+    auto taskLabel = ((abcTask*)task)->getLabel();
 
     // If this is the last task, we can finish now
     if (taskLabel ==  3 * ITERATIONS - 1) taskr.finalize();
@@ -77,9 +77,9 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
   for (size_t i = 1; i < ITERATIONS; i++) dependencyManager.addDependency(i * 3 + 0, i * 3 - 1);
 
   // Now creating tasks
-  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 2] = new abcTask(i * 3 + 2, taskCfc, &callbackMap);
-  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 1] = new abcTask(i * 3 + 1, taskBfc, &callbackMap); 
-  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 0] = new abcTask(i * 3 + 0, taskAfc, &callbackMap); 
+  for (size_t i = 0; i < ITERATIONS; i++) { auto taskId = i * 3 + 1; tasks[taskId] = new abcTask(taskId, taskBfc, &callbackMap); }
+  for (size_t i = 0; i < ITERATIONS; i++) { auto taskId = i * 3 + 0; tasks[taskId] = new abcTask(taskId, taskAfc, &callbackMap); }
+  for (size_t i = 0; i < ITERATIONS; i++) { auto taskId = i * 3 + 2; tasks[taskId] = new abcTask(taskId, taskCfc, &callbackMap); }
   
   // Adding initial task
   taskr.addTask(tasks[0]);
