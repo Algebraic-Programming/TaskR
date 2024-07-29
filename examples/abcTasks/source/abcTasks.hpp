@@ -2,7 +2,7 @@
 #include <hicr/core/L0/device.hpp>
 #include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/runtime.hpp>
-#include <taskr/dependencyManager.hpp>
+#include <hicr/frontends/tasking/dependencyManager.hpp>
 
 #define ITERATIONS 10
 
@@ -60,7 +60,7 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
     if (taskLabel ==  3 * ITERATIONS - 1) taskr.finalize();
    
     // Notifying dependency manager of the completion of this task
-    dependencyManager.triggerEvent(taskLabel);
+    dependencyManager.satisfyEvent(taskLabel);
 
     // Free-up memory now the task is finished 
     delete task;

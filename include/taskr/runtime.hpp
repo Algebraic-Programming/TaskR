@@ -15,10 +15,11 @@
 #include <atomic>
 #include <map>
 #include <mutex>
-#include "./common.hpp"
-#include "./tasking.hpp"
+#include <hicr/frontends/tasking/common.hpp>
+#include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
+#include "task.hpp"
 
 #define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 65536
 #define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 4096
