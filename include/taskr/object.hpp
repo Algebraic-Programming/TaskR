@@ -72,14 +72,14 @@ class Object
    * 
    * @return The new number of input dependencies
    */
-  __INLINE__ ssize_t increaseInputDependencyCounter() { return (_inputDependencyCounter.fetch_add(1)) + 1; }
+  __INLINE__ ssize_t increaseInputDependencyCounter() { return _inputDependencyCounter.fetch_add(1) + 1; }
 
   /**
    * Decreases the input dependency counter by one, and returns the new value atomically
    * 
    * @return The new number of input dependencies
    */
-  __INLINE__ ssize_t decreaseInputDependencyCounter() { return (_inputDependencyCounter.fetch_sub(1)) - 1; }
+  __INLINE__ ssize_t decreaseInputDependencyCounter() { return _inputDependencyCounter.fetch_sub(1) - 1; }
 
   //// Output dependency management
 

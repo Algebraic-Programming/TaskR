@@ -78,7 +78,7 @@ class Runtime
         auto newValue = dependentTask->Object::decreaseInputDependencyCounter();
 
         // If the new value is zero and task is ready to go, add it back now
-        if (newValue == 0 && dependentTask->isReady()) resumeTask(dependentTask);
+        if (newValue == 0) tryResumeTask(dependentTask);
       }
 
       // If defined, trigger user-defined event
@@ -162,7 +162,7 @@ class Runtime
     _taskMap[taskLabel] = task;
 
     // If the task is ready, add it to the ready queue
-    if (task->isReady()) _readyTaskQueue->push(task);
+    tryResumeTask(task);
   }
 
   /** 
@@ -173,7 +173,7 @@ class Runtime
   __INLINE__ void tryResumeTask(taskr::Task *task)
   {
     // Add task to the ready queue, only if its ready
-    _readyTaskQueue->push(task);
+    if (task->isReady()) _readyTaskQueue->push(task);
   }
 
   /**
