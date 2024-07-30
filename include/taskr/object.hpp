@@ -23,7 +23,7 @@ namespace taskr
 /**
  * This class defines an abstract object in TaskR, which contains a label and dependencies.
  */
-class Object 
+class Object
 {
   public:
 
@@ -40,7 +40,9 @@ class Object
    * 
    * @param[in] label The unique label to assign to this object
    */
-  Object(const label_t label) : _label(label) { }
+  Object(const label_t label)
+    : _label(label)
+  {}
 
   /**
    * Function to obtain the object's label
@@ -95,10 +97,10 @@ class Object
    * 
    * @return This object's set of output dependencies
    */
-  __INLINE__ const std::vector<HiCR::tasking::uniqueId_t>& getOutputDependencies() const { return _outputDependencies; }
+  __INLINE__ const std::vector<HiCR::tasking::uniqueId_t> &getOutputDependencies() const { return _outputDependencies; }
 
-  protected: 
-  
+  protected:
+
   /**
    * Unique identifier for the task
    */
@@ -113,7 +115,7 @@ class Object
    * This is a map that relates unique event ids to a set of its task dependents (i.e., output dependencies).
    */
   std::vector<HiCR::tasking::uniqueId_t> _outputDependencies;
-  
+
 }; // class Task
 
 } // namespace taskr

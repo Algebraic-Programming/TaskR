@@ -42,8 +42,10 @@ class Task final : public taskr::Object, public HiCR::tasking::Task
    * @param[in] label The unique label to assign to this task
    * @param[in] executionUnit Specifies the function/kernel to execute.
    */
-  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit) : taskr::Object(label), HiCR::tasking::Task(executionUnit, nullptr)
-    { }
+  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit)
+    : taskr::Object(label),
+      HiCR::tasking::Task(executionUnit, nullptr)
+  {}
 
   __INLINE__ bool isReady() const override
   {
@@ -54,7 +56,7 @@ class Task final : public taskr::Object, public HiCR::tasking::Task
 
     return ready;
   }
-  
+
 }; // class Task
 
 } // namespace taskr

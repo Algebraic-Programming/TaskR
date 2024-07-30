@@ -18,11 +18,11 @@
 namespace taskr
 {
 
-  /**
+/**
    * Returns the currently executing TaskR task
    *
    * \return A pointer to the currently executing TaskR task
    */
-  __INLINE__ taskr::Task *getCurrentTask() { return (taskr::Task *)HiCR::tasking::Task::getCurrentTask(); }
+__INLINE__ taskr::Task *getCurrentTask() { return (taskr::Task *)HiCR::tasking::Task::getCurrentTask(); }
 
 } // namespace taskr

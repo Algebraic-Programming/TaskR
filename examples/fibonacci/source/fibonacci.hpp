@@ -23,10 +23,10 @@ uint64_t fibonacci(const uint64_t x)
   auto task1 = new taskr::Task(_taskCounter++, fibFc1);
   auto task2 = new taskr::Task(_taskCounter++, fibFc2);
 
-   // Getting the current task
+  // Getting the current task
   const auto currentTask = taskr::getCurrentTask();
 
-   // Adding dependencies with the newly created tasks
+  // Adding dependencies with the newly created tasks
   _taskr->addDependency(currentTask, task1);
   _taskr->addDependency(currentTask, task2);
 

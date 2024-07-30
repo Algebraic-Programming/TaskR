@@ -53,81 +53,77 @@ class Runtime
     _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task* task)
-    {
-     // Getting TaskR task pointer
-     auto taskrTask = (taskr::Task*) task;
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) {
+      // Getting TaskR task pointer
+      auto taskrTask = (taskr::Task *)task;
 
-     // If defined, trigger user-defined event
-     this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
+      // If defined, trigger user-defined event
+      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
     });
 
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task* task)
-    {
-     // Getting TaskR task pointer
-     auto taskrTask = (taskr::Task*) task;
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) {
+      // Getting TaskR task pointer
+      auto taskrTask = (taskr::Task *)task;
 
-     // Getting task label
-     const auto taskLabel = taskrTask->getLabel();
+      // Getting task label
+      const auto taskLabel = taskrTask->getLabel();
 
-     // Notifying dependent tasks of the completion of this task
-     for (const auto dependentId : taskrTask->getOutputDependencies())
-     {
-       // Getting the corresponding task from its id
-       auto dependentTask = _taskMap[dependentId];
+      // Notifying dependent tasks of the completion of this task
+      for (const auto dependentId : taskrTask->getOutputDependencies())
+      {
+        // Getting the corresponding task from its id
+        auto dependentTask = _taskMap[dependentId];
 
-       // Decrease their input dependency counter
-       auto newValue = dependentTask->Object::decreaseInputDependencyCounter();
+        // Decrease their input dependency counter
+        auto newValue = dependentTask->Object::decreaseInputDependencyCounter();
 
-       // If the new value is zero and task is ready to go, add it back now
-       if (newValue == 0 && dependentTask->isReady()) resumeTask(dependentTask);
-     }
+        // If the new value is zero and task is ready to go, add it back now
+        if (newValue == 0 && dependentTask->isReady()) resumeTask(dependentTask);
+      }
 
-     // If defined, trigger user-defined event
-     this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+      // If defined, trigger user-defined event
+      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
-     // Removing task from the task map
-     _taskMap.erase(taskLabel);
+      // Removing task from the task map
+      _taskMap.erase(taskLabel);
 
-     // Free-up memory now the task is finished 
-     delete taskrTask;
+      // Free-up memory now the task is finished
+      delete taskrTask;
 
-     // If this is the last task, we can finish now
-     if (_taskMap.size() == 0) finalize();
+      // If this is the last task, we can finish now
+      if (_taskMap.size() == 0) finalize();
     });
 
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task*  task)
-    {
-     // Getting TaskR task pointer
-     auto taskrTask = (taskr::Task*) task;
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) {
+      // Getting TaskR task pointer
+      auto taskrTask = (taskr::Task *)task;
 
-     // If defined, trigger user-defined event
-     this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+      // If defined, trigger user-defined event
+      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
     });
 
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task* task)
-    {
-     // Getting TaskR task pointer
-     auto taskrTask = (taskr::Task*) task;
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) {
+      // Getting TaskR task pointer
+      auto taskrTask = (taskr::Task *)task;
 
-     // If defined, trigger user-defined event
-     this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
+      // If defined, trigger user-defined event
+      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
 
-     // If the task is ready, add it to the ready queue
-     if (taskrTask->isReady()) _readyTaskQueue->push(taskrTask);
+      // If the task is ready, add it to the ready queue
+      if (taskrTask->isReady()) _readyTaskQueue->push(taskrTask);
     });
   }
 
   // Destructor (frees previous allocations)
   ~Runtime() = default;
 
-   /**
+  /**
    * Adds a callback for a particular callback
    *
    * \param[in] event The callback event to assin the callback to
    * \param[in] fc The callback function to call when the event is triggered
    */
-  __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task*> fc) { _taskrCallbackMap.setCallback(event, fc); }
+  __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task *> fc) { _taskrCallbackMap.setCallback(event, fc); }
 
   /**
    * This function adds a processing unit to be used by TaskR in the execution of tasks
@@ -174,27 +170,27 @@ class Runtime
   *
   * \param[in] task Task to resume
   */
-  __INLINE__ void tryResumeTask(taskr::Task* task)
+  __INLINE__ void tryResumeTask(taskr::Task *task)
   {
-     // Add task to the ready queue, only if its ready
+    // Add task to the ready queue, only if its ready
     _readyTaskQueue->push(task);
   }
 
-   /**
+  /**
    * Adds a new dependency between two tasks
    * 
    * @param[in] dependentTask The task to add a new dependency on
    * @param[in] dependedTask the depended task of the event upon which the task depends
    * 
    */
-    __INLINE__ void addDependency(taskr::Task* const dependentTask, taskr::Task* const dependedTask)
-    {
-      // First, increase the task's input dependency counter
-      dependentTask->Object::increaseInputDependencyCounter();
+  __INLINE__ void addDependency(taskr::Task *const dependentTask, taskr::Task *const dependedTask)
+  {
+    // First, increase the task's input dependency counter
+    dependentTask->Object::increaseInputDependencyCounter();
 
-      // Then append the task as output dependency to the event
-      dependedTask->addOutputDependency(dependentTask->getLabel());
-    }
+    // Then append the task as output dependency to the event
+    dependedTask->addOutputDependency(dependentTask->getLabel());
+  }
 
   /**
    * This function represents the main loop of a worker that is looking for work to do.
@@ -265,7 +261,7 @@ class Runtime
       // Initializing worker
       worker->initialize();
     }
-    
+
     // Initializing active worker count
     _activeWorkerCount = _workers.size();
 
@@ -282,14 +278,11 @@ class Runtime
     // Finalizing HiCR tasking
     HiCR::tasking::finalize();
   }
- 
+
   /**
   * Signals the runtime to finalize as soon as possible
   */
-  __INLINE__ void finalize()
-  {
-     _continueRunning = false;
-  }
+  __INLINE__ void finalize() { _continueRunning = false; }
 
   private:
 
@@ -297,7 +290,7 @@ class Runtime
    * Type definition for the task's callback map
    */
   typedef HiCR::tasking::CallbackMap<taskr::Task *, HiCR::tasking::Task::callback_t> taskrCallbackMap_t;
-  
+
   /**
    *  HiCR callback map shared by all tasks
    */
@@ -357,12 +350,12 @@ class Runtime
   /**
    * Task map to relate a task label to its pointer
    */
-  HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task*> _taskMap;
+  HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task *> _taskMap;
 
   /**
    * Custom callback for task termination. Useful for freeing up task memory during execution
    */
-  bool _customOnTaskFinishCallbackDefined = false;
+  bool                                     _customOnTaskFinishCallbackDefined = false;
   HiCR::tasking::callbackFc_t<taskr::Task> _customOnTaskFinishCallbackFunction;
 
   /**
