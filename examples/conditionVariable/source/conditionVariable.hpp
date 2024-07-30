@@ -14,12 +14,6 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
   // Initializing taskr
   taskr::Runtime taskr;
 
-  // Setting callback handler on task sync to awaken the task that had been previously suspended on mutex
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](HiCR::tasking::Task *task) { taskr.resumeTask(task); });
-
-  // Setting callback handler on task finish to free up memory as soon as possible
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
-  
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
@@ -67,8 +61,8 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
     cv.notifyOne();
   });
 
-  taskr.addTask(new HiCR::tasking::Task(thread1Fc));
-  taskr.addTask(new HiCR::tasking::Task(thread2Fc));
+  taskr.addTask(new taskr::Task(0, thread1Fc));
+  taskr.addTask(new taskr::Task(1, thread2Fc));
 
   // Running taskr
   taskr.run(computeManager);

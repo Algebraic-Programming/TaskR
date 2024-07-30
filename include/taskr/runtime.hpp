@@ -70,7 +70,7 @@ class Runtime
        auto dependentTask = _taskMap[dependentId];
 
        // Decrease their input dependency counter
-       auto newValue = dependentTask->decreaseInputDependencyCounter();
+       auto newValue = dependentTask->Object::decreaseInputDependencyCounter();
 
        // If the new value is zero and task is ready to go, add it back now
        if (newValue == 0 && dependentTask->isReady()) resumeTask(dependentTask);
@@ -105,11 +105,22 @@ class Runtime
 
      // If defined, trigger user-defined event
      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
+
+     // If the task is ready, add it to the ready queue
+     if (taskrTask->isReady()) _readyTaskQueue->push(taskrTask);
     });
   }
 
   // Destructor (frees previous allocations)
   ~Runtime() = default;
+
+   /**
+   * Adds a callback for a particular callback
+   *
+   * \param[in] callback The callback to add
+   * \param[in] fc The callback function to call when the callback is triggered
+   */
+  __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task*> fc) { _taskrCallbackMap.setCallback(event, fc); }
 
   /**
    * This function adds a processing unit to be used by TaskR in the execution of tasks
@@ -172,7 +183,7 @@ class Runtime
     __INLINE__ void addDependency(taskr::Task* const dependentTask, taskr::Task* const dependedTask)
     {
       // First, increase the task's input dependency counter
-      dependentTask->increaseInputDependencyCounter();
+      dependentTask->Object::increaseInputDependencyCounter();
 
       // Then append the task as output dependency to the event
       dependedTask->addOutputDependency(dependentTask->getLabel());

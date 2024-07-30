@@ -2,7 +2,7 @@
 #include <hwloc.h>
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 
 void workFc(const size_t iterations)
 {
@@ -66,9 +66,6 @@ int main(int argc, char **argv)
   // Initializing taskr
   taskr::Runtime taskr;
 
-  // Setting callback handler on task finish to free up memory as soon as possible
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
-  
   // Creating task work execution unit
   auto workExecutionUnit = computeManager.createExecutionUnit([&iterations]() { workFc(iterations); });
 
@@ -86,21 +83,21 @@ int main(int argc, char **argv)
   }
 
   // Creating a single wait task that suspends all workers except for one
-  auto waitTask = new HiCR::tasking::Task(waitExecutionUnit);
+  auto waitTask = new taskr::Task(0, waitExecutionUnit);
 
   // Building task graph. First a lot of pure work tasks. The wait task depends on these
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new HiCR::tasking::Task(workExecutionUnit);
-    taskr.addTaskDependency(waitTask, workTask);
+    auto workTask = new taskr::Task(i + 1, workExecutionUnit);
+    taskr.addDependency(waitTask, workTask);
     taskr.addTask(workTask);
   }
 
   // Then creating another batch of work tasks that depends on the wait task
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new HiCR::tasking::Task(workExecutionUnit);
-    taskr.addTaskDependency(workTask, waitTask);
+    auto workTask = new taskr::Task(workTaskCount + i + 1, workExecutionUnit);
+    taskr.addDependency(workTask, waitTask);
     taskr.addTask(workTask);
   }
 
@@ -108,7 +105,7 @@ int main(int argc, char **argv)
   taskr.addTask(waitTask);
 
   // Running taskr
-  printf("Starting...\n");
+  printf("Starting (open 'htop' in another console to see the workers going to sleep during the long task)...\n");
   taskr.run(&computeManager);
   printf("Finished.\n");
 

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 
 #define TASK_LABEL 42
 
@@ -31,9 +31,6 @@ int main(int argc, char **argv)
   // Initializing taskr
   taskr::Runtime taskr;
 
-  // Setting callback handler on task finish to free up memory as soon as possible
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
-
   // Create processing units from the detected compute resource list and giving them to taskr
   for (auto resource : computeResources)
   {
@@ -47,12 +44,12 @@ int main(int argc, char **argv)
   // Creating task  execution unit
   auto taskExecutionUnit = computeManager.createExecutionUnit([&taskr]() {
     // Printing associated task label
-    const auto myTask = taskr.getCurrentTask();
-    printf("Current TaskR Task: %p\n", myTask);
+    const auto myTask = taskr::getCurrentTask();
+    printf("Current Task Pointer: %p and Label: %lu.\n", myTask, myTask->getLabel());
   });
 
   // Creating a single task to print the internal references
-  taskr.addTask(new HiCR::tasking::Task(taskExecutionUnit));
+  taskr.addTask(new taskr::Task(TASK_LABEL, taskExecutionUnit));
 
   // Running taskr
   taskr.run(&computeManager);
