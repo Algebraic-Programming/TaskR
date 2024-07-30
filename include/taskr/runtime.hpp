@@ -21,7 +21,14 @@
 #include <hicr/core/concurrent/hashMap.hpp>
 #include "task.hpp"
 
+/**
+ * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active task queue
+ */
 #define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 157810688
+
+/**
+ * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active worker queue
+ */
 #define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 65536
 
 namespace taskr
@@ -117,8 +124,8 @@ class Runtime
    /**
    * Adds a callback for a particular callback
    *
-   * \param[in] callback The callback to add
-   * \param[in] fc The callback function to call when the callback is triggered
+   * \param[in] event The callback event to assin the callback to
+   * \param[in] fc The callback function to call when the event is triggered
    */
   __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task*> fc) { _taskrCallbackMap.setCallback(event, fc); }
 
@@ -167,9 +174,9 @@ class Runtime
   *
   * \param[in] task Task to resume
   */
-  __INLINE__ void resumeTask(taskr::Task* task)
+  __INLINE__ void tryResumeTask(taskr::Task* task)
   {
-     // Add task to the ready queue
+     // Add task to the ready queue, only if its ready
     _readyTaskQueue->push(task);
   }
 
@@ -276,7 +283,7 @@ class Runtime
     HiCR::tasking::finalize();
   }
  
-  /*
+  /**
   * Signals the runtime to finalize as soon as possible
   */
   __INLINE__ void finalize()

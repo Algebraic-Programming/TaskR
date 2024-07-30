@@ -39,8 +39,8 @@ class Task final : public taskr::Object, public HiCR::tasking::Task
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    *
+   * @param[in] label The unique label to assign to this task
    * @param[in] executionUnit Specifies the function/kernel to execute.
-   * @param[in] callbackMap Pointer to the callback map callbacks to be called by the task
    */
   __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit) : taskr::Object(label), HiCR::tasking::Task(executionUnit, nullptr)
     { }
