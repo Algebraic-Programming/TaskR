@@ -41,9 +41,9 @@ class Runtime
    */
   Runtime()
   {
-    _dispatcher           = new HiCR::tasking::Dispatcher([this]() { return pullReadyTask(); });
-    _readyTaskQueue     = new HiCR::concurrent::Queue<taskr::Task>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
-    _suspendedWorkerQueue = new HiCR::concurrent::Queue<HiCR::tasking::Worker>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
+    _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
+    _readyTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
+    _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task* task)
@@ -109,12 +109,7 @@ class Runtime
   }
 
   // Destructor (frees previous allocations)
-  ~Runtime()
-  {
-    delete _dispatcher;
-    delete _readyTaskQueue;
-    delete _suspendedWorkerQueue;
-  }
+  ~Runtime() = default;
 
   /**
    * This function adds a processing unit to be used by TaskR in the execution of tasks
@@ -244,7 +239,7 @@ class Runtime
       worker->addProcessingUnit(std::move(pu));
 
       // Assigning worker to the common dispatcher
-      worker->subscribe(_dispatcher);
+      worker->subscribe(_dispatcher.get());
 
       // Finally adding worker to the worker set
       _workers.push_back(worker);
@@ -298,7 +293,7 @@ class Runtime
   /**
    * Single dispatcher that distributes pending tasks to idle workers as they become idle
    */
-  HiCR::tasking::Dispatcher *_dispatcher;
+  std::unique_ptr<HiCR::tasking::Dispatcher> _dispatcher;
 
   /**
    * Set of workers assigned to execute tasks
@@ -329,12 +324,12 @@ class Runtime
   /**
    * Lock-free queue for ready tasks.
    */
-  HiCR::concurrent::Queue<taskr::Task> *_readyTaskQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _readyTaskQueue;
 
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism
    */
-  HiCR::concurrent::Queue<HiCR::tasking::Worker> *_suspendedWorkerQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<HiCR::tasking::Worker>> _suspendedWorkerQueue;
 
   /**
    * The processing units assigned to taskr to run workers from
