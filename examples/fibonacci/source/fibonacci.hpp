@@ -2,18 +2,11 @@
 #include <chrono>
 #include <hicr/core/L0/device.hpp>
 #include <hicr/backends/host/L1/computeManager.hpp>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 
 static HiCR::backend::host::L1::ComputeManager *_computeManager;
 static taskr::Runtime                          *_taskr;
 static std::atomic<uint64_t>                    _taskCounter;
-
-// This function serves to encode a fibonacci task label
-inline const uint64_t getFibonacciLabel(const uint64_t x, const uint64_t _initialValue) { return _initialValue; }
-
-// Lookup table for the number of tasks required for every fibonacci number
-uint64_t fibonacciTaskCount[] = {1,    1,    3,    5,     9,     15,    25,    41,    67,     109,    177,    287,    465,     753,     1219,   1973,
-                                 3193, 5167, 8361, 13529, 21891, 35421, 57313, 92735, 150049, 242785, 392835, 635621, 1028457, 1664079, 2692537};
 
 // Fibonacci without memoization to stress the tasking runtime
 uint64_t fibonacci(const uint64_t x)
@@ -27,23 +20,22 @@ uint64_t fibonacci(const uint64_t x)
   auto     fibFc2  = _computeManager->createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
 
   // Creating two new tasks
-  _taskCounter.fetch_add(2);
-  auto task1 = new HiCR::tasking::Task(fibFc1);
-  auto task2 = new HiCR::tasking::Task(fibFc2);
+  auto task1 = new taskr::Task(_taskCounter++, fibFc1);
+  auto task2 = new taskr::Task(_taskCounter++, fibFc2);
 
-   // Getting the current task
-  const auto currentTask = _taskr->getCurrentTask();
+  // Getting the current task
+  const auto currentTask = taskr::getCurrentTask();
 
-   // Adding dependencies with the newly created tasks
-  _taskr->addTaskDependency(currentTask, task1);
-  _taskr->addTaskDependency(currentTask, task2);
+  // Adding dependencies with the newly created tasks
+  _taskr->addDependency(currentTask, task1);
+  _taskr->addDependency(currentTask, task2);
 
-   // Adding new tasks to TaskR
+  // Adding new tasks to TaskR
   _taskr->addTask(task1);
   _taskr->addTask(task2);
 
   // Suspending current task
-  _taskr->getCurrentTask()->suspend();
+  currentTask->suspend();
 
   return result1 + result2;
 }
@@ -51,18 +43,15 @@ uint64_t fibonacci(const uint64_t x)
 uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
 {
   // Initializing taskr with the appropriate amount of max tasks
-  taskr::Runtime taskr(fibonacciTaskCount[initialValue]);
+  taskr::Runtime taskr;
 
   // Setting global variables
   _taskr          = &taskr;
   _computeManager = computeManager;
-  _taskCounter    = 1;
+  _taskCounter    = 0;
 
   // Assigning processing resource to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
-
-  // Setting event handler on task finish to free up memory as soon as possible
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
 
   // Storage for result
   uint64_t result = 0;
@@ -71,7 +60,7 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   auto initialFc = computeManager->createExecutionUnit([&]() { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
-  auto initialTask = new HiCR::tasking::Task(initialFc);
+  auto initialTask = new taskr::Task(_taskCounter++, initialFc);
   taskr.addTask(initialTask);
 
   // Running taskr

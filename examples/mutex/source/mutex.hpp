@@ -2,7 +2,7 @@
 #include <cassert>
 #include <hicr/core/L0/device.hpp>
 #include <hicr/backends/host/L1/computeManager.hpp>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 
 #define _CONCURRENT_TASKS 1000ul
 
@@ -11,12 +11,6 @@ void mutex(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::
   // Initializing taskr
   taskr::Runtime taskr;
 
-  // Setting event handler on task sync to awaken the task that had been previously suspended on mutex
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskSync, [&](HiCR::tasking::Task *task) { taskr.resumeTask(task); });
-
-  // Setting event handler on task finish to free up memory as soon as possible
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
-  
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
@@ -34,7 +28,7 @@ void mutex(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::
   });
 
   // Running concurrent tasks
-  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr.addTask(new HiCR::tasking::Task(taskfc));
+  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr.addTask(new taskr::Task(i, taskfc));
 
   // Running taskr
   taskr.run(computeManager);

@@ -3,7 +3,7 @@
 #include <hwloc.h>
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 #include "source/workTask.hpp"
 
 int main(int argc, char **argv)
@@ -29,9 +29,6 @@ int main(int argc, char **argv)
 
   // Initializing taskr
   taskr::Runtime taskr;
-
-  // Setting event handler on task finish to free up memory as soon as possible
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
 
   // Getting work task count
   size_t workTaskCount = 100;
@@ -73,7 +70,7 @@ int main(int argc, char **argv)
 
   // Adding multiple compute tasks
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());
-  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new HiCR::tasking::Task(taskExecutionUnit));
+  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new taskr::Task(i, taskExecutionUnit));
 
   // Running taskr only on the core subset
   auto t0 = std::chrono::high_resolution_clock::now();

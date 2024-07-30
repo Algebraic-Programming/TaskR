@@ -29,9 +29,6 @@ int main(int argc, char **argv)
   // Create taskr runtime
   taskr::Runtime taskr;
 
-  // Setting event handler on task finish to free up memory as soon as possible
-  taskr.setEventHandler(HiCR::tasking::Task::event_t::onTaskFinish, [&](HiCR::tasking::Task *task) { delete task; });
-  
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
 
