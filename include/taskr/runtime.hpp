@@ -21,8 +21,8 @@
 #include <hicr/core/concurrent/hashMap.hpp>
 #include "task.hpp"
 
-#define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 65536
-#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 4096
+#define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 157810688
+#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 65536
 
 namespace taskr
 {
@@ -39,13 +39,11 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    */
-  Runtime(const size_t maxTasks = __TASKR_DEFAULT_MAX_ACTIVE_TASKS, const size_t maxWorkers = __TASKR_DEFAULT_MAX_ACTIVE_WORKERS)
-    : _maxActiveTasks(maxTasks),
-      _maxWorkers(maxWorkers)
+  Runtime()
   {
     _dispatcher           = new HiCR::tasking::Dispatcher([this]() { return pullReadyTask(); });
-    _readyTaskQueue     = new HiCR::concurrent::Queue<taskr::Task>(maxTasks);
-    _suspendedWorkerQueue = new HiCR::concurrent::Queue<HiCR::tasking::Worker>(maxWorkers);
+    _readyTaskQueue     = new HiCR::concurrent::Queue<taskr::Task>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
+    _suspendedWorkerQueue = new HiCR::concurrent::Queue<HiCR::tasking::Worker>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task* task)
@@ -347,16 +345,6 @@ class Runtime
    * Task map to relate a task label to its pointer
    */
   HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task*> _taskMap;
-
-  /**
-   * Determines the maximum amount of active tasks (required by the lock-free queue)
-  */
-  const size_t _maxActiveTasks;
-
-  /**
-   * Determines the maximum amount of workers (required by the lock-free queue)
-  */
-  const size_t _maxWorkers;
 
   /**
    * Custom callback for task termination. Useful for freeing up task memory during execution

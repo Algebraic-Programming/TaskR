@@ -8,13 +8,6 @@ static HiCR::backend::host::L1::ComputeManager *_computeManager;
 static taskr::Runtime                          *_taskr;
 static std::atomic<uint64_t>                    _taskCounter;
 
-// This function serves to encode a fibonacci task label
-inline const uint64_t getFibonacciLabel(const uint64_t x, const uint64_t _initialValue) { return _initialValue; }
-
-// Lookup table for the number of tasks required for every fibonacci number
-uint64_t fibonacciTaskCount[] = {1,    1,    3,    5,     9,     15,    25,    41,    67,     109,    177,    287,    465,     753,     1219,   1973,
-                                 3193, 5167, 8361, 13529, 21891, 35421, 57313, 92735, 150049, 242785, 392835, 635621, 1028457, 1664079, 2692537};
-
 // Fibonacci without memoization to stress the tasking runtime
 uint64_t fibonacci(const uint64_t x)
 {
@@ -50,7 +43,7 @@ uint64_t fibonacci(const uint64_t x)
 uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
 {
   // Initializing taskr with the appropriate amount of max tasks
-  taskr::Runtime taskr(fibonacciTaskCount[initialValue]);
+  taskr::Runtime taskr;
 
   // Setting global variables
   _taskr          = &taskr;
