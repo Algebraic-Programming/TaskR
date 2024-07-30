@@ -10,11 +10,9 @@ build:
   script:
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
-  - echo "Compiling LPF..."
-  - mkdir extern/lpf/build; pushd extern/lpf/build; cmake .. -DLPFLIB_MAKE_DOC=false -DCMAKE_INSTALL_PREFIX=/home/hicr/lpf; make -j24; make install; popd
   - echo "Building..."
   - mkdir build
-  - meson setup build -Dbuildtype=debug -Db_coverage=true -Dbackends=host/hwloc,host/pthreads,mpi,lpf -Dfrontends=tasking,machineModel,deployer,channel -DbuildTests=true -DbuildExamples=true  -DcompileWarningsAsErrors=true
+  - meson setup build -Dbuildtype=debug -Db_coverage=true -DbuildTests=true -DbuildExamples=true  -DcompileWarningsAsErrors=true
   - meson compile -C build
   - echo "Running tests..."
   - meson test -C build
@@ -42,7 +40,7 @@ docs:
   - docker
   - tiny
   script:
-  - echo "Checking HiCR source and test formatting..."
+  - echo "Checking TaskR source and test formatting..."
   - .build-tools/style/check-style.sh check include
   - .build-tools/style/check-style.sh check tests
   - .build-tools/style/check-style.sh check examples
