@@ -62,8 +62,8 @@ class Task : public HiCR::tasking::Task
   //// Input dependency management
 
   __INLINE__ size_t getInputDependencyCounter() const { return _inputDependencyCounter.load(); }
-  __INLINE__ void increaseInputDependencyCounter() { _inputDependencyCounter++; }
-  __INLINE__ void decreaseInputDependencyCounter() { _inputDependencyCounter--; }
+  __INLINE__ size_t increaseInputDependencyCounter() { return _inputDependencyCounter.fetch_add(1) + 1; }
+  __INLINE__ size_t decreaseInputDependencyCounter() { return _inputDependencyCounter.fetch_sub(1) - 1; }
 
   //// Output dependency management
 

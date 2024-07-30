@@ -72,10 +72,10 @@ class Runtime
        auto dependentTask = _taskMap[dependentId];
 
        // Decrease their input dependency counter
-       dependentTask->decreaseInputDependencyCounter();
+       auto newValue = dependentTask->decreaseInputDependencyCounter();
 
-       // If the task is ready to go, add it back now
-       if (dependentTask->isReady()) resumeTask(dependentTask);
+       // If the new value is zero and task is ready to go, add it back now
+       if (newValue == 0 && dependentTask->isReady()) resumeTask(dependentTask);
      }
 
      // If defined, trigger user-defined event
@@ -153,6 +153,9 @@ class Runtime
 
     // Adding task to the task map
     _taskMap[taskLabel] = task;
+
+    // If the task is ready, add it to the ready queue
+    if (task->isReady()) _readyTaskQueue->push(task);
   }
 
   /** 
@@ -229,16 +232,6 @@ class Runtime
   {
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
-
-    // Adding all tasks that have no dependencies at the time of running
-    for (const auto& entry : _taskMap)
-    {
-      // Getting task's pointer
-      auto task = entry.second;
-      
-      // If the task is ready, add it to the ready queue
-      if (task->isReady()) _readyTaskQueue->push(task);
-    }
 
     // Set runtime as running
     _continueRunning = true;
