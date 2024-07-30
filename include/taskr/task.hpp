@@ -15,7 +15,7 @@
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/task.hpp>
 
-namespace TaskR
+namespace taskr
 {
 
 /**
@@ -49,10 +49,44 @@ class Task : public HiCR::tasking::Task
 
   label_t getLabel() const { return _label; }
 
+  __INLINE__ bool isReady() const
+  {
+    bool ready = true;
+
+    // If the counter is above zero, then the task is still not ready
+    if (_inputDependencyCounter > 0) ready = false;
+
+    return ready;
+  }
+
+  //// Input dependency management
+
+  __INLINE__ size_t getInputDependencyCounter() const { return _inputDependencyCounter.load(); }
+  __INLINE__ void increaseInputDependencyCounter() { _inputDependencyCounter++; }
+  __INLINE__ void decreaseInputDependencyCounter() { _inputDependencyCounter--; }
+
+  //// Output dependency management
+
+  __INLINE__ void addOutputDependency(const HiCR::tasking::uniqueId_t dependency) { _outputDependencies.push_back(dependency); }
+  const std::vector<HiCR::tasking::uniqueId_t>& getOutputDependencies() const { return _outputDependencies; }
+
   private: 
   
+  /**
+   * Unique identifier for the task
+   */
   const label_t _label;
 
+  /**
+   * Atomic counter for the tasks' input dependencies
+   */
+  std::atomic<ssize_t> _inputDependencyCounter = 0;
+
+  /**
+   * This is a map that relates unique event ids to a set of its task dependents (i.e., output dependencies).
+   */
+  std::vector<HiCR::tasking::uniqueId_t> _outputDependencies;
+  
 }; // class Task
 
-} // namespace TaskR
+} // namespace taskr
