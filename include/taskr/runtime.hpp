@@ -109,8 +109,8 @@ class Runtime
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
 
-      // If the task is ready, add it to the ready queue
-      if (taskrTask->isReady()) _readyTaskQueue->push(taskrTask);
+      // If the task is ready, try to add it to the ready queue
+      tryResumeTask(taskrTask);
     });
   }
 
