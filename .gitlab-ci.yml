@@ -29,7 +29,7 @@ build:
         coverage_format: cobertura
         path: build/meson-logs/coverage.xml 
   only:
-  - master
+  - main
   - merge_requests
   - tags
 
@@ -46,7 +46,7 @@ docs:
   - echo "Building code documentation..."
   - make -j1 -C docs
   only: 
-  - master
+  - main
   - merge_requests
   - tags
 
