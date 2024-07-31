@@ -1,4 +1,4 @@
-testSuite = [ 'examples', 'tasking' ]
+testSuite = [ 'examples' ]
 
 energySaver = executable('energySaver', [ 'source/main.cpp'], dependencies: [ HiCRBuildDep, TaskRBuildDep ])
 

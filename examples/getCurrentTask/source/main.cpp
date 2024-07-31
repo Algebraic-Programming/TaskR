@@ -49,7 +49,10 @@ int main(int argc, char **argv)
   });
 
   // Creating a single task to print the internal references
-  taskr.addTask(new taskr::Task(TASK_LABEL, taskExecutionUnit));
+  taskr::Task task(TASK_LABEL, taskExecutionUnit);
+
+  // Adding task to TaskR
+  taskr.addTask(&task);
 
   // Running taskr
   taskr.run(&computeManager);

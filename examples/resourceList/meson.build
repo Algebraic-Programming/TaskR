@@ -1,4 +1,4 @@
-testSuite = [ 'examples', 'tasking' ]
+testSuite = [ 'examples' ]
 
 resourceList = executable('resourceList', [ 'source/main.cpp'], dependencies: [ HiCRBuildDep, TaskRBuildDep ])
 

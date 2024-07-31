@@ -61,8 +61,11 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
     cv.notifyOne();
   });
 
-  taskr.addTask(new taskr::Task(0, thread1Fc));
-  taskr.addTask(new taskr::Task(1, thread2Fc));
+  taskr::Task task1(0, thread1Fc);
+  taskr::Task task2(1, thread2Fc);
+
+  taskr.addTask(&task1);
+  taskr.addTask(&task2);
 
   // Running taskr
   taskr.run(computeManager);

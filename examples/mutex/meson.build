@@ -1,4 +1,4 @@
-testSuite = [ 'examples', 'tasking' ]
+testSuite = [ 'examples' ]
 
 mutex = executable('mutexExample', [ 'source/main.cpp'], dependencies: [ HiCRBuildDep, TaskRBuildDep ] )
 

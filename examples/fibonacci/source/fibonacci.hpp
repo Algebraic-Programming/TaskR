@@ -20,19 +20,19 @@ uint64_t fibonacci(const uint64_t x)
   auto     fibFc2  = _computeManager->createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
 
   // Creating two new tasks
-  auto task1 = new taskr::Task(_taskCounter++, fibFc1);
-  auto task2 = new taskr::Task(_taskCounter++, fibFc2);
+  taskr::Task subTask1(_taskCounter++, fibFc1);
+  taskr::Task subTask2(_taskCounter++, fibFc2);
 
   // Getting the current task
   const auto currentTask = taskr::getCurrentTask();
 
   // Adding dependencies with the newly created tasks
-  _taskr->addDependency(currentTask, task1);
-  _taskr->addDependency(currentTask, task2);
+  _taskr->addDependency(currentTask, &subTask1);
+  _taskr->addDependency(currentTask, &subTask2);
 
   // Adding new tasks to TaskR
-  _taskr->addTask(task1);
-  _taskr->addTask(task2);
+  _taskr->addTask(&subTask1);
+  _taskr->addTask(&subTask2);
 
   // Suspending current task
   currentTask->suspend();
@@ -60,8 +60,8 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   auto initialFc = computeManager->createExecutionUnit([&]() { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
-  auto initialTask = new taskr::Task(_taskCounter++, initialFc);
-  taskr.addTask(initialTask);
+  taskr::Task initialTask(_taskCounter++, initialFc);
+  taskr.addTask(&initialTask);
 
   // Running taskr
   auto startTime = std::chrono::high_resolution_clock::now();

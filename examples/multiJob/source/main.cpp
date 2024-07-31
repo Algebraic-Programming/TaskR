@@ -29,6 +29,9 @@ int main(int argc, char **argv)
   // Create taskr runtime
   taskr::Runtime taskr;
 
+  // Setting callback to free a task as soon as it finishes executing
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task* task) { delete task; });
+
   // Assigning processing Re to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
 

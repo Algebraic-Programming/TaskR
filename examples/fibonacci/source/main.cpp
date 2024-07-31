@@ -10,18 +10,11 @@ int main(int argc, char **argv)
   if (argc != 2)
   {
     fprintf(stderr, "Error: Must provide the fibonacci number to calculate.\n");
-    exit(0);
+    exit(-1);
   }
 
   // Reading argument
   uint64_t initialValue = std::atoi(argv[1]);
-
-  // Checking for maximum fibonacci number to request
-  if (initialValue > 30)
-  {
-    fprintf(stderr, "Error: can only request fibonacci numbers up to 30.\n");
-    exit(0);
-  }
 
   // Creating HWloc topology object
   hwloc_topology_t topology;

@@ -87,9 +87,6 @@ class Runtime
       // Removing task from the task map
       _taskMap.erase(taskLabel);
 
-      // Free-up memory now the task is finished
-      delete taskrTask;
-
       // If this is the last task, we can finish now
       if (_taskMap.size() == 0) finalize();
     });
@@ -287,6 +284,65 @@ class Runtime
   private:
 
   /**
+   * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
+   * It will put any calling worker to sleep if the number of active workers exceed the maximum.
+   * If the number of active workers is smaller than the maximum, it will try to 'wake up' other suspended workers, if any,
+   * until the maximum is reached again.
+   */
+  __INLINE__ void checkMaximumActiveWorkerCount()
+  {
+    // Getting a pointer to the currently executing worker
+    auto worker = HiCR::tasking::Worker::getCurrentWorker();
+
+    // Try to get the active worker queue lock, otherwise keep going
+    if (_activeWorkerQueueLock.try_lock())
+    {
+      // If the number of workers exceeds that of maximum active workers,
+      // suspend current worker
+      if (_maximumActiveWorkers > 0 && _activeWorkerCount > (ssize_t)_maximumActiveWorkers)
+      {
+        // Adding worker to the queue
+        _suspendedWorkerQueue->push(worker);
+
+        // Reducing active worker count
+        _activeWorkerCount--;
+
+        // Releasing lock, this is necessary here because the worker is going
+        // into sleep
+        _activeWorkerQueueLock.unlock();
+
+        // Suspending worker
+        worker->suspend();
+
+        // Returning now, because we've already released the lock and shouldn't
+        // do anything else without it
+        return;
+      }
+
+      // If the new maximum is higher than the number of active workers, we need
+      // to re-awaken some of them
+      while ((_maximumActiveWorkers == 0 || (ssize_t)_maximumActiveWorkers > _activeWorkerCount) && _suspendedWorkerQueue->wasEmpty() == false)
+      {
+        // Getting the worker from the queue of suspended workers
+        auto w = _suspendedWorkerQueue->pop();
+
+        // Do the following if a worker was obtained
+        if (w != NULL)
+        {
+          // Increase the active worker count
+          _activeWorkerCount++;
+
+          // Resuming worker
+          if (w != NULL) w->resume();
+        }
+      }
+
+      // Releasing lock
+      _activeWorkerQueueLock.unlock();
+    }
+  }
+
+  /**
    * Type definition for the task's callback map
    */
   typedef HiCR::tasking::CallbackMap<taskr::Task *, HiCR::tasking::Task::callback_t> taskrCallbackMap_t;
@@ -351,71 +407,6 @@ class Runtime
    * Task map to relate a task label to its pointer
    */
   HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task *> _taskMap;
-
-  /**
-   * Custom callback for task termination. Useful for freeing up task memory during execution
-   */
-  bool                                     _customOnTaskFinishCallbackDefined = false;
-  HiCR::tasking::callbackFc_t<taskr::Task> _customOnTaskFinishCallbackFunction;
-
-  /**
-   * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
-   * It will put any calling worker to sleep if the number of active workers exceed the maximum.
-   * If the number of active workers is smaller than the maximum, it will try to 'wake up' other suspended workers, if any,
-   * until the maximum is reached again.
-   */
-  __INLINE__ void checkMaximumActiveWorkerCount()
-  {
-    // Getting a pointer to the currently executing worker
-    auto worker = HiCR::tasking::Worker::getCurrentWorker();
-
-    // Try to get the active worker queue lock, otherwise keep going
-    if (_activeWorkerQueueLock.try_lock())
-    {
-      // If the number of workers exceeds that of maximum active workers,
-      // suspend current worker
-      if (_maximumActiveWorkers > 0 && _activeWorkerCount > (ssize_t)_maximumActiveWorkers)
-      {
-        // Adding worker to the queue
-        _suspendedWorkerQueue->push(worker);
-
-        // Reducing active worker count
-        _activeWorkerCount--;
-
-        // Releasing lock, this is necessary here because the worker is going
-        // into sleep
-        _activeWorkerQueueLock.unlock();
-
-        // Suspending worker
-        worker->suspend();
-
-        // Returning now, because we've already released the lock and shouldn't
-        // do anything else without it
-        return;
-      }
-
-      // If the new maximum is higher than the number of active workers, we need
-      // to re-awaken some of them
-      while ((_maximumActiveWorkers == 0 || (ssize_t)_maximumActiveWorkers > _activeWorkerCount) && _suspendedWorkerQueue->wasEmpty() == false)
-      {
-        // Getting the worker from the queue of suspended workers
-        auto w = _suspendedWorkerQueue->pop();
-
-        // Do the following if a worker was obtained
-        if (w != NULL)
-        {
-          // Increase the active worker count
-          _activeWorkerCount++;
-
-          // Resuming worker
-          if (w != NULL) w->resume();
-        }
-      }
-
-      // Releasing lock
-      _activeWorkerQueueLock.unlock();
-    }
-  }
 
 }; // class Runtime
 
