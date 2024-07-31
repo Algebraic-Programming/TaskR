@@ -5,6 +5,7 @@ build:
   tags:
   - docker
   - x86
+  - infiniband 
   script:
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
