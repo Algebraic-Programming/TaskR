@@ -7,6 +7,7 @@ build:
   - x86
   - infiniband 
   script:
+  - which ssh
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
   - echo "Building..."
