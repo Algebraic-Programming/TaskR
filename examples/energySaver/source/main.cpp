@@ -67,8 +67,8 @@ int main(int argc, char **argv)
   taskr::Runtime taskr;
 
   // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task* task) { delete task; });
-  
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+
   // Creating task work execution unit
   auto workExecutionUnit = computeManager.createExecutionUnit([&iterations]() { workFc(iterations); });
 
