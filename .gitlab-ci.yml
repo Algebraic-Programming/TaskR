@@ -7,6 +7,8 @@ build:
   - x86
   - infiniband 
   script:
+  - export HOME=/home/hicr
+  - source /home/hicr/.hicr-env.sh
   - echo "Building..."
   - mkdir build
   - meson setup build -Dbuildtype=debug -Db_coverage=true -DbuildTests=true -DbuildExamples=true  -DcompileWarningsAsErrors=true
