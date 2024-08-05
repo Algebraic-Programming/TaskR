@@ -1,3 +1,3 @@
 [submodule "extern/hicr"]
 	path = extern/hicr
-	url = git@ssh.gitlab.huaweirc.ch:zrc-von-neumann-lab/runtime-system-innovations/hicr.git
+	url = https://gitlab.huaweirc.ch/zrc-von-neumann-lab/runtime-system-innovations/hicr.git
