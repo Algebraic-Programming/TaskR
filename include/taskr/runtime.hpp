@@ -24,7 +24,7 @@
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include "task.hpp"
-#include "instance.hpp"
+#include "distributedEngine.hpp"
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
 #include <hicr/backends/mpi/L1/communicationManager.hpp>
@@ -59,14 +59,6 @@ class Runtime
    */
   Runtime(int* pargc = nullptr, char*** pargv = nullptr)
   {
-    // Creating HiCR L1 managers
-
-    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-    _instanceManager = HiCR::backend::mpi::L1::InstanceManager::createDefault(pargc, pargv);
-    _communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
-    _memoryManager = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
-    #endif
-
     // Creating internal objects
     _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
     _readyTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
@@ -129,10 +121,31 @@ class Runtime
       // If the task is ready, try to add it to the ready queue
       tryResumeTask(taskrTask);
     });
+
+    // Creating / initializing distributed engine
+
+    // Creating HiCR L1 managers
+
+    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
+    _instanceManager = HiCR::backend::mpi::L1::InstanceManager::createDefault(pargc, pargv);
+    _communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
+    _memoryManager = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
+    #endif
+    
+    // Instantiating distributed engine
+    #ifndef _TASKR_DISTRIBUTED_ENGINE_NONE
+    _distributedEngine = std::make_unique<taskr::DistributedEngine>(_instanceManager.get(), _communicationManager.get(), _memoryManager.get());
+    #endif
   }
 
   // Destructor (frees previous allocations)
-  ~Runtime() = default;
+  ~Runtime()
+  {
+    // Finalizes MPI 
+    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
+    MPI_Finalize();
+    #endif
+  }
 
   /**
    * Adds a callback for a particular callback
@@ -442,6 +455,11 @@ class Runtime
    * Storage for the distributed engine's memory manager
    */
   std::unique_ptr<HiCR::L1::MemoryManager> _memoryManager;
+
+  /**
+   * Storage for the distributed engine
+   */
+  std::unique_ptr<DistributedEngine> _distributedEngine;
 
 }; // class Runtime
 

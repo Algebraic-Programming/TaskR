@@ -32,6 +32,7 @@
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/core/L1/communicationManager.hpp>
 #include <hicr/core/L1/topologyManager.hpp>
+#include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include <hicr/frontends/machineModel/machineModel.hpp>
 #include <hicr/frontends/channel/variableSize/mpsc/locking/producer.hpp>
 #include <hicr/frontends/channel/variableSize/mpsc/locking/consumer.hpp>
@@ -69,44 +70,29 @@ class DistributedEngine
    * @param[in] instanceManager The instance manager backend to use
    * @param[in] communicationManager The communication manager backend to use
    * @param[in] memoryManager The memory manager backend to use
-   * @param[in] topologyManagers The topology managers backend to use to discover the system's resources
-   * @param[in] machineModel The machine model to use to deploy the workers
    */
   DistributedEngine(HiCR::L1::InstanceManager                *instanceManager,
            HiCR::L1::CommunicationManager           *communicationManager,
-           HiCR::L1::MemoryManager                  *memoryManager,
-           std::vector<HiCR::L1::TopologyManager *> &topologyManagers)
-    : _HiCRInstance(instanceManager->getCurrentInstance()),
-      _instanceManager(instanceManager),
+           HiCR::L1::MemoryManager                  *memoryManager)
+    : _instanceManager(instanceManager),
       _communicationManager(communicationManager),
-      _memoryManager(memoryManager),
-      _topologyManagers(topologyManagers)
+      _memoryManager(memoryManager)
   {}
 
   virtual ~DistributedEngine() = default;
 
-  __INLINE void initialize()
+  __INLINE__ void initialize()
   {
-    
-  }
+    ///// Finding memory space for buffer allocation
 
-  /**
-   * Asynchronously sends a binary message (buffer + size) to another instance
-   *
-   * @param[in] instanceId The id of the instance to which to send the message
-   * @param[in] messagePtr The pointer to the message buffer
-   * @param[in] messageSize The message size in bytes
-   */
-  __INLINE__ void sendMessage(const HiCR::L0::DistributedEngine::instanceId_t instanceId, void *messagePtr, size_t messageSize)
-  {
-    // Sanity check
-    if (_producerChannels.contains(instanceId) == false) HICR_THROW_RUNTIME("DistributedEngine Id %lu not found in the producer channel map");
+    // Creating HWloc topology object
+    hwloc_topology_t topology;
 
-    // Getting reference to the appropriate producer channel
-    const auto &channel = _producerChannels[instanceId];
+    // Reserving memory for hwloc
+    hwloc_topology_init(&topology);
 
-    // Accessing first topology manager detected
-    auto &tm = *_topologyManagers[0];
+    // Initializing host (CPU) topology manager
+    HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
 
     // Gathering topology from the topology manager
     const auto t = tm.queryTopology();
@@ -118,10 +104,29 @@ class DistributedEngine
     auto memSpaces = d->getMemorySpaceList();
 
     // Grabbing first memory space for buffering
-    auto bufferMemorySpace = *memSpaces.begin();
+    _bufferMemorySpace = *memSpaces.begin();
+
+    ///// Initializing channels
+    initializeChannels();
+  }
+
+  /**
+   * Asynchronously sends a binary message (buffer + size) to another instance
+   *
+   * @param[in] instanceId The id of the instance to which to send the message
+   * @param[in] messagePtr The pointer to the message buffer
+   * @param[in] messageSize The message size in bytes
+   */
+  __INLINE__ void sendMessage(const HiCR::L0::Instance::instanceId_t instanceId, void *messagePtr, size_t messageSize)
+  {
+    // Sanity check
+    if (_producerChannels.contains(instanceId) == false) HICR_THROW_RUNTIME("DistributedEngine Id %lu not found in the producer channel map");
+
+    // Getting reference to the appropriate producer channel
+    const auto &channel = _producerChannels[instanceId];
 
     // Sending initial message to all workers
-    auto messageSendSlot = _memoryManager->registerLocalMemorySlot(bufferMemorySpace, messagePtr, messageSize);
+    auto messageSendSlot = _memoryManager->registerLocalMemorySlot(_bufferMemorySpace, messagePtr, messageSize);
 
     // Sending message
     channel->push(messageSendSlot);
@@ -179,36 +184,21 @@ class DistributedEngine
 
     ////////// Creating consumer channel to receive variable sized messages from other instances
 
-    // Accessing first topology manager detected
-    auto &tm = *_topologyManagers[0];
-
-    // Gathering topology from the topology manager
-    const auto t = tm.queryTopology();
-
-    // Selecting first device
-    auto d = *t.getDevices().begin();
-
-    // Getting memory space list from device
-    auto memSpaces = d->getMemorySpaceList();
-
-    // Grabbing first memory space for buffering
-    auto bufferMemorySpace = *memSpaces.begin();
-
     // Getting required buffer sizes
     auto tokenSizeBufferSize = HiCR::channel::variableSize::Base::getTokenBufferSize(sizeof(size_t), _HICR_DEPLOYER_CHANNEL_COUNT_CAPACITY);
 
     // Allocating token size buffer as a local memory slot
-    auto tokenSizeBufferSlot = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, tokenSizeBufferSize);
+    auto tokenSizeBufferSlot = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, tokenSizeBufferSize);
 
     // Allocating token size buffer as a local memory slot
-    auto payloadBufferSlot = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, _HICR_DEPLOYER_CHANNEL_PAYLOAD_CAPACITY);
+    auto payloadBufferSlot = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, _HICR_DEPLOYER_CHANNEL_PAYLOAD_CAPACITY);
 
     // Getting required buffer size for coordination buffers
     auto coordinationBufferSize = HiCR::channel::variableSize::Base::getCoordinationBufferSize();
 
     // Allocating coordination buffers
-    auto localConsumerCoordinationBufferMessageSizes    = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, coordinationBufferSize);
-    auto localConsumerCoordinationBufferMessagePayloads = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, coordinationBufferSize);
+    auto localConsumerCoordinationBufferMessageSizes    = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, coordinationBufferSize);
+    auto localConsumerCoordinationBufferMessagePayloads = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, coordinationBufferSize);
 
     // Initializing coordination buffers
     HiCR::channel::variableSize::Base::initializeCoordinationBuffer(localConsumerCoordinationBufferMessageSizes);
@@ -254,9 +244,9 @@ class DistributedEngine
       const auto consumerInstanceId = instance->getId();
 
       // Allocating coordination buffers
-      auto localProducerSizeInfoBuffer                    = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, sizeof(size_t));
-      auto localProducerCoordinationBufferMessageSizes    = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, coordinationBufferSize);
-      auto localProducerCoordinationBufferMessagePayloads = _memoryManager->allocateLocalMemorySlot(bufferMemorySpace, coordinationBufferSize);
+      auto localProducerSizeInfoBuffer                    = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, sizeof(size_t));
+      auto localProducerCoordinationBufferMessageSizes    = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, coordinationBufferSize);
+      auto localProducerCoordinationBufferMessagePayloads = _memoryManager->allocateLocalMemorySlot(_bufferMemorySpace, coordinationBufferSize);
 
       // Initializing coordination buffers
       HiCR::channel::variableSize::Base::initializeCoordinationBuffer(localProducerCoordinationBufferMessageSizes);
@@ -322,11 +312,6 @@ class DistributedEngine
   protected:
 
   /**
-   * Internal HiCR instance represented by this deployer instance
-   */
-  const std::shared_ptr<HiCR::L0::DistributedEngine> _HiCRInstance;
-
-  /**
    * Detected instance manager to use for detecting and creating HiCR instances (only one allowed)
    */
   HiCR::L1::InstanceManager *const _instanceManager = nullptr;
@@ -342,19 +327,19 @@ class DistributedEngine
   HiCR::L1::MemoryManager *const _memoryManager;
 
   /**
-   * Detected topology managers to use for resource discovery
-   */
-  std::vector<HiCR::L1::TopologyManager *> _topologyManagers;
-
-  /**
    * Producer channels for sending messages to all other instances
    */
-  std::map<HiCR::L0::DistributedEngine::instanceId_t, std::shared_ptr<ProducerChannel>> _producerChannels;
+  std::map<HiCR::L0::Instance::instanceId_t, std::shared_ptr<ProducerChannel>> _producerChannels;
 
   /**
    * Consumer channels for receiving messages from all other instances
    */
   std::shared_ptr<ConsumerChannel> _consumerChannel;
+
+  /**
+   * Memory Space to use for buffer allocation
+   */
+  std::shared_ptr<HiCR::L0::MemorySpace> _bufferMemorySpace;
 };
 
 } // namespace taskr
