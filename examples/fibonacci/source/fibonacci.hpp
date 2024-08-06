@@ -24,7 +24,7 @@ uint64_t fibonacci(const uint64_t x)
   taskr::Task subTask2(_taskCounter++, fibFc2);
 
   // Getting the current task
-  const auto currentTask = taskr::getCurrentTask();
+  auto currentTask = taskr::getCurrentTask();
 
   // Adding dependencies with the newly created tasks
   _taskr->addDependency(currentTask, &subTask1);

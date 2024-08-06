@@ -6,9 +6,21 @@ project('TaskR', [ 'cpp', 'c'],
   ]
 )
 
+####### Getting selected distributed engine
+
+distributedEngine = get_option('distributedEngine')
+
 ####### Getting HiCR dependency
 
+# Selecting default HiCR Backends
 HiCRBackends = [ 'host/hwloc', 'host/pthreads' ]
+
+# If, selected, adding the dependency for the distributed engine
+if distributedEngine != 'none'
+  HiCRBackends += distributedEngine
+endif
+
+
 HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends), 'frontends=tasking' ])
 HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
 
@@ -25,13 +37,23 @@ TaskRBuildCppArgs = [
   warningAsErrorFlags
  ]
 
+# Handling distributed engine options
+if distributedEngine == 'mpi'
+ TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_MPI'
+endif
+
+if distributedEngine == 'lpf'
+ TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_LPF'
+endif
+
 TaskRBuildIncludes = include_directories([
    '../include'
   ])
   
 TaskRBuildDep = declare_dependency(
     compile_args: TaskRBuildCppArgs,
-    include_directories: TaskRBuildIncludes
+    include_directories: TaskRBuildIncludes,
+    dependencies: HiCRBuildDep
     )
 
 

@@ -15,11 +15,22 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <memory>
+#include <hicr/core/L1/communicationManager.hpp>
+#include <hicr/core/L1/instanceManager.hpp>
+#include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include "task.hpp"
+#include "instance.hpp"
+
+#ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
+#include <hicr/backends/mpi/L1/communicationManager.hpp>
+#include <hicr/backends/mpi/L1/instanceManager.hpp>
+#include <hicr/backends/mpi/L1/memoryManager.hpp>
+#endif
 
 /**
  * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active task queue
@@ -46,8 +57,17 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    */
-  Runtime()
+  Runtime(int* pargc = nullptr, char*** pargv = nullptr)
   {
+    // Creating HiCR L1 managers
+
+    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
+    _instanceManager = HiCR::backend::mpi::L1::InstanceManager::createDefault(pargc, pargv);
+    _communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
+    _memoryManager = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
+    #endif
+
+    // Creating internal objects
     _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
     _readyTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
     _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
@@ -407,6 +427,21 @@ class Runtime
    * Task map to relate a task label to its pointer
    */
   HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task *> _taskMap;
+
+  /**
+   * Storage for the distributed engine's communication manager
+   */
+  std::unique_ptr<HiCR::L1::CommunicationManager> _communicationManager;
+
+  /**
+   * Storage for the distributed engine's instance manager
+   */
+  std::unique_ptr<HiCR::L1::InstanceManager> _instanceManager;
+
+  /**
+   * Storage for the distributed engine's memory manager
+   */
+  std::unique_ptr<HiCR::L1::MemoryManager> _memoryManager;
 
 }; // class Runtime
 

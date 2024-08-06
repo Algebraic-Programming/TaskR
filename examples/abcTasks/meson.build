@@ -1,6 +1,6 @@
 testSuite = [ 'examples' ]
 
-abcTasks = executable('abcTasks', [ 'source/main.cpp'], dependencies: [ HiCRBuildDep, TaskRBuildDep ] )
+abcTasks = executable('abcTasks', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ] )
 
 if get_option('buildTests')
 	test('abcTasks', abcTasks, args : [ ], suite: testSuite )
