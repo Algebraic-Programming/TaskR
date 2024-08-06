@@ -23,6 +23,7 @@
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
+#include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
 #include "distributedEngine.hpp"
 
@@ -61,7 +62,7 @@ class Runtime
   {
     // Creating internal objects
     _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
-    _readyTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
+    _waitingTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
     _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
@@ -80,27 +81,14 @@ class Runtime
       // Getting task label
       const auto taskLabel = taskrTask->getLabel();
 
-      // Notifying dependent tasks of the completion of this task
-      for (const auto dependentId : taskrTask->getOutputDependencies())
-      {
-        // Getting the corresponding task from its id
-        auto dependentTask = _taskMap[dependentId];
-
-        // Decrease their input dependency counter
-        auto newValue = dependentTask->Object::decreaseInputDependencyCounter();
-
-        // If the new value is zero and task is ready to go, add it back now
-        if (newValue == 0) tryResumeTask(dependentTask);
-      }
+      // Adding task to the finished object set
+      _finishedObjects.insert(taskLabel);
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
-      // Removing task from the task map
-      _taskMap.erase(taskLabel);
-
-      // If this is the last task, we can finish now
-      if (_taskMap.size() == 0) finalize();
+      // Decreasing active task counter
+      _activeTaskCount--;
     });
 
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) {
@@ -109,6 +97,9 @@ class Runtime
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+
+      // Add task to the waiting queue
+      _waitingTaskQueue->push(taskrTask);
     });
 
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) {
@@ -118,8 +109,8 @@ class Runtime
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
 
-      // If the task is ready, try to add it to the ready queue
-      tryResumeTask(taskrTask);
+      // Add task to the waiting queue
+      _waitingTaskQueue->push(taskrTask);
     });
 
     // Creating / initializing distributed engine
@@ -182,58 +173,28 @@ class Runtime
    */
   __INLINE__ void addTask(taskr::Task *task)
   {
+    // Increasing active task counter
+    _activeTaskCount++;
+
     // Making sure the task has its callback map correctly assigned
     task->setCallbackMap(&_hicrCallbackMap);
 
-    // Getting task label
-    const auto taskLabel = task->getLabel();
-
-    // Adding task to the task map
-    _taskMap[taskLabel] = task;
-
     // If the task is ready, add it to the ready queue
-    tryResumeTask(task);
-  }
-
-  /** 
-  * Resumes the execution of a task
-  *
-  * \param[in] task Task to resume
-  */
-  __INLINE__ void tryResumeTask(taskr::Task *task)
-  {
-    // Add task to the ready queue, only if its ready
-    if (task->isReady()) _readyTaskQueue->push(task);
-  }
-
-  /**
-   * Adds a new dependency between two tasks
-   * 
-   * @param[in] dependentTask The task to add a new dependency on
-   * @param[in] dependedTask the depended task of the event upon which the task depends
-   * 
-   */
-  __INLINE__ void addDependency(taskr::Task *const dependentTask, taskr::Task *const dependedTask)
-  {
-    // First, increase the task's input dependency counter
-    dependentTask->Object::increaseInputDependencyCounter();
-
-    // Then append the task as output dependency to the event
-    dependedTask->addOutputDependency(dependentTask->getLabel());
+    _waitingTaskQueue->push(task);
   }
 
   /**
    * This function represents the main loop of a worker that is looking for work to do.
    * It first checks whether the maximum number of worker is exceeded. If that's the case, it enters suspension and returns upon restart.
    * Otherwise, it finds a task in the waiting queue and checks its dependencies. If the task is ready to go, it runs it.
-   * If no tasks are ready to go, it returns a NULL, which encodes -No Task-.
+   * If no tasks are ready to go, it returns a nullptr, which encodes -No Task-.
    *
-   * \return A pointer to a HiCR task to execute. NULL if there are no pending tasks.
+   * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
   __INLINE__ taskr::Task *pullReadyTask()
   {
     // If all tasks finished, then terminate execution immediately
-    if (_continueRunning == false)
+    if (_activeTaskCount == 0)
     {
       // Getting a pointer to the currently executing worker
       auto worker = HiCR::tasking::Worker::getCurrentWorker();
@@ -241,18 +202,38 @@ class Runtime
       // Terminating worker.
       worker->terminate();
 
-      // Returning a NULL function
-      return NULL;
+      // Returning a nullptr function
+      return nullptr;
     }
 
     // If maximum active workers is defined, then check if the threshold is exceeded
     checkMaximumActiveWorkerCount();
 
     // Poping next task from the lock-free queue
-    auto task = _readyTaskQueue->pop();
+    auto task = _waitingTaskQueue->pop();
 
     // If no task was found (queue was empty), then return an empty task
-    if (task == NULL) return NULL;
+    if (task == nullptr) return nullptr;
+
+    // Checking for task's pending dependencies
+    for (auto it = task->getDependencies().begin(); it != task->getDependencies().end();)
+    {
+      // Checking whether the dependency is already finished
+      const auto dependency = *it;
+
+      // If it is not finished:
+      if (_finishedObjects.contains(dependency) == false) [[likely]]
+       {
+         // Push the task back into back of the queue
+         _waitingTaskQueue->push(task);
+
+         // Return nullptr, signaling no task was found
+         return nullptr;
+       }
+
+      // Otherwise, remove it out of the dependency set
+      it = task->getDependencies().erase(it);
+    }
 
     // Returning ready task
     return task;
@@ -269,9 +250,6 @@ class Runtime
   {
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
-
-    // Set runtime as running
-    _continueRunning = true;
 
     // Creating one worker per processung unit in the list
     for (auto &pu : _processingUnits)
@@ -308,11 +286,6 @@ class Runtime
     // Finalizing HiCR tasking
     HiCR::tasking::finalize();
   }
-
-  /**
-  * Signals the runtime to finalize as soon as possible
-  */
-  __INLINE__ void finalize() { _continueRunning = false; }
 
   private:
 
@@ -360,13 +333,13 @@ class Runtime
         auto w = _suspendedWorkerQueue->pop();
 
         // Do the following if a worker was obtained
-        if (w != NULL)
+        if (w != nullptr)
         {
           // Increase the active worker count
           _activeWorkerCount++;
 
           // Resuming worker
-          if (w != NULL) w->resume();
+          if (w != nullptr) w->resume();
         }
       }
 
@@ -401,14 +374,14 @@ class Runtime
   std::vector<HiCR::tasking::Worker *> _workers;
 
   /**
-   * indicates whether the runtime must continue running or finish
-   */
-  bool _continueRunning = false;
-
-  /**
    * Mutex for the active worker queue, required for the max active workers mechanism
    */
   std::mutex _activeWorkerQueueLock;
+
+  /**
+   * Counter for the current number of active tasks. Execution finishes when this counter reaches zero
+   */
+  std::atomic<size_t> _activeTaskCount = 0;
 
   /**
    * User-defined maximum active worker count. Required for the max active workers mechanism
@@ -422,9 +395,9 @@ class Runtime
   ssize_t _activeWorkerCount;
 
   /**
-   * Lock-free queue for ready tasks.
+   * Lock-free queue for waiting tasks.
    */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _readyTaskQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _waitingTaskQueue;
 
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism
@@ -437,9 +410,9 @@ class Runtime
   std::vector<std::unique_ptr<HiCR::L0::ProcessingUnit>> _processingUnits;
 
   /**
-   * Task map to relate a task label to its pointer
+   * This parallel set stores the id of all finished objects
    */
-  HiCR::concurrent::HashMap<taskr::Task::label_t, taskr::Task *> _taskMap;
+  HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
 
   /**
    * Storage for the distributed engine's communication manager

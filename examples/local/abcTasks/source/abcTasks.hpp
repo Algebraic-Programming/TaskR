@@ -42,9 +42,9 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
   }
 
   // Now creating the dependency graph
-  for (size_t i = 0; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 2], tasks[i * 3 + 1]);
-  for (size_t i = 0; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 1], tasks[i * 3 + 0]);
-  for (size_t i = 1; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 0], tasks[i * 3 - 1]);
+  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 2]->addDependency(i * 3 + 1);
+  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 1]->addDependency(i * 3 + 0);
+  for (size_t i = 1; i < ITERATIONS; i++) tasks[i * 3 + 0]->addDependency(i * 3 - 1);
 
   // Adding tasks to taskr
   for (const auto task : tasks) taskr.addTask(task);

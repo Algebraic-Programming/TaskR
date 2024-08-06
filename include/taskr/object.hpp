@@ -51,53 +51,16 @@ class Object
    */
   label_t getLabel() const { return _label; }
 
-  /**
-   * A function to determine whether the current object (in whatever of its incarnations) is ready to be used
-   * 
-   * @return True, if the object is ready; false, otherwise.
-   */
-  virtual bool isReady() const = 0;
-
-  //// Input dependency management
-
-  /**
-   * Gets the current value of the remaining input dependencies
-   * 
-   * @return The remaining input dependency count
-   */
-  __INLINE__ ssize_t getInputDependencyCounter() const { return _inputDependencyCounter.load(); }
-
-  /**
-   * Increases the input dependency counter by one, and returns the new value atomically
-   * 
-   * @return The new number of input dependencies
-   */
-  __INLINE__ ssize_t increaseInputDependencyCounter() { return _inputDependencyCounter.fetch_add(1) + 1; }
-
-  /**
-   * Decreases the input dependency counter by one, and returns the new value atomically
-   * 
-   * @return The new number of input dependencies
-   */
-  __INLINE__ ssize_t decreaseInputDependencyCounter() { return _inputDependencyCounter.fetch_sub(1) - 1; }
-
-  //// Output dependency management
-
-  /**
+   /**
    * Adds one output dependency on the current object
    * 
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
    * 
    * @param[in] dependency The label of the object that depends on this object
    */
-  __INLINE__ void addOutputDependency(const label_t dependency) { _outputDependencies.push_back(dependency); }
+  __INLINE__ void addDependency(const label_t dependency) { _dependencies.insert(dependency); }
 
-  /**
-   * Returns this object's set of output dependencies 
-   * 
-   * @return This object's set of output dependencies
-   */
-  __INLINE__ const std::vector<HiCR::tasking::uniqueId_t> &getOutputDependencies() const { return _outputDependencies; }
+  __INLINE__ std::set<HiCR::tasking::uniqueId_t>& getDependencies() { return _dependencies; }
 
   protected:
 
@@ -107,14 +70,9 @@ class Object
   const label_t _label;
 
   /**
-   * Atomic counter for the tasks' input dependencies
+   * This holds all the objects this object depends on
    */
-  std::atomic<ssize_t> _inputDependencyCounter = 0;
-
-  /**
-   * This is a map that relates unique event ids to a set of its task dependents (i.e., output dependencies).
-   */
-  std::vector<HiCR::tasking::uniqueId_t> _outputDependencies;
+  std::set<HiCR::tasking::uniqueId_t> _dependencies;
 
 }; // class Task
 

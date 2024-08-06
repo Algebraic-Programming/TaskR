@@ -47,15 +47,6 @@ class Task final : public taskr::Object, public HiCR::tasking::Task
       HiCR::tasking::Task(executionUnit, nullptr)
   {}
 
-  __INLINE__ bool isReady() const override
-  {
-    bool ready = true;
-
-    // If the counter is above zero, then the task is still not ready
-    if (this->Object::_inputDependencyCounter > 0) ready = false;
-
-    return ready;
-  }
 
 }; // class Task
 
