@@ -33,6 +33,12 @@
 #include <hicr/backends/mpi/L1/memoryManager.hpp>
 #endif
 
+#ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
+#include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
+#include <hicr/backends/host/L1/instanceManager.hpp>
+#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
+#endif
+
 /**
  * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active task queue
  */
@@ -97,9 +103,6 @@ class Runtime
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
-
-      // Add task to the waiting queue
-      _waitingTaskQueue->push(taskrTask);
     });
 
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) {
@@ -108,9 +111,6 @@ class Runtime
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
-
-      // Add task to the waiting queue
-      _waitingTaskQueue->push(taskrTask);
     });
 
     // Creating / initializing distributed engine
@@ -123,10 +123,15 @@ class Runtime
     _memoryManager = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
     #endif
     
-    // Instantiating distributed engine
-    #ifndef _TASKR_DISTRIBUTED_ENGINE_NONE
-    _distributedEngine = std::make_unique<taskr::DistributedEngine>(_instanceManager.get(), _communicationManager.get(), _memoryManager.get());
+    #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
+    _instanceManager = std::make_unique<HiCR::backend::host::L1::InstanceManager>();
+    _communicationManager = std::make_unique<HiCR::backend::host::pthreads::L1::CommunicationManager>();
+    _memoryManager = std::make_unique<HiCR::backend::host::hwloc::L1::MemoryManager>();
     #endif
+
+    // Instantiating distributed engine
+    _distributedEngine = std::make_unique<taskr::DistributedEngine>(_instanceManager.get(), _communicationManager.get(), _memoryManager.get());
+    
   }
 
   // Destructor (frees previous allocations)
@@ -179,7 +184,17 @@ class Runtime
     // Making sure the task has its callback map correctly assigned
     task->setCallbackMap(&_hicrCallbackMap);
 
-    // If the task is ready, add it to the ready queue
+    // Add task to the ready queue
+    _waitingTaskQueue->push(task);
+  }
+
+  /**
+   * Re-activates (resumes) a task by adding it back to the waiting task queue
+   *
+   * \param[in] task Task to resume.
+   */
+  __INLINE__ void resumeTask(taskr::Task *task)
+  {
     _waitingTaskQueue->push(task);
   }
 

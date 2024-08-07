@@ -53,6 +53,9 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   // Assigning processing resource to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
+  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
+  _taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { _taskr->resumeTask(task); });
+
   // Storage for result
   uint64_t result = 0;
 

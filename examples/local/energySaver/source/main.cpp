@@ -92,7 +92,7 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(i + 1, workExecutionUnit);
-    taskr.addDependency(waitTask, workTask);
+    waitTask->addDependency(workTask->getLabel());
     taskr.addTask(workTask);
   }
 
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(workTaskCount + i + 1, workExecutionUnit);
-    taskr.addDependency(workTask, waitTask);
+    workTask->addDependency(waitTask->getLabel());
     taskr.addTask(workTask);
   }
 

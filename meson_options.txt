@@ -1,5 +1,5 @@
 option('distributedEngine', type : 'combo',
-       choices : [ 'mpi', 'lpf',  'none'], 
+       choices : [ 'mpi', 'lpf', 'none' ], 
        description : 'Specifies which engine (if any) to use for distributed computing',
        value: 'none'
        )

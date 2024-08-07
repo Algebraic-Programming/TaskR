@@ -14,7 +14,10 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
   // Initializing taskr
   taskr::Runtime taskr;
 
-  // Assigning processing Re to TaskR
+  // Auto-adding task when it receives a sync signal
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](taskr::Task* task) { taskr.resumeTask(task); });
+
+  // Assigning processing resource to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
   // Contention value
