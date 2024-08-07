@@ -117,6 +117,10 @@ class Runtime
 
     // Creating HiCR L1 managers
 
+    #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
+    #error "LPF backend not supported yet"
+    #endif
+
     #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
     _instanceManager = HiCR::backend::mpi::L1::InstanceManager::createDefault(pargc, pargv);
     _communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
