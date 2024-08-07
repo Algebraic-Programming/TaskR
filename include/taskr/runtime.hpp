@@ -126,7 +126,7 @@ class Runtime
     #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
     _instanceManager = std::make_unique<HiCR::backend::host::L1::InstanceManager>();
     _communicationManager = std::make_unique<HiCR::backend::host::pthreads::L1::CommunicationManager>();
-    _memoryManager = std::make_unique<HiCR::backend::host::hwloc::L1::MemoryManager>();
+    _memoryManager = HiCR::backend::host::hwloc::L1::MemoryManager::createDefault();
     #endif
 
     // Instantiating distributed engine
@@ -142,6 +142,9 @@ class Runtime
     MPI_Finalize();
     #endif
   }
+
+
+  ///////////// Local tasking API
 
   /**
    * Adds a callback for a particular callback
@@ -301,6 +304,12 @@ class Runtime
     // Finalizing HiCR tasking
     HiCR::tasking::finalize();
   }
+
+  ///////////// Distributed Execution & Communication API
+
+  const auto getInstances() { return _instanceManager->getInstances(); }
+  const auto getCurrentInstance() { return _instanceManager->getCurrentInstance(); }
+  const auto getRootInstanceId() { return _instanceManager->getRootInstanceId(); }
 
   private:
 

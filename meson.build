@@ -46,6 +46,10 @@ if distributedEngine == 'lpf'
  TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_LPF'
 endif
 
+if distributedEngine == 'none'
+ TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_NONE'
+endif
+
 TaskRBuildIncludes = include_directories([
    '../include'
   ])
