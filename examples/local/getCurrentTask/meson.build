@@ -1,4 +1,4 @@
-testSuite = [ 'examples' ]
+testSuite = [ 'examples', 'local' ]
 
 getCurrentTask = executable('getCurrentTask', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ])
 

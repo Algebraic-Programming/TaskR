@@ -1,4 +1,4 @@
-testSuite = [ 'examples' ]
+testSuite = [ 'examples', 'local' ]
 
 multiJob = executable('multiJob', [ 'source/main.cpp', 'source/job1.cpp', 'source/job2.cpp' ], dependencies: [ TaskRBuildDep ] )
 

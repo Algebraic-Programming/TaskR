@@ -1,4 +1,4 @@
-testSuite = [ 'examples' ]
+testSuite = [ 'examples', 'local' ]
 
 conditionVariable = executable('conditionVariableExample', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ] )
 

@@ -1,4 +1,4 @@
-testSuite = [ 'examples' ]
+testSuite = [ 'examples', 'local' ]
 
 abcTasks = executable('abcTasks', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ] )
 

@@ -15,6 +15,7 @@
 #include <atomic>
 #include <vector>
 #include <cstddef>
+#include <set>
 #include <hicr/frontends/tasking/common.hpp>
 
 namespace taskr

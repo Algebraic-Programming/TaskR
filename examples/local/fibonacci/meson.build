@@ -1,4 +1,4 @@
-testSuite = [ 'examples' ]
+testSuite = [ 'examples', 'local' ]
 
 fibonacci = executable('fibonacci', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ] )
 
