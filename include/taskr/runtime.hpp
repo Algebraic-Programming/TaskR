@@ -238,10 +238,10 @@ class Runtime
     if (task == nullptr) return nullptr;
 
     // Checking for task's pending dependencies
-    for (auto it = task->getDependencies().begin(); it != task->getDependencies().end();)
+    while(task->getDependencies().empty() == false)
     {
       // Checking whether the dependency is already finished
-      const auto dependency = *it;
+      const auto dependency = task->getDependencies().front();
 
       // If it is not finished:
       if (_finishedObjects.contains(dependency) == false) [[likely]]
@@ -253,8 +253,31 @@ class Runtime
          return nullptr;
        }
 
-      // Otherwise, remove it out of the dependency set
-      it = task->getDependencies().erase(it);
+      // Otherwise, remove it out of the dependency queue
+      task->getDependencies().pop();
+    }
+
+    // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
+    while(task->getPendingOperations().empty() == false)
+    {
+      // Checking whether the operation has finished
+      const auto pendingOperation = task->getPendingOperations().front();
+
+      // Running pending operation checker
+      const auto result = pendingOperation();
+
+      // If not satisfied:
+      if (result == false)
+      {
+         // Push the task back into back of the queue
+        _waitingTaskQueue->push(task);
+
+        // Return nullptr, signaling no task was found
+        return nullptr;
+      } 
+
+      // Otherwise, remove it out of the dependency queue
+      task->getPendingOperations().pop();
     }
 
     // Returning ready task

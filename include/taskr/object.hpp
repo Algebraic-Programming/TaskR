@@ -15,7 +15,7 @@
 #include <atomic>
 #include <vector>
 #include <cstddef>
-#include <set>
+#include <queue>
 #include <hicr/frontends/tasking/common.hpp>
 
 namespace taskr
@@ -32,6 +32,11 @@ class Object
    * A unique identifier (label) for an object
    */
   typedef HiCR::tasking::uniqueId_t label_t;
+
+   /**
+   * The definition of a pending operation. It needs to return a boolean indicating whether the operation has ended.
+   */
+  typedef std::function<bool()> pendingOperation_t;
 
   Object()  = delete;
   ~Object() = default;
@@ -59,9 +64,28 @@ class Object
    * 
    * @param[in] dependency The label of the object that depends on this object
    */
-  __INLINE__ void addDependency(const label_t dependency) { _dependencies.insert(dependency); }
+  __INLINE__ void addDependency(const label_t dependency) { _dependencies.push(dependency); }
 
-  __INLINE__ std::set<HiCR::tasking::uniqueId_t>& getDependencies() { return _dependencies; }
+   /**
+    * Gets a reference to the task's pending dependencies
+    * 
+    * @return A reference to the queue containing the task's pending dependencies
+    */
+  __INLINE__ std::queue<label_t>& getDependencies() { return _dependencies; }
+
+  /**
+   * Adds one pending operation on the current object
+   *
+   * @param[in] pendingOperations A function that checks whether the pending operation has completed or not
+   */
+  __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push(pendingOperation); }
+
+   /**
+    * Gets a reference to the task's pending operations
+    * 
+    * @return A reference to the queue containing the task's pending operations
+    */
+  __INLINE__ std::queue<pendingOperation_t>& getPendingOperations() { return _pendingOperations; }
 
   protected:
 
@@ -73,7 +97,12 @@ class Object
   /**
    * This holds all the objects this object depends on
    */
-  std::set<HiCR::tasking::uniqueId_t> _dependencies;
+  std::queue<label_t> _dependencies;
+
+  /**
+   * This holds all pending operations the object needs to wait on
+   */
+  std::queue<pendingOperation_t> _pendingOperations;
 
 }; // class Task
 
