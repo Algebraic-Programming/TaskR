@@ -1,1 +1,1 @@
-subdir('debugInfo')
+subdir('pingPong')

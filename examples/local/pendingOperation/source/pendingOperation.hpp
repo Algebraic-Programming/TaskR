@@ -7,7 +7,7 @@
 void heavyTask()
 {
   // Printing starting message
-  printf("Started  Heavy Task %lu\n", taskr::getCurrentTask()->getLabel());
+  printf("Task %lu -- Starting 1 second-long operation.\n", taskr::getCurrentTask()->getLabel());
   
   // Getting initial time
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -35,7 +35,7 @@ void heavyTask()
   taskr::getCurrentTask()->suspend();
 
   // Printing finished message
-  printf("Finished Heavy Task %lu\n", taskr::getCurrentTask()->getLabel());
+  printf("Task %lu - operation finished\n", taskr::getCurrentTask()->getLabel());
 }
 
 void pendingOperation(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)

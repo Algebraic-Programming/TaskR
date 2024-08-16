@@ -16,28 +16,12 @@
 #include <map>
 #include <mutex>
 #include <memory>
-#include <hicr/core/L1/communicationManager.hpp>
-#include <hicr/core/L1/instanceManager.hpp>
-#include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
-#include "distributedEngine.hpp"
-
-#ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-#include <hicr/backends/mpi/L1/communicationManager.hpp>
-#include <hicr/backends/mpi/L1/instanceManager.hpp>
-#include <hicr/backends/mpi/L1/memoryManager.hpp>
-#endif
-
-#ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-#include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/host/L1/instanceManager.hpp>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
-#endif
 
 /**
  * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active task queue
@@ -112,41 +96,10 @@ class Runtime
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
     });
-
-    // Creating / initializing distributed engine
-
-    // Creating HiCR L1 managers
-
-    #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
-    #error "LPF backend not supported yet"
-    #endif
-
-    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-    _instanceManager = HiCR::backend::mpi::L1::InstanceManager::createDefault(pargc, pargv);
-    _communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
-    _memoryManager = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
-    #endif
-    
-    #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-    _instanceManager = std::make_unique<HiCR::backend::host::L1::InstanceManager>();
-    _communicationManager = std::make_unique<HiCR::backend::host::pthreads::L1::CommunicationManager>();
-    _memoryManager = HiCR::backend::host::hwloc::L1::MemoryManager::createDefault();
-    #endif
-
-    // Instantiating distributed engine
-    _distributedEngine = std::make_unique<taskr::DistributedEngine>(_instanceManager.get(), _communicationManager.get(), _memoryManager.get());
-    
   }
 
-  // Destructor (frees previous allocations)
-  ~Runtime()
-  {
-    // Finalizes MPI 
-    #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-    MPI_Finalize();
-    #endif
-  }
-
+  // Destructor 
+  ~Runtime() = default;
 
   ///////////// Local tasking API
 
@@ -332,12 +285,6 @@ class Runtime
     HiCR::tasking::finalize();
   }
 
-  ///////////// Distributed Execution & Communication API
-
-  const auto getInstances() { return _instanceManager->getInstances(); }
-  const auto getCurrentInstance() { return _instanceManager->getCurrentInstance(); }
-  const auto getRootInstanceId() { return _instanceManager->getRootInstanceId(); }
-
   private:
 
   /**
@@ -464,27 +411,6 @@ class Runtime
    * This parallel set stores the id of all finished objects
    */
   HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
-
-  /**
-   * Storage for the distributed engine's communication manager
-   */
-  std::unique_ptr<HiCR::L1::CommunicationManager> _communicationManager;
-
-  /**
-   * Storage for the distributed engine's instance manager
-   */
-  std::unique_ptr<HiCR::L1::InstanceManager> _instanceManager;
-
-  /**
-   * Storage for the distributed engine's memory manager
-   */
-  std::unique_ptr<HiCR::L1::MemoryManager> _memoryManager;
-
-  /**
-   * Storage for the distributed engine
-   */
-  std::unique_ptr<DistributedEngine> _distributedEngine;
-
 }; // class Runtime
 
 } // namespace taskr
