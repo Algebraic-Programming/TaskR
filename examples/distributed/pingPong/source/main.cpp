@@ -144,7 +144,6 @@ int main(int argc, char **argv)
         taskr::getCurrentTask()->suspend();
     });
 
-
     auto workerSendExecutionUnit = computeManager.createExecutionUnit([&]()
     {
         // Creating message to send
@@ -158,27 +157,11 @@ int main(int argc, char **argv)
     printf("Instance %03lu / %03lu %s has started.\n", myInstanceId, instanceCount, myInstanceId == rootInstanceId ? "(Root)" : "");
 
     // Declaring tasks
-    taskr::Task* sendTask;
-    taskr::Task* recvTask;
+    auto sendTask = new taskr::Task(0, myInstanceId == rootInstanceId ? rootSendExecutionUnit : workerSendExecutionUnit);
+    auto recvTask = new taskr::Task(1, myInstanceId == rootInstanceId ? rootRecvExecutionUnit : workerRecvExecutionUnit);
 
-    // Root's path
-    if (myInstanceId == rootInstanceId)
-    {
-      // Creating tasks
-      sendTask = new taskr::Task(0, rootSendExecutionUnit);
-      recvTask = new taskr::Task(1, rootRecvExecutionUnit);
-    } 
-    
-    // Worker's path
-    if (myInstanceId != rootInstanceId)
-    {
-      // Creating tasks
-      recvTask = new taskr::Task(1, workerRecvExecutionUnit);
-      sendTask = new taskr::Task(0, workerSendExecutionUnit);
-
-      // We don't send until receiving the root's welcome
-      sendTask->addDependency(recvTask->getLabel());
-    }
+    // Workers: we don't send pong until receiving the root's ping
+    if (myInstanceId != rootInstanceId) sendTask->addDependency(recvTask->getLabel());
 
     // Adding tasks
     taskr.addTask(sendTask);
