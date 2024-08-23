@@ -51,6 +51,9 @@ int main(int argc, char **argv)
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
+  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { taskr.resumeTask(task); });
+
   // Create processing units from the detected compute resource list and giving them to taskr
   for (auto &resource : computeResources)
   {
@@ -100,60 +103,65 @@ int main(int argc, char **argv)
   std::vector<HiCR::L1::TopologyManager*> topologyManagers = { topologyManager.get() };
   auto deployer = HiCR::Deployer(instanceManager.get(), communicationManager.get(), memoryManager.get(), topologyManagers);
 
-  // Creating execution units
-  auto rootExecutionUnit = computeManager.createExecutionUnit([&]()
-   {
-      // Step #1: Every non-root instance receives from the root instance 
-
-      // Creating message to send
-      std::string sendMsg = "Hello, Non-Root Instance";
-
-      // Sending it to others
-      for (auto& instance : instanceManager->getInstances()) deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);  
-
-      // Step #2: Every instance sends to left and receives from right (Pong)
-
-      // Receiving message from others
-      for (size_t i = 0; i < instanceManager->getInstances().size(); i++)
-      {
-        // Receiving message from root
-        auto recvMsg = deployer.getCurrentInstance()->recvMessage();
-
-        // Printing message
-        printf("Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
-      } 
-   });
-
-  auto workerExecutionUnit = computeManager.createExecutionUnit([&]()
-   {
-      // Step #1: Every non-root instance receives from the root instance 
-      
-      // Receiving message from root
-      auto recvMsg = deployer.getCurrentInstance()->recvMessage();
-
-      // Printing message
-      printf("Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
-
-      // Step #2: Every instance sends to left and receives from right (Pong)
-      
-      // Creating message to send
-      std::string sendMsg = "Hello, Root Instance";
-
-      // Sending message to root
-      deployer.getCurrentInstance()->sendMessage(rootInstanceId, sendMsg.data(), sendMsg.size() + 1);  
-   });
-
   // Creating entry point
   instanceManager->addRPCTarget("doPingPong", [&]()
   {
+   // Message to be received
+    HiCR::deployer::Instance::message_t recvMsg;
+
+    // Creating execution units
+    auto rootSendExecutionUnit = computeManager.createExecutionUnit([&]()
+    {
+        // Creating message to send
+        std::string sendMsg = "Hello, Non-Root Instance";
+
+        // Sending it to others
+        for (auto& instance : instanceManager->getInstances()) deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);  
+    });
+
+    auto rootRecvExecutionUnit = computeManager.createExecutionUnit([&]()
+    {
+        // Receiving message from others
+        for (size_t i = 0; i < instanceManager->getInstances().size(); i++)
+        {
+          // Add pending operation
+          taskr::getCurrentTask()->addPendingOperation([&]() { recvMsg = deployer.getCurrentInstance()->recvMessageAsync(); return recvMsg.data != nullptr; });
+
+          // Suspending task until the operation is ready
+          taskr::getCurrentTask()->suspend();
+
+          // Printing message
+          printf("Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
+        } 
+    });
+        
+    auto workerRecvExecutionUnit = computeManager.createExecutionUnit([&]()
+    {
+        // Add pending operation
+        taskr::getCurrentTask()->addPendingOperation([&]() { recvMsg = deployer.getCurrentInstance()->recvMessageAsync(); return recvMsg.data != nullptr; });
+
+        // Suspending task until the operation is ready
+        taskr::getCurrentTask()->suspend();
+
+        // Printing message
+        printf("Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
+    });
+
+    auto workerSendExecutionUnit = computeManager.createExecutionUnit([&]()
+    {
+        // Creating message to send
+        std::string sendMsg = "Hello, Root Instance";
+
+        // Sending message to root
+        deployer.getCurrentInstance()->sendMessage(rootInstanceId, sendMsg.data(), sendMsg.size() + 1);  
+    });
+
     // Printing my instance info
     printf("Instance %03lu / %03lu %s has started.\n", myInstanceId, instanceCount, myInstanceId == rootInstanceId ? "(Root)" : "");
 
-    // Root's path
-    if (myInstanceId == rootInstanceId) taskr.addTask(new taskr::Task(0, rootExecutionUnit));
-    
-    // Worker's path
-    if (myInstanceId != rootInstanceId) taskr.addTask(new taskr::Task(0, workerExecutionUnit));
+    // Adding tasks
+    taskr.addTask(new taskr::Task(0, myInstanceId == rootInstanceId ? rootSendExecutionUnit : workerSendExecutionUnit));
+    taskr.addTask(new taskr::Task(1, myInstanceId == rootInstanceId ? rootRecvExecutionUnit : workerRecvExecutionUnit));
 
     // Running TaskR
     taskr.run(&computeManager);
