@@ -116,13 +116,15 @@ int main(int argc, char **argv)
         std::string sendMsg = "Hello, Non-Root Instance";
 
         // Sending it to others
-        for (auto& instance : instanceManager->getInstances()) deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);  
+        for (auto& instance : instanceManager->getInstances())
+         if (instance->isRootInstance() == false)
+          deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);  
     });
 
     auto rootRecvExecutionUnit = computeManager.createExecutionUnit([&]()
     {
         // Receiving message from others
-        for (size_t i = 0; i < instanceManager->getInstances().size(); i++)
+        for (size_t i = 0; i < instanceManager->getInstances().size() - 1; i++)
         {
           // Add pending operation
           taskr::getCurrentTask()->addPendingOperation([&]() { recvMsg = deployer.getCurrentInstance()->recvMessageAsync(); return recvMsg.data != nullptr; });
@@ -131,7 +133,7 @@ int main(int argc, char **argv)
           taskr::getCurrentTask()->suspend();
 
           // Printing message
-          printf("Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
+          printf("Root Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
         } 
     });
         
@@ -142,6 +144,9 @@ int main(int argc, char **argv)
 
         // Suspending task until the operation is ready
         taskr::getCurrentTask()->suspend();
+
+        // Printing message
+        printf("Worker Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char*)recvMsg.data);
     });
 
     auto workerSendExecutionUnit = computeManager.createExecutionUnit([&]()
