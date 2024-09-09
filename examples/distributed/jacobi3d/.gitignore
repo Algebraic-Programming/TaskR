@@ -1,0 +1,4 @@
+*.o
+mate_*.cpp
+jacobi
+*.btr
