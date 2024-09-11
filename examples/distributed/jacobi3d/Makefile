@@ -1,14 +1,11 @@
 .SECONDARY: 
-BINARIES = mpi/jacobi mate/jacobi
+BINARIES = mpi/jacobi
 
 .PHONY: all stage
 all: $(BINARIES)
 
 mpi/jacobi: 
 	$(MAKE) -C mpi
-
-mate/jacobi: 
-	$(MAKE) -C mate
 
 .PHONY: clean
 clean:

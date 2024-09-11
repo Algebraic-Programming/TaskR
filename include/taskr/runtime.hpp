@@ -48,7 +48,7 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    */
-  Runtime(int* pargc = nullptr, char*** pargv = nullptr)
+  Runtime(HiCR::L1::ComputeManager* computeManager) : _computeManager(computeManager)
   {
     // Creating internal objects
     _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
@@ -100,6 +100,10 @@ class Runtime
 
   // Destructor 
   ~Runtime() = default;
+
+
+  ///////////// Getting internal compute manager
+  HiCR::L1::ComputeManager* getComputeManager() const { return _computeManager; }
 
   ///////////// Local tasking API
 
@@ -237,14 +241,12 @@ class Runtime
     return task;
   }
 
+
   /**
-   * Starts the execution of the TaskR runtime.
+   * Initailizes the TaskR runtime
    * Creates a set of HiCR workers, based on the provided computeManager, and subscribes them to a dispatcher queue.
-   * After creating the workers, it starts them and suspends the current context until they're back (all tasks have finished).
-   *
-   * \param[in] computeManager The compute manager to use to coordinate the execution of processing units and tasks
    */
-  __INLINE__ void run(HiCR::L1::ComputeManager *computeManager)
+  __INLINE__ void initialize()
   {
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
@@ -253,7 +255,7 @@ class Runtime
     for (auto &pu : _processingUnits)
     {
       // Creating new worker
-      auto worker = new HiCR::tasking::Worker(computeManager);
+      auto worker = new HiCR::tasking::Worker(_computeManager);
 
       // Assigning resource to the thread
       worker->addProcessingUnit(std::move(pu));
@@ -263,26 +265,40 @@ class Runtime
 
       // Finally adding worker to the worker set
       _workers.push_back(worker);
-
-      // Initializing worker
-      worker->initialize();
     }
+  }
 
-    // Initializing active worker count
-    _activeWorkerCount = _workers.size();
-
-    // Starting workers
-    for (auto &w : _workers) w->start();
-
-    // Waiting for workers to finish
-    for (auto &w : _workers) w->await();
-
+   /**
+   * Finalizes the TaskR runtime
+   * Releases all workers and frees up their memory
+   */
+  __INLINE__ void finalize()
+  {
     // Clearing created objects
     for (auto &w : _workers) delete w;
     _workers.clear();
 
     // Finalizing HiCR tasking
     HiCR::tasking::finalize();
+  }
+
+  /**
+   * Starts the execution of the TaskR runtime.
+   * It starts the workers and suspends the current context until they're back (all tasks have finished).
+   */
+  __INLINE__ void run()
+  {
+    // Initializing active worker count
+    _activeWorkerCount = _workers.size();
+
+    // Initializing workers
+    for (auto &w : _workers) w->initialize();
+
+    // Starting workers
+    for (auto &w : _workers) w->start();
+
+    // Waiting for workers to finish computing
+    for (auto &w : _workers) w->await();
   }
 
   private:
@@ -345,6 +361,11 @@ class Runtime
       _activeWorkerQueueLock.unlock();
     }
   }
+
+  /**
+   * Pointer to the compute manager to use
+   */
+  HiCR::L1::ComputeManager* const _computeManager;
 
   /**
    * Type definition for the task's callback map

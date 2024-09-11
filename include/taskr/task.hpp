@@ -28,7 +28,7 @@ namespace taskr
  *
  * A task may be suspended before the function is fully executed. This is either by voluntary yielding, or by reaching an synchronous operation that prompts it to suspend. These two suspension reasons will result in different states.
  */
-class Task final : public taskr::Object, public HiCR::tasking::Task
+class Task : public taskr::Object, public HiCR::tasking::Task
 {
   public:
 
