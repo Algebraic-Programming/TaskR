@@ -110,13 +110,20 @@ void Grid::reset()
    U[k*fs.y*fs.x + j*fs.x + i]  = 1;
    Un[k*fs.y*fs.x + j*fs.x + i] = 1;
  }
-//
+
  if (West.type  == BOUNDARY) for (int i = start.y-gDepth; i < end.y+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + i*fs.x + d] = 0;
  if (North.type == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + d*fs.x + i] = 0;
  if (Up.type    == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.y-gDepth; j < end.y+gDepth; j++) for (int d = 0; d < gDepth; d++) U[d*fs.x*fs.y + j*fs.x + i] = 0;
  if (East.type  == BOUNDARY) for (int i = start.y-gDepth; i < end.y+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + i*fs.x + (ps.x+gDepth+d)] = 0;
  if (South.type == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + (ps.y+gDepth+d)*fs.x + i] = 0;
  if (Down.type  == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.y-gDepth; j < end.y+gDepth; j++) for (int d = 0; d < gDepth; d++) U[(ps.z+gDepth+d)*fs.x*fs.y + j*fs.x + i] = 0;
+
+ if (West.type  == BOUNDARY) for (int i = start.y-gDepth; i < end.y+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + i*fs.x + d] = 0;
+ if (North.type == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + d*fs.x + i] = 0;
+ if (Up.type    == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.y-gDepth; j < end.y+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[d*fs.x*fs.y + j*fs.x + i] = 0;
+ if (East.type  == BOUNDARY) for (int i = start.y-gDepth; i < end.y+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + i*fs.x + (ps.x+gDepth+d)] = 0;
+ if (South.type == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + (ps.y+gDepth+d)*fs.x + i] = 0;
+ if (Down.type  == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.y-gDepth; j < end.y+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[(ps.z+gDepth+d)*fs.x*fs.y + j*fs.x + i] = 0;
 }
 
 void Grid::solve()
@@ -323,18 +330,39 @@ void Grid::solve()
  free(southRecvBuffer);
 }
 
-double Grid::calculateResidual()
+double Grid::calculateResidual(const uint32_t it)
 {
  double res = 0;
+ double *localU  = it % 2 == 0 ? U :  Un;
  
  _localResidual = 0;
  for (int k=start.z; k<end.z; k++)
  for (int j=start.y; j<end.y; j++)
  for (int i=start.x; i<end.x; i++)
-  { double r = U[k*fs.y*fs.x + j*fs.x + i];  _localResidual += r * r; }
+  { double r = localU[k*fs.y*fs.x + j*fs.x + i];  _localResidual += r * r; }
 
  MPI_Reduce (&_localResidual, &res, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
  res = sqrt(res/((double)(N-1)*(double)(N-1)*(double)(N-1)));
 
  return res;
+}
+
+void Grid::print(const uint32_t it)
+{
+ double *localU  = it % 2 == 0 ? U :  Un;
+
+ for (ssize_t z = 0; z < fs.z; z++)
+ {
+  printf("Z Face %02lu\n", z);
+  printf("---------------------\n");
+
+  for (ssize_t y = 0; y < fs.y; y++)
+  {
+   for (ssize_t x = 0; x < fs.x; x++)
+   {
+     printf("%f ", localU[fs.x*fs.y*z + fs.x*y + x]);
+   }
+   printf("\n");
+  }
+ }
 }

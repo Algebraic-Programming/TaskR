@@ -443,6 +443,13 @@ void Grid::reset(const uint64_t lx, const uint64_t ly, const uint64_t lz)
  if (t.X1.type == BOUNDARY) for (int i = t.lStart.y-gDepth; i < t.lEnd.y+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + i*fs.x + (ps.x+gDepth+d)] = 0.0;
  if (t.Y1.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + (ps.y+gDepth+d)*fs.x + i] = 0.0;
  if (t.Z1.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.y-gDepth; j < t.lEnd.y+gDepth; j++) for (int d = 0; d < gDepth; d++) U[(ps.z+gDepth+d)*fs.x*fs.y + j*fs.x + i] = 0.0;
+
+ if (t.X0.type == BOUNDARY) for (int i = t.lStart.y-gDepth; i < t.lEnd.y+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + i*fs.x + d] = 0.0;
+ if (t.Y0.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + d*fs.x + i] = 0.0;
+ if (t.Z0.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.y-gDepth; j < t.lEnd.y+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[d*fs.x*fs.y + j*fs.x + i] = 0.0;
+ if (t.X1.type == BOUNDARY) for (int i = t.lStart.y-gDepth; i < t.lEnd.y+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + i*fs.x + (ps.x+gDepth+d)] = 0.0;
+ if (t.Y1.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.z-gDepth; j < t.lEnd.z+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[j*fs.x*fs.y + (ps.y+gDepth+d)*fs.x + i] = 0.0;
+ if (t.Z1.type == BOUNDARY) for (int i = t.lStart.x-gDepth; i < t.lEnd.x+gDepth; i++) for (int j = t.lStart.y-gDepth; j < t.lEnd.y+gDepth; j++) for (int d = 0; d < gDepth; d++) Un[(ps.z+gDepth+d)*fs.x*fs.y + j*fs.x + i] = 0.0;
 }
 
 void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
@@ -456,7 +463,7 @@ void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
  double *localU  = it % 2 == 0 ? U :  Un;
  double *localUn = it % 2 == 0 ? Un : U;
 
- // printf("Rank %d running Compute (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
+//  printf("Rank %d running Compute (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
 
  for (int k0 = subGrid.lStart.z; k0 < subGrid.lEnd.z; k0 += BLOCKZ)
  {
@@ -489,7 +496,7 @@ void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
  }
 
  // If we reached the end, simply return and finish
- if (it + 1 == nIters) return;
+ if (it == nIters - 1) return;
 
  // Creating new task for the next iteration
  auto newTask = new Task("Compute", lx, ly, lz, it+1, computeFc);
@@ -514,17 +521,17 @@ void Grid::receive(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
  auto localId = localSubGridMapping[lz][ly][lx];
  auto& subGrid = subgrids[localId];
 
- // printf("Rank %d running receive (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
+//  printf("Rank %d running receive (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
 
- if(subGrid.X0.type == REMOTE) { subGrid.X0UnpackBuffer = tryPeek(subGrid.X0RecvChannel.get()); } 
- if(subGrid.X1.type == REMOTE) { subGrid.X1UnpackBuffer = tryPeek(subGrid.X1RecvChannel.get()); } 
- if(subGrid.Y0.type == REMOTE) { subGrid.Y0UnpackBuffer = tryPeek(subGrid.Y0RecvChannel.get()); } 
- if(subGrid.Y1.type == REMOTE) { subGrid.Y1UnpackBuffer = tryPeek(subGrid.Y1RecvChannel.get()); } 
- if(subGrid.Z0.type == REMOTE) { subGrid.Z0UnpackBuffer = tryPeek(subGrid.Z0RecvChannel.get()); } 
- if(subGrid.Z1.type == REMOTE) { subGrid.Z1UnpackBuffer = tryPeek(subGrid.Z1RecvChannel.get()); } 
+ if(subGrid.X0.type == REMOTE) { subGrid.X0UnpackBuffer = tryPeek(subGrid.X0RecvChannel.get(), bufferSizeX); } 
+ if(subGrid.X1.type == REMOTE) { subGrid.X1UnpackBuffer = tryPeek(subGrid.X1RecvChannel.get(), bufferSizeX); } 
+ if(subGrid.Y0.type == REMOTE) { subGrid.Y0UnpackBuffer = tryPeek(subGrid.Y0RecvChannel.get(), bufferSizeY); } 
+ if(subGrid.Y1.type == REMOTE) { subGrid.Y1UnpackBuffer = tryPeek(subGrid.Y1RecvChannel.get(), bufferSizeY); } 
+ if(subGrid.Z0.type == REMOTE) { subGrid.Z0UnpackBuffer = tryPeek(subGrid.Z0RecvChannel.get(), bufferSizeZ); } 
+ if(subGrid.Z1.type == REMOTE) { subGrid.Z1UnpackBuffer = tryPeek(subGrid.Z1RecvChannel.get(), bufferSizeZ); } 
 
  // If we reached the iteration before the end, no more communication is needed
- if (it + 1 == nIters - 1) return;
+ if (it == nIters - 1) return;
 
  // Creating new task for the next iteration
  auto newTask = new Task("Receive", lx, ly, lz, it+1, receiveFc);
@@ -542,7 +549,7 @@ void Grid::unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const
  // Local pointer copies
  double *localU  = it % 2 == 0 ? Un :  U;
 
- // printf("Rank %d running unpack (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
+//  printf("Rank %d running unpack (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
 
  if(subGrid.X0.type  == REMOTE)
  {
@@ -605,7 +612,7 @@ void Grid::unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const
  }
 
  // If we reached the iteration before the end, no more communication is needed
- if (it + 1 == nIters - 1) return;
+ if (it == nIters - 1) return;
 
  // Creating new task for the next iteration
  auto newTask = new Task("Unpack", lx, ly, lz, it+1, unpackFc);
@@ -624,10 +631,12 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  auto& subGrid = subgrids[localId];
  double *localUn = it % 2 == 0 ? Un : U;
 
+//  printf("Rank %d running pack (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
+
  if(subGrid.X0.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.X0PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.X0PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int z = 0; z < ls.z; z++)
     for (int y = 0; y < ls.y; y++)
@@ -637,7 +646,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.X1.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.X1PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.X1PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int z = 0; z < ls.z; z++)
     for (int y = 0; y < ls.y; y++)
@@ -647,7 +656,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.Y0.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.Y0PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.Y0PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int z = 0; z < ls.z; z++)
     for (int x = 0; x < ls.x; x++)
@@ -657,7 +666,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.Y1.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.Y1PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.Y1PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int z = 0; z < ls.z; z++)
     for (int x = 0; x < ls.x; x++)
@@ -667,7 +676,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.Z0.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.Z0PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.Z0PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int y = 0; y < ls.y; y++)
     for (int x = 0; x < ls.x; x++)
@@ -677,7 +686,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.Z1.type  == REMOTE)
  {
   size_t bufferIdx = 0;
-  auto bufferPtr = (uint8_t*)subGrid.Z1PackMemorySlot->getPointer();
+  auto bufferPtr = (double*)subGrid.Z1PackMemorySlot->getPointer();
   for (int d = 0; d < gDepth; d++)
    for (int y = 0; y < ls.y; y++)
     for (int x = 0; x < ls.x; x++)
@@ -685,7 +694,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  }
 
  // If we reached the iteration before the end, no more communication is needed
- if (it + 1 == nIters - 1) return;
+ if (it == nIters - 1) return;
 
  // Creating new task for the next iteration
  auto newTask = new Task("Pack", lx, ly, lz, it+1, packFc);
@@ -703,6 +712,8 @@ void Grid::send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  auto localId = localSubGridMapping[lz][ly][lx];
  auto& subGrid = subgrids[localId];
 
+//  printf("Rank %d running send (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
+
  if(subGrid.X0.type == REMOTE) tryPush(subGrid.X0SendChannel.get(), subGrid.X0PackMemorySlot);
  if(subGrid.X1.type == REMOTE) tryPush(subGrid.X1SendChannel.get(), subGrid.X1PackMemorySlot);
  if(subGrid.Y0.type == REMOTE) tryPush(subGrid.Y0SendChannel.get(), subGrid.Y0PackMemorySlot);
@@ -711,7 +722,7 @@ void Grid::send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
  if(subGrid.Z1.type == REMOTE) tryPush(subGrid.Z1SendChannel.get(), subGrid.Z1PackMemorySlot);
 
  // If we reached the iteration before the end, no more communication is needed
- if (it + 1 == nIters - 1) return;
+ if (it == nIters - 1) return;
 
  // Creating new task for the next iteration
  auto newTask = new Task("Send", lx, ly, lz, it+1, sendFc);
@@ -737,22 +748,22 @@ void Grid::calculateLocalResidual(const uint64_t lx, const uint64_t ly, const ui
  _residual += err;
 }
 
-// void Grid::print(const uint32_t it)
-// {
-//  double *localU  = it % 2 == 0 ? Un :  U;
+void Grid::print(const uint32_t it)
+{
+ double *localU  = it % 2 == 0 ? U :  Un;
 
-//  for (size_t z = 0; z < fs.z; z++)
-//  {
-//   printf("Z Face %02lu\n", z);
-//   printf("---------------------\n");
+ for (ssize_t z = 0; z < fs.z; z++)
+ {
+  printf("Z Face %02lu\n", z);
+  printf("---------------------\n");
 
-//   for (size_t y = 0; y < fs.y; y++)
-//   {
-//    for (size_t x = 0; x < fs.x; x++)
-//    {
-//      printf("%f ", localU[fs.x*fs.y*z + fs.x*y + x]);
-//    }
-//    printf("\n");
-//   }
-//  }
-// }
+  for (ssize_t y = 0; y < fs.y; y++)
+  {
+   for (ssize_t x = 0; x < fs.x; x++)
+   {
+     printf("%f ", localU[fs.x*fs.y*z + fs.x*y + x]);
+   }
+   printf("\n");
+  }
+ }
+}

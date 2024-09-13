@@ -1,3 +1,4 @@
+#include <cstdint>
 const int BLOCKZ=96;
 const int BLOCKY=64;
 
@@ -63,11 +64,12 @@ class Grid
 
  double _localResidual;
 
+void print(const uint32_t it);
  Grid(const int processId, const size_t N, const size_t nIters, const size_t gDepth, const D3& pt);
  bool initialize();
  void finalize();
  void solve();
  void reset();
- double calculateResidual();
+ double calculateResidual(const uint32_t it);
 };
 

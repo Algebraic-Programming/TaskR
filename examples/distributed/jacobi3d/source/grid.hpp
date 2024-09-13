@@ -61,12 +61,12 @@ struct SubGrid {
  std::shared_ptr<HiCR::L0::LocalMemorySlot> Z0PackMemorySlot;
  std::shared_ptr<HiCR::L0::LocalMemorySlot> Z1PackMemorySlot;
 
- uint8_t* X0UnpackBuffer;
- uint8_t* X1UnpackBuffer;
- uint8_t* Y0UnpackBuffer;
- uint8_t* Y1UnpackBuffer;
- uint8_t* Z0UnpackBuffer;
- uint8_t* Z1UnpackBuffer;
+ double* X0UnpackBuffer;
+ double* X1UnpackBuffer;
+ double* Y0UnpackBuffer;
+ double* Y1UnpackBuffer;
+ double* Z0UnpackBuffer;
+ double* Z1UnpackBuffer;
 };
 
 class Grid
@@ -159,7 +159,6 @@ class Grid
  void unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
  void reset(const uint64_t lx, const uint64_t ly, const uint64_t lz);
 
-
  void resetResidual() { _residual = 0.0; }
  void calculateLocalResidual(const uint64_t lx, const uint64_t ly, const uint64_t lz,  const uint32_t it);
  
@@ -182,23 +181,23 @@ class Grid
   channel->push(slot);
  }
 
- static uint8_t* tryPeek(HiCR::channel::fixedSize::SPSC::Consumer* channel)
+ static double_t* tryPeek(HiCR::channel::fixedSize::SPSC::Consumer* channel, const size_t tokenSize)
  {
   // If the channel is full, suspend task until it frees up
   if (channel->isEmpty()) 
   {
-	// Getting currently executing task
-	auto currentTask = taskr::getCurrentTask();
+    // Getting currently executing task
+    auto currentTask = taskr::getCurrentTask();
 
     // Adding pending operation: channel being freed up
     currentTask->addPendingOperation([&]() { return channel->isEmpty() == false; });
 
     // Suspending until the operation is finished
-	taskr::getCurrentTask()->suspend();
+    taskr::getCurrentTask()->suspend();
   }
 
   // Otherwise go ahead and push
-  return (uint8_t*)channel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + channel->peek(0); 
+  return (double_t*)channel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + channel->peek(0) * tokenSize; 
  }
 
  static inline size_t encodeTaskName(const std::string& taskName, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint64_t iter)

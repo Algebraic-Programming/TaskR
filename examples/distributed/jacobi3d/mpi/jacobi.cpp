@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <cstdlib>
@@ -52,9 +53,21 @@ int main (int carg, char* argv[])
  MPI_Barrier(MPI_COMM_WORLD);
 
  // Calculating residual
- double residual = g.calculateResidual();
+ double residual = g.calculateResidual(nIters);
  //printf("Process: %d, Residual: %.8f\n", processId, g._localResidual);
  execTime += MPI_Wtime();
+
+//  for (size_t i = 0; i < processCount; i++)
+//  {
+//     if (processId == i) 
+//     {
+//         printf("Process: %d, Residual: %.8f\n", processId, g._localResidual);
+//         g.print(nIters);
+//     }
+//     printf("\n");
+
+//     usleep(50000);
+//  }
 
  if (isRootRank)
  {

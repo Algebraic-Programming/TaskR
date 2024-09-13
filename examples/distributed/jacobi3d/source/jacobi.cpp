@@ -206,32 +206,27 @@ int main (int argc, char* argv[])
     taskr.run();
 
     // Creating initial set tasks to solve the first iteration
+    if (nIters > 0) // Only compute if at least one iteartion is required
     for (ssize_t i = 0; i < lt.x; i++)
     for (ssize_t j = 0; j < lt.y; j++)
     for (ssize_t k = 0; k < lt.z; k++)
     {
-      // Only compute if at least one iteartion is required
-      if (nIters > 0) taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc));
+      taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc));
 
-      // Commmunication operations are only created for the second iteration onwards
-      if (nIters > 1)
-      {
-        auto packTask = new Task("Pack", i, j, k, 0, g->packFc);
-        packTask->addDependency(Task::encodeTaskName("Compute", i, j, k, 0));
-        taskr.addTask(packTask);
+      auto packTask = new Task("Pack", i, j, k, 0, g->packFc);
+      packTask->addDependency(Task::encodeTaskName("Compute", i, j, k, 0));
+      taskr.addTask(packTask);
 
-        auto sendTask = new Task("Send", i, j, k, 0, g->sendFc);
-        sendTask->addDependency(Task::encodeTaskName("Pack", i, j, k, 0));
-        taskr.addTask(sendTask);
+      auto sendTask = new Task("Send", i, j, k, 0, g->sendFc);
+      sendTask->addDependency(Task::encodeTaskName("Pack", i, j, k, 0));
+      taskr.addTask(sendTask);
 
-        auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc);
-        taskr.addTask(recvTask);
+      auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc);
+      taskr.addTask(recvTask);
 
-        auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc);
-        unpackTask->addDependency(Grid::encodeTaskName("Receive", i, j, k, 0));
-        unpackTask->addDependency(Grid::encodeTaskName("Compute", i, j, k, 0));
-        taskr.addTask(unpackTask);
-      }
+      auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc);
+      unpackTask->addDependency(Grid::encodeTaskName("Receive", i, j, k, 0));
+      taskr.addTask(unpackTask);
     }
 
     // Running Taskr
@@ -257,7 +252,16 @@ int main (int argc, char* argv[])
     // Finalizing TaskR
     taskr.finalize();
 
-    //printf("Process: %lu, Residual: %.8f\n", myInstanceId, g->_residual.load());
+    // for (size_t i = 0; i < instanceCount; i++)
+    // {
+    //   if (myInstanceId == i) 
+    //   {
+    //     printf("Process: %lu, Residual: %.8f\n", myInstanceId, g->_residual.load());
+    //     g->print(nIters);
+    //   }
+    //   printf("\n");
+    //   usleep(50000);
+    // }
 
     // If i'm not the root instance, simply send my locally calculated reisdual
     if (isRootInstance == false)
@@ -275,6 +279,7 @@ int main (int argc, char* argv[])
     {
       while (g->residualConsumerChannel->isEmpty());
       double* residualPtr = (double*)g->residualConsumerChannel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + g->residualConsumerChannel->peek(0);
+      g->residualConsumerChannel->pop();
       globalRes += *residualPtr;
     } 
 
