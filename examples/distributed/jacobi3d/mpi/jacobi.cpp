@@ -20,7 +20,7 @@ int main (int carg, char* argv[])
  bool isRootRank = processId == 0;
 
  // Setting default values
- size_t gDepth = 2;
+ size_t gDepth = 1;
  size_t N = 128;
  size_t nIters=100;
  D3 pt = D3({.x = 1, .y = 1, .z = 1});
@@ -50,10 +50,12 @@ int main (int carg, char* argv[])
  double execTime = -MPI_Wtime();
  g.solve();
  MPI_Barrier(MPI_COMM_WORLD);
- execTime += MPI_Wtime();
 
  // Calculating residual
  double residual = g.calculateResidual();
+ //printf("Process: %d, Residual: %.8f\n", processId, g._localResidual);
+ execTime += MPI_Wtime();
+
  if (isRootRank)
  {
   double gflops = nIters*(double)N*(double)N*(double)N*(2 + gDepth * 8)/(1.0e9);

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <hwloc.h>
 #include <taskr/taskr.hpp>
 #include <hicr/core/L1/communicationManager.hpp>
@@ -106,7 +107,7 @@ int main (int argc, char* argv[])
   const auto isRootInstance = myInstanceId == rootInstanceId;
 
   // Setting default values
-  size_t gDepth = 2;
+  size_t gDepth = 1;
   size_t N = 128;
   ssize_t nIters=100;
   D3 pt = D3({.x = 1, .y = 1, .z = 1});
@@ -128,7 +129,7 @@ int main (int argc, char* argv[])
   if ((size_t)(pt.x * pt.y * pt.z) != instanceCount) { if (isRootInstance) printf("[Error] The specified px/py/pz geometry does not match the number of instances (-n %lu).\n", instanceCount); instanceManager->abort(-1); }
 
   // Creating and initializing Grid
-  auto g = std::make_unique<Grid>(&taskr, myInstanceId, N, nIters, gDepth, pt, lt);
+  auto g = std::make_unique<Grid>(myInstanceId, N, nIters, gDepth, pt, lt, &taskr, memoryManager.get(), topologyManager.get(), communicationManager.get());
   bool success = g->initialize();
   if (success == false) instanceManager->abort(-1);
 
@@ -174,10 +175,20 @@ int main (int argc, char* argv[])
     g->send(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
   });
 
+  // Creating residual calculation function
+  g->localResidualFc = computeManager.createExecutionUnit([&g]()
+  { 
+    auto currentTask = (Task*)taskr::getCurrentTask();
+    g->calculateLocalResidual(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
+  });
+
   // Defining execution unit to run by all the instances
   instanceManager->addRPCTarget("processGrid", [&]()
   {
-    printf("Instance %lu: Executing...\n", myInstanceId);
+    // printf("Instance %lu: Executing...\n", myInstanceId);
+    
+    // Setting start time as now
+    auto t0 = std::chrono::high_resolution_clock::now();
 
     // Creating tasks to reset the grid
     for (ssize_t i = 0; i < lt.x; i++)
@@ -226,8 +237,57 @@ int main (int argc, char* argv[])
     // Running Taskr
     taskr.run();
 
+    ////// Calculating residual
+
+    // Reset local residual to zero
+    g->resetResidual();
+
+    // Calculating local residual
+    for (ssize_t i = 0; i < lt.x; i++)
+    for (ssize_t j = 0; j < lt.y; j++)
+    for (ssize_t k = 0; k < lt.z; k++)
+    {
+      auto residualTask = new Task("Residual", i, j, k, nIters, g->localResidualFc);
+      taskr.addTask(residualTask);
+    }
+    
+    // Running Taskr
+    taskr.run();
+
     // Finalizing TaskR
     taskr.finalize();
+
+    //printf("Process: %lu, Residual: %.8f\n", myInstanceId, g->_residual.load());
+
+    // If i'm not the root instance, simply send my locally calculated reisdual
+    if (isRootInstance == false)
+    {
+      *(double*)g->residualSendBuffer->getPointer() = g->_residual;
+      g->residualProducerChannel->push(g->residualSendBuffer, 1);
+      g->finalize();
+      return;
+    }
+
+    // Otherwise gather all the residuals and print the results
+    double globalRes = g->_residual;
+
+    for(size_t i = 0; i < instanceCount-1; i++)
+    {
+      while (g->residualConsumerChannel->isEmpty());
+      double* residualPtr = (double*)g->residualConsumerChannel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + g->residualConsumerChannel->peek(0);
+      globalRes += *residualPtr;
+    } 
+
+    // Setting final time now
+    auto tf = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> dt = tf - t0;
+    float execTime = dt.count();
+    
+    double residual = sqrt(globalRes/((double)(N-1)*(double)(N-1)*(double)(N-1)));
+    double gflops = nIters*(double)N*(double)N*(double)N*(2 + gDepth * 8)/(1.0e9);
+    printf("%.4fs, %.3f GFlop/s (L2 Norm: %.10g)\n", execTime, gflops/execTime, residual);
+
+    g->finalize();
   }); 
 
   // Creating deployer instance

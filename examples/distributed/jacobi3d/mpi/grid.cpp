@@ -106,7 +106,10 @@ void Grid::reset()
  for (int k = start.z-gDepth; k < end.z+gDepth; k++)
  for (int j = start.y-gDepth; j < end.y+gDepth; j++)
  for (int i = start.x-gDepth; i < end.x+gDepth; i++)
-   U[k*fs.y*fs.x + j*fs.x + i] = 1;
+ {
+   U[k*fs.y*fs.x + j*fs.x + i]  = 1;
+   Un[k*fs.y*fs.x + j*fs.x + i] = 1;
+ }
 //
  if (West.type  == BOUNDARY) for (int i = start.y-gDepth; i < end.y+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + i*fs.x + d] = 0;
  if (North.type == BOUNDARY) for (int i = start.x-gDepth; i < end.x+gDepth; i++) for (int j = start.z-gDepth; j < end.z+gDepth; j++) for (int d = 0; d < gDepth; d++) U[j*fs.x*fs.y + d*fs.x + i] = 0;
@@ -323,12 +326,14 @@ void Grid::solve()
 double Grid::calculateResidual()
 {
  double res = 0;
- double err = 0;
+ 
+ _localResidual = 0;
  for (int k=start.z; k<end.z; k++)
  for (int j=start.y; j<end.y; j++)
  for (int i=start.x; i<end.x; i++)
-  { double r = U[k*fs.y*fs.x + j*fs.x + i];  err += r * r; }
- MPI_Reduce (&err, &res, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  { double r = U[k*fs.y*fs.x + j*fs.x + i];  _localResidual += r * r; }
+
+ MPI_Reduce (&_localResidual, &res, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
  res = sqrt(res/((double)(N-1)*(double)(N-1)*(double)(N-1)));
 
  return res;

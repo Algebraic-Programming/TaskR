@@ -61,6 +61,8 @@ class Grid
 
  public:
 
+ double _localResidual;
+
  Grid(const int processId, const size_t N, const size_t nIters, const size_t gDepth, const D3& pt);
  bool initialize();
  void finalize();
