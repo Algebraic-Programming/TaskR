@@ -11,9 +11,6 @@ using namespace std::chrono_literals;
 
 void conditionVariable(taskr::Runtime& taskr)
 {
-  // Auto-adding task when it receives a sync signal
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](taskr::Task* task) { taskr.resumeTask(task); });
-
   // Contention value
   size_t value = 0;
 

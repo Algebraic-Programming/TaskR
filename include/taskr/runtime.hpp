@@ -93,6 +93,9 @@ class Runtime
       // Getting TaskR task pointer
       auto taskrTask = (taskr::Task *)task;
 
+      // If not defined, resume task (by default)
+       if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _waitingTaskQueue->push(taskrTask);
+
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
     });
