@@ -6,24 +6,18 @@
 #define REPETITIONS 5
 #define ITERATIONS 100
 
-void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
+void abcTasks(taskr::Runtime& taskr)
 {
-  // Creating taskr
-  taskr::Runtime taskr(computeManager);
-
-  // Assigning processing resources to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
-
-  // Initializing taskr
-  taskr.initialize();
-
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskAfc = computeManager->createExecutionUnit([]() { printf("Task A %lu\n", (taskr::getCurrentTask())->getLabel()); });
-  auto taskBfc = computeManager->createExecutionUnit([]() { printf("Task B %lu\n", (taskr::getCurrentTask())->getLabel()); });
-  auto taskCfc = computeManager->createExecutionUnit([]() { printf("Task C %lu\n", (taskr::getCurrentTask())->getLabel()); });
+  auto taskAfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task A %lu\n", (taskr::getCurrentTask())->getLabel()); });
+  auto taskBfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task B %lu\n", (taskr::getCurrentTask())->getLabel()); });
+  auto taskCfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task C %lu\n", (taskr::getCurrentTask())->getLabel()); });
+
+  // Initializing taskr
+  taskr.initialize();
 
   // Running the example many times
   for (size_t r = 0; r < REPETITIONS; r++)
@@ -49,7 +43,7 @@ void abcTasks(HiCR::backend::host::L1::ComputeManager *computeManager, const HiC
       taskr.addTask(taskC);
     }
 
-    // Running taskr
+    // Running taskr for the current repetition
     taskr.run();
   }
 

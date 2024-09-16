@@ -27,7 +27,7 @@ int main(int argc, char **argv)
   HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
 
   // Create taskr runtime
-  taskr::Runtime taskr;
+  taskr::Runtime taskr(&computeManager);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
@@ -39,8 +39,14 @@ int main(int argc, char **argv)
   job1(&computeManager, taskr);
   job2(&computeManager, taskr);
 
+  // Initializing taskR
+  taskr.initialize();
+
   // Running taskr
-  taskr.run(&computeManager);
+  taskr.run();
+
+  // Finalizing taskR
+  taskr.finalize();
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

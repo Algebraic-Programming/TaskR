@@ -38,26 +38,26 @@ void heavyTask()
   printf("Task %lu - operation finished\n", taskr::getCurrentTask()->getLabel());
 }
 
-void pendingOperation(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
+void pendingOperation(taskr::Runtime& taskr)
 {
-  // Initializing taskr
-  taskr::Runtime taskr;
-
   // Auto-adding task when it suspends. It won't be re-executed until pending operations finish
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { taskr.resumeTask(task); });
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
-  // Assigning processing resources to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
-
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = computeManager->createExecutionUnit([]() { heavyTask(); });
+  auto taskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { heavyTask(); });
 
   // Now creating heavy many tasks task
   for (size_t i = 0; i < 100; i++) taskr.addTask(new taskr::Task(i, taskfc));
    
+  // Initializing taskR
+  taskr.initialize();
+
   // Running taskr
-  taskr.run(computeManager);
+  taskr.run();
+
+  // Finalizing taskR
+  taskr.finalize();
 }

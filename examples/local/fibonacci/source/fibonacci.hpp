@@ -4,7 +4,6 @@
 #include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
-static HiCR::backend::host::L1::ComputeManager *_computeManager;
 static taskr::Runtime                          *_taskr;
 static std::atomic<uint64_t>                    _taskCounter;
 
@@ -16,8 +15,8 @@ uint64_t fibonacci(const uint64_t x)
 
   uint64_t result1 = 0;
   uint64_t result2 = 0;
-  auto     fibFc1  = _computeManager->createExecutionUnit([&]() { result1 = fibonacci(x - 1); });
-  auto     fibFc2  = _computeManager->createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
+  auto     fibFc1  = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result1 = fibonacci(x - 1); });
+  auto     fibFc2  = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
 
   // Creating two new tasks
   taskr::Task subTask1(_taskCounter++, fibFc1);
@@ -40,18 +39,12 @@ uint64_t fibonacci(const uint64_t x)
   return result1 + result2;
 }
 
-uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
+uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime& taskr)
 {
-  // Initializing taskr with the appropriate amount of max tasks
-  taskr::Runtime taskr;
 
   // Setting global variables
   _taskr          = &taskr;
-  _computeManager = computeManager;
   _taskCounter    = 0;
-
-  // Assigning processing resource to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
   _taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { _taskr->resumeTask(task); });
@@ -60,19 +53,25 @@ uint64_t fibonacciDriver(const uint64_t initialValue, HiCR::backend::host::L1::C
   uint64_t result = 0;
 
   // Creating task functions
-  auto initialFc = computeManager->createExecutionUnit([&]() { result = fibonacci(initialValue); });
+  auto initialFc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
   taskr::Task initialTask(_taskCounter++, initialFc);
   taskr.addTask(&initialTask);
 
+  // Initializing taskR
+  taskr.initialize();
+
   // Running taskr
   auto startTime = std::chrono::high_resolution_clock::now();
-  taskr.run(computeManager);
+  taskr.run();
   auto endTime     = std::chrono::high_resolution_clock::now();
   auto computeTime = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
   printf("Running Time: %0.5fs\n", computeTime.count());
   printf("Total Tasks: %lu\n", _taskCounter.load());
+
+  // Finalizing taskR
+  taskr.finalize();
 
   // Returning fibonacci value
   return result;

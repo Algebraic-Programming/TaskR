@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   auto computeResources = d->getComputeResourceList();
 
   // Initializing taskr
-  taskr::Runtime taskr;
+  taskr::Runtime taskr(&computeManager);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
@@ -107,10 +107,16 @@ int main(int argc, char **argv)
   // Adding work task
   taskr.addTask(waitTask);
 
+  // Initializing taskr
+  taskr.initialize();
+
   // Running taskr
   printf("Starting (open 'htop' in another console to see the workers going to sleep during the long task)...\n");
-  taskr.run(&computeManager);
+  taskr.run();
   printf("Finished.\n");
+
+   // Finalizing taskr
+  taskr.finalize();
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

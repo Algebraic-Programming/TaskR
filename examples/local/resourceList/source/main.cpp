@@ -27,8 +27,8 @@ int main(int argc, char **argv)
   std::vector<HiCR::L0::Device::computeResourceList_t> computeResourceLists;
   for (auto d : t.getDevices()) computeResourceLists.push_back(d->getComputeResourceList());
 
-  // Initializing taskr
-  taskr::Runtime taskr;
+  // Creating taskr
+  taskr::Runtime taskr(&computeManager);
 
   // Getting work task count
   size_t workTaskCount = 100;
@@ -72,14 +72,20 @@ int main(int argc, char **argv)
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());
   for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new taskr::Task(i, taskExecutionUnit));
 
+  // Initializing taskR
+  taskr.initialize();
+
   // Running taskr only on the core subset
   auto t0 = std::chrono::high_resolution_clock::now();
-  taskr.run(&computeManager);
+  taskr.run();
   auto tf = std::chrono::high_resolution_clock::now();
 
   auto dt = std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
   printf("Finished in %.3f seconds.\n", (double)dt * 1.0e-9);
 
+ // Finalizing taskR
+  taskr.finalize();
+  
   // Freeing up memory
   hwloc_topology_destroy(topology);
 

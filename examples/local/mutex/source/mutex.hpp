@@ -6,20 +6,14 @@
 
 #define _CONCURRENT_TASKS 1000ul
 
-void mutex(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
+void mutex(taskr::Runtime* taskr)
 {
-  // Initializing taskr
-  taskr::Runtime taskr;
-
   // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
   
   // Auto-adding task when it receives a sync signal
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](taskr::Task* task) { taskr.resumeTask(task); });
+  taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](taskr::Task* task) { taskr->resumeTask(task); });
   
-  // Assigning processing Re to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
-
   // Contention value
   size_t value = 0;
 
@@ -27,17 +21,23 @@ void mutex(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::
   HiCR::tasking::Mutex m;
 
   // Creating task function
-  auto taskfc = computeManager->createExecutionUnit([&]() {
+  auto taskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
     m.lock();
     value++;
     m.unlock();
   });
 
   // Running concurrent tasks
-  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr.addTask(new taskr::Task(i, taskfc));
+  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr->addTask(new taskr::Task(i, taskfc));
 
-  // Running taskr
-  taskr.run(computeManager);
+  // Initializing TaskR
+  taskr->initialize();
+
+  // Running taskR
+  taskr->run();
+
+  // Finalizing TaskR
+  taskr->finalize();
 
   // Value should be equal to concurrent task count
   printf("Value %lu / Expected %lu\n", value, _CONCURRENT_TASKS);

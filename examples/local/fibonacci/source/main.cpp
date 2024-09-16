@@ -44,8 +44,14 @@ int main(int argc, char **argv)
   // Initializing Pthreads-based compute manager to run tasks in parallel
   HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
 
+  // Instantiating TaskR
+  taskr::Runtime taskr(&computeManager);
+
+  // Assigning processing resource to TaskR
+  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
+
   // Running Fibonacci example
-  auto result = fibonacciDriver(initialValue, &computeManager, computeResources);
+  auto result = fibonacciDriver(initialValue, taskr);
 
   // Printing result
   printf("Fib(%lu) = %lu\n", initialValue, result);

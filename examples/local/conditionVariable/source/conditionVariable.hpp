@@ -9,16 +9,10 @@
 using namespace std::chrono_literals;
 #define _INITIAL_VALUE 7ul
 
-void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, const HiCR::L0::Device::computeResourceList_t &computeResources)
+void conditionVariable(taskr::Runtime& taskr)
 {
-  // Initializing taskr
-  taskr::Runtime taskr;
-
   // Auto-adding task when it receives a sync signal
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSync, [&](taskr::Task* task) { taskr.resumeTask(task); });
-
-  // Assigning processing resource to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource));
 
   // Contention value
   size_t value = 0;
@@ -30,7 +24,7 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
   HiCR::tasking::ConditionVariable cv;
 
   // Creating task functions
-  auto thread1Fc = computeManager->createExecutionUnit([&]() {
+  auto thread1Fc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
     // Using lock to update the value
     mutex.lock();
     printf("Thread 1: I go first and set value to 1\n");
@@ -47,7 +41,7 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
     printf("Thread 1: The condition (value == 2) is satisfied now\n");
   });
 
-  auto thread2Fc = computeManager->createExecutionUnit([&]() {
+  auto thread2Fc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
     cv.wait(mutex, [&]() { return value == 1; });
@@ -70,8 +64,14 @@ void conditionVariable(HiCR::backend::host::L1::ComputeManager *computeManager, 
   taskr.addTask(&task1);
   taskr.addTask(&task2);
 
+  // Initializing taskr
+  taskr.initialize();
+
   // Running taskr
-  taskr.run(computeManager);
+  taskr.run();
+
+  // Finalizing taskr
+  taskr.finalize();
 
   // Value should be equal to concurrent task count
   size_t expectedValue = 2;

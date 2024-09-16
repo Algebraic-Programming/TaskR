@@ -22,8 +22,6 @@
 int main(int argc, char **argv)
 {
 
-  //// Instantiating Taskr
-
   // Creating HWloc topology object
   hwloc_topology_t topology;
 
@@ -45,8 +43,8 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing taskr
-  taskr::Runtime taskr;
+    //// Instantiating Taskr
+  taskr::Runtime taskr(&computeManager);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
@@ -172,8 +170,14 @@ int main(int argc, char **argv)
     taskr.addTask(sendTask);
     taskr.addTask(recvTask);
 
+    // Initializing TaskR
+    taskr.initialize();
+
     // Running TaskR
-    taskr.run(&computeManager);
+    taskr.run();
+
+    // Finalizing TaskR
+    taskr.finalize();
   });
 
   // Initializing deployer (bifurcates between root and non-root instances)

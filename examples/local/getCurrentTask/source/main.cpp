@@ -28,8 +28,8 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing taskr
-  taskr::Runtime taskr;
+  // Instantiating taskr
+  taskr::Runtime taskr(&computeManager);
 
   // Create processing units from the detected compute resource list and giving them to taskr
   for (auto resource : computeResources)
@@ -54,8 +54,14 @@ int main(int argc, char **argv)
   // Adding task to TaskR
   taskr.addTask(&task);
 
+  // Initializing taskr
+  taskr.initialize();
+  
   // Running taskr
-  taskr.run(&computeManager);
+  taskr.run();
+
+  // Finalizing taskr
+  taskr.finalize();
 
   return 0;
 }

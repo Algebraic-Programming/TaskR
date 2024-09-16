@@ -248,6 +248,12 @@ class Runtime
    */
   __INLINE__ void initialize()
   {
+    // Verify taskr is not currently initialized
+    if (_isInitialized == true) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
+
+    // Checking if we have at least one processing unit
+    if (_processingUnits.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
+
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
 
@@ -266,6 +272,9 @@ class Runtime
       // Finally adding worker to the worker set
       _workers.push_back(worker);
     }
+
+    // Setting taskr as uninitialized
+    _isInitialized = true;
   }
 
    /**
@@ -274,6 +283,12 @@ class Runtime
    */
   __INLINE__ void finalize()
   {
+    // Verify taskr is currently initialized
+    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently not initialized");
+
+    // Setting taskr as uninitialized
+    _isInitialized = false;
+
     // Clearing created objects
     for (auto &w : _workers) delete w;
     _workers.clear();
@@ -288,6 +303,9 @@ class Runtime
    */
   __INLINE__ void run()
   {
+    // Verify taskr was correctly initialized
+    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
+
     // Initializing active worker count
     _activeWorkerCount = _workers.size();
 
@@ -361,6 +379,11 @@ class Runtime
       _activeWorkerQueueLock.unlock();
     }
   }
+
+  /**
+   * A flag to indicate whether taskR was initialized
+   */
+  bool _isInitialized = false;
 
   /**
    * Pointer to the compute manager to use
