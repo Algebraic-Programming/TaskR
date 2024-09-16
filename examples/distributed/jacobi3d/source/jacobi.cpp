@@ -25,51 +25,6 @@
 
 int main (int argc, char* argv[])
 {
-  //// Setting up Taskr
-
-  // Creating HWloc topology object
-  hwloc_topology_t topology;
-
-  // Reserving memory for hwloc
-  hwloc_topology_init(&topology);
-
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
-  // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
-
-  // Asking backend to check the available devices
-  const auto t = tm.queryTopology();
-
-  // Getting first device found
-  auto d = *t.getDevices().begin();
-
-  // Updating the compute resource list
-  auto computeResources = d->getComputeResourceList();
-
-  // Creating taskr object
-  taskr::Runtime taskr(&computeManager);
-
-  // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
-
-  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { taskr.resumeTask(task); });
-
-  // Create processing units from the detected compute resource list and giving them to taskr
-  for (auto &resource : computeResources)
-  {
-    // Creating a processing unit out of the computational resource
-    auto processingUnit = computeManager.createProcessingUnit(resource);
-
-    // Assigning resource to the taskr
-    taskr.addProcessingUnit(std::move(processingUnit));
-  }
-
-    // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
-
   //// Instantiating distributed execution machinery
    
   // Storage for the distributed engine's communication manager
@@ -105,6 +60,61 @@ int main (int argc, char* argv[])
   const auto myInstanceId = instanceManager->getCurrentInstance()->getId();
   const auto rootInstanceId = instanceManager->getRootInstanceId();
   const auto isRootInstance = myInstanceId == rootInstanceId;
+
+  //// Setting up Taskr
+
+  // Creating HWloc topology object
+  hwloc_topology_t topology;
+
+  // Reserving memory for hwloc
+  hwloc_topology_init(&topology);
+
+  // Initializing Pthreads-based compute manager to run tasks in parallel
+  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
+
+  // Initializing HWLoc-based host (CPU) topology manager
+  HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
+
+  // Asking backend to check the available devices
+  const auto t = tm.queryTopology();
+  //printf("Topology: %s\n", t.serialize().dump(2).c_str());
+
+  // Getting NUMA Domain information
+  const auto& numaDomains = t.getDevices();
+  printf("NUMA Domains per Node: %lu\n", numaDomains.size());
+
+  // Assuming one process per numa domain
+  size_t numaDomainId = myInstanceId % numaDomains.size();
+  auto numaDomain = numaDomains[numaDomainId];
+  printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
+
+  // Updating the compute resource list
+  auto computeResources = numaDomain->getComputeResourceList();
+  printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
+
+  // Creating taskr object
+  taskr::Runtime taskr(&computeManager);
+
+  // Setting callback to free a task as soon as it finishes executing
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+
+  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { taskr.resumeTask(task); });
+
+  // Create processing units from the detected compute resource list and giving them to taskr
+  for (auto &resource : computeResources)
+  {
+    // Creating a processing unit out of the computational resource
+    auto processingUnit = computeManager.createProcessingUnit(resource);
+
+    // Assigning resource to the taskr
+    taskr.addProcessingUnit(std::move(processingUnit));
+  }
+
+    // Setting callback to free a task as soon as it finishes executing
+  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+
+  //// Setting up application configuration
 
   // Setting default values
   size_t gDepth = 1;
@@ -187,9 +197,6 @@ int main (int argc, char* argv[])
   {
     // printf("Instance %lu: Executing...\n", myInstanceId);
     
-    // Setting start time as now
-    auto t0 = std::chrono::high_resolution_clock::now();
-
     // Creating tasks to reset the grid
     for (ssize_t i = 0; i < lt.x; i++)
     for (ssize_t j = 0; j < lt.y; j++)
@@ -229,9 +236,17 @@ int main (int argc, char* argv[])
       taskr.addTask(unpackTask);
     }
 
+    // Setting start time as now
+    auto t0 = std::chrono::high_resolution_clock::now();
+
     // Running Taskr
     taskr.run();
 
+    // Setting final time now
+    auto tf = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> dt = tf - t0;
+    float execTime = dt.count();
+    
     ////// Calculating residual
 
     // Reset local residual to zero
@@ -283,11 +298,6 @@ int main (int argc, char* argv[])
       globalRes += *residualPtr;
     } 
 
-    // Setting final time now
-    auto tf = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<float> dt = tf - t0;
-    float execTime = dt.count();
-    
     double residual = sqrt(globalRes/((double)(N-1)*(double)(N-1)*(double)(N-1)));
     double gflops = nIters*(double)N*(double)N*(double)N*(2 + gDepth * 8)/(1.0e9);
     printf("%.4fs, %.3f GFlop/s (L2 Norm: %.10g)\n", execTime, gflops/execTime, residual);
