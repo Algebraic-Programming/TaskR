@@ -161,6 +161,7 @@ class Grid
 
  void resetResidual() { _residual = 0.0; }
  void calculateLocalResidual(const uint64_t lx, const uint64_t ly, const uint64_t lz,  const uint32_t it);
+ void sync();
  
  static inline void tryPush(HiCR::channel::fixedSize::SPSC::Producer* channel, std::shared_ptr<HiCR::L0::LocalMemorySlot> slot)
  {

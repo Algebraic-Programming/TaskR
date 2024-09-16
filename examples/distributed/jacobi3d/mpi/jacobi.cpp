@@ -52,10 +52,13 @@ int main (int carg, char* argv[])
  g.solve();
  MPI_Barrier(MPI_COMM_WORLD);
 
+ // Getting final time
+ execTime += MPI_Wtime();
+
  // Calculating residual
  double residual = g.calculateResidual(nIters);
  //printf("Process: %d, Residual: %.8f\n", processId, g._localResidual);
- execTime += MPI_Wtime();
+
 
 //  for (size_t i = 0; i < processCount; i++)
 //  {
