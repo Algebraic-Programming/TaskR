@@ -52,6 +52,8 @@ class Runtime
 
   /**
    * Constructor of the TaskR Runtime.
+   * 
+   * @param[in] computeManager The compute manager used to run workers
    */
   Runtime(HiCR::L1::ComputeManager *computeManager)
     : _computeManager(computeManager)
@@ -109,7 +111,11 @@ class Runtime
   // Destructor
   ~Runtime() = default;
 
-  ///////////// Getting internal compute manager
+  /**
+   * Function that returns the compute manager originally provided to Taskr 
+   * 
+   * @return A pointer to the compute manager
+   */
   HiCR::L1::ComputeManager *getComputeManager() const { return _computeManager; }
 
   ///////////// Local tasking API
@@ -187,6 +193,7 @@ class Runtime
    * Otherwise, it finds a task in the waiting queue and checks its dependencies. If the task is ready to go, it runs it.
    * If no tasks are ready to go, it returns a nullptr, which encodes -No Task-.
    *
+   * \param[in] workerId The identifier of the worker running this function. Used to pull from its own waiting task queue
    * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
   __INLINE__ taskr::Task *getNextTask(const workerId_t workerId)

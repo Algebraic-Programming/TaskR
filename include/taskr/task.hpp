@@ -46,6 +46,7 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    *
    * @param[in] label The unique label to assign to this task
    * @param[in] executionUnit Specifies the function/kernel to execute.
+   * @param[in] workerAffinity The worker affinity to set from the start. Default -1 indicates no affinity.
    */
   __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, const workerId_t workerAffinity = -1)
     : taskr::Object(label),
@@ -53,14 +54,28 @@ class Task : public taskr::Object, public HiCR::tasking::Task
       _workerAffinity(workerAffinity)
   {}
 
+  /**
+   * Returns the task/worker affinity
+   * 
+   * @return The worker affinity currently set for this task
+   */
   __INLINE__ workerId_t getWorkerAffinity() const { return _workerAffinity; }
+
+  /**
+   * Sets the task's worker affinity. 
+   * 
+   * @param[in] workerAffinity The worker affinity to set
+   */
+  __INLINE__ void setWorkerAffinity(const workerId_t workerAffinity) { _workerAffinity = workerAffinity; }
 
   private:
 
   /**
-   * Represents the affinity to a given worker, if specified. -1 if not specified
+   * Represents the affinity to a given worker, if specified. -1 if not specified.
+   * 
+   * The task can only be ran by the designated worker.
    */
-  const workerId_t _workerAffinity;
+  workerId_t _workerAffinity;
 
 }; // class Task
 

@@ -76,7 +76,7 @@ class Object
   /**
    * Adds one pending operation on the current object
    *
-   * @param[in] pendingOperations A function that checks whether the pending operation has completed or not
+   * @param[in] pendingOperation A function that checks whether the pending operation has completed or not
    */
   __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push(pendingOperation); }
 
