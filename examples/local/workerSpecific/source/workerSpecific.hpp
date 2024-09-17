@@ -6,7 +6,7 @@
 
 void workFc()
 {
-  auto currentTask = taskr::getCurrentTask();
+  auto currentTask  = taskr::getCurrentTask();
   auto taskLabel    = currentTask->getLabel();
   int  currentCPUId = sched_getcpu();
 
@@ -47,7 +47,7 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
 
   // Auto-adding task when it suspends.
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-  
+
   // Creating the execution units (functions that the tasks will run)
   auto workTaskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { workFc(); });
 
