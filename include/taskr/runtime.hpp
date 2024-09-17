@@ -24,14 +24,19 @@
 #include "task.hpp"
 
 /**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active task queue
+ * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the common active task queue
  */
-#define __TASKR_DEFAULT_MAX_ACTIVE_TASKS 157810688
+#define __TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS 4194304
+
+/**
+ * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the task-specific active task queue
+ */
+#define __TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS 32768
 
 /**
  * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active worker queue
  */
-#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 65536
+#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 8192
 
 namespace taskr
 {
@@ -51,8 +56,7 @@ class Runtime
   Runtime(HiCR::L1::ComputeManager* computeManager) : _computeManager(computeManager)
   {
     // Creating internal objects
-    _dispatcher           = std::make_unique<HiCR::tasking::Dispatcher>([this]() { return pullReadyTask(); });
-    _waitingTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_ACTIVE_TASKS);
+    _commonWaitingTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
@@ -94,7 +98,7 @@ class Runtime
       auto taskrTask = (taskr::Task *)task;
 
       // If not defined, resume task (by default)
-       if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _waitingTaskQueue->push(taskrTask);
+       if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
@@ -152,7 +156,7 @@ class Runtime
     task->setCallbackMap(&_hicrCallbackMap);
 
     // Add task to the ready queue
-    _waitingTaskQueue->push(task);
+    resumeTask(task);
   }
 
   /**
@@ -162,7 +166,17 @@ class Runtime
    */
   __INLINE__ void resumeTask(taskr::Task *task)
   {
-    _waitingTaskQueue->push(task);
+    // Getting task's affinity
+    const auto taskAffinity = task->getWorkerAffinity();
+
+    // Sanity Check
+    if (taskAffinity >= (ssize_t)_workers.size()) HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _workers.size() - 1);
+
+    // If no affinity set, put in the common task queue
+    if (taskAffinity < 0) _commonWaitingTaskQueue->push(task);
+
+    // Otherwise put it in the corresponding queue
+    else _workerSpecificWaitingTaskQueues[taskAffinity]->push(task);
   }
 
   /**
@@ -173,7 +187,7 @@ class Runtime
    *
    * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
-  __INLINE__ taskr::Task *pullReadyTask()
+  __INLINE__ taskr::Task *getNextTask(const workerId_t workerId)
   {
     // If all tasks finished, then terminate execution immediately
     if (_activeTaskCount == 0)
@@ -191,10 +205,13 @@ class Runtime
     // If maximum active workers is defined, then check if the threshold is exceeded
     checkMaximumActiveWorkerCount();
 
-    // Poping next task from the lock-free queue
-    auto task = _waitingTaskQueue->pop();
+    // Trying to grab next task from my own task queue
+    auto task = _workerSpecificWaitingTaskQueues[workerId]->pop();
 
-    // If no task was found (queue was empty), then return an empty task
+    // If nothing found there, poping next task from the common queue
+    if (task == nullptr) task = _commonWaitingTaskQueue->pop();
+
+    // If still no task was found (queues were empty), then return an empty task
     if (task == nullptr) return nullptr;
 
     // Checking for task's pending dependencies
@@ -207,7 +224,7 @@ class Runtime
       if (_finishedObjects.contains(dependency) == false) [[likely]]
        {
          // Push the task back into back of the queue
-         _waitingTaskQueue->push(task);
+         _commonWaitingTaskQueue->push(task);
 
          // Return nullptr, signaling no task was found
          return nullptr;
@@ -230,7 +247,7 @@ class Runtime
       if (result == false)
       {
          // Push the task back into back of the queue
-        _waitingTaskQueue->push(task);
+        _commonWaitingTaskQueue->push(task);
 
         // Return nullptr, signaling no task was found
         return nullptr;
@@ -244,10 +261,9 @@ class Runtime
     return task;
   }
 
-
   /**
    * Initailizes the TaskR runtime
-   * Creates a set of HiCR workers, based on the provided computeManager, and subscribes them to a dispatcher queue.
+   * Creates a set of HiCR workers, based on the provided computeManager, and subscribes them to the pull function.
    */
   __INLINE__ void initialize()
   {
@@ -260,17 +276,20 @@ class Runtime
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
 
+    // Clearing any old worker specific task queues
+    _workerSpecificWaitingTaskQueues.clear();
+
     // Creating one worker per processung unit in the list
-    for (auto &pu : _processingUnits)
+    for (size_t i = 0; i < _processingUnits.size(); i++)
     {
+      // Creating new worker-specific task queue
+      _workerSpecificWaitingTaskQueues.push_back(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS));
+
       // Creating new worker
-      auto worker = new HiCR::tasking::Worker(_computeManager);
+      auto worker = new HiCR::tasking::Worker(_computeManager, [this, i]() { return getNextTask(i); });
 
       // Assigning resource to the thread
-      worker->addProcessingUnit(std::move(pu));
-
-      // Assigning worker to the common dispatcher
-      worker->subscribe(_dispatcher.get());
+      worker->addProcessingUnit(std::move(_processingUnits[i]));
 
       // Finally adding worker to the worker set
       _workers.push_back(worker);
@@ -409,11 +428,6 @@ class Runtime
   taskrCallbackMap_t _taskrCallbackMap;
 
   /**
-   * Single dispatcher that distributes pending tasks to idle workers as they become idle
-   */
-  std::unique_ptr<HiCR::tasking::Dispatcher> _dispatcher;
-
-  /**
    * Set of workers assigned to execute tasks
    */
   std::vector<HiCR::tasking::Worker *> _workers;
@@ -440,9 +454,14 @@ class Runtime
   ssize_t _activeWorkerCount;
 
   /**
-   * Lock-free queue for waiting tasks.
+   * Worker-specific lock-free queue for waiting tasks.
    */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _waitingTaskQueue;
+  std::vector<std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>>> _workerSpecificWaitingTaskQueues;
+
+  /**
+   * Common lock-free queue for waiting tasks.
+   */
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
 
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism

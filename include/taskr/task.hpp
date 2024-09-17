@@ -20,6 +20,11 @@ namespace taskr
 {
 
 /**
+ * Type for a locally-unique worker identifier
+ */
+typedef ssize_t workerId_t;
+
+/**
  * This class defines the basic execution unit managed by TaskR.
  *
  * It includes a function to execute, an internal state, and an callback map that triggers callbacks (if defined) whenever a state transition occurs.
@@ -42,11 +47,21 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    * @param[in] label The unique label to assign to this task
    * @param[in] executionUnit Specifies the function/kernel to execute.
    */
-  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit)
-    : taskr::Object(label),
-      HiCR::tasking::Task(executionUnit, nullptr)
+  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, const workerId_t workerAffinity = -1)
+    : 
+      taskr::Object(label),
+      HiCR::tasking::Task(executionUnit, nullptr),
+      _workerAffinity(workerAffinity)
   {}
 
+  __INLINE__ workerId_t getWorkerAffinity() const { return _workerAffinity; } 
+
+  private:
+
+  /**
+   * Represents the affinity to a given worker, if specified. -1 if not specified
+   */
+   const workerId_t _workerAffinity;
 
 }; // class Task
 

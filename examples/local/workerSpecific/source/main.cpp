@@ -1,21 +1,10 @@
-#include <cstdio>
 #include <hwloc.h>
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include "fibonacci.hpp"
+#include "workerSpecific.hpp"
 
 int main(int argc, char **argv)
 {
-  // Checking arguments
-  if (argc != 2)
-  {
-    fprintf(stderr, "Error: Must provide the fibonacci number to calculate.\n");
-    exit(-1);
-  }
-
-  // Reading argument
-  uint64_t initialValue = std::atoi(argv[1]);
-
   // Creating HWloc topology object
   hwloc_topology_t topology;
 
@@ -28,33 +17,23 @@ int main(int argc, char **argv)
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
-  // Compute resources to use
-  HiCR::L0::Device::computeResourceList_t computeResources;
+  // Getting first NUMA domain found
+  auto d = *t.getDevices().begin();
 
-  // Adding all compute resources found
-  for (auto &d : t.getDevices())
-  {
-    // Getting compute resources in this device
-    auto cr = d->getComputeResourceList();
-
-    // Adding it to the list
-    computeResources.insert(computeResources.end(), cr.begin(), cr.end());
-  }
+  // Updating the compute resource list
+  auto computeResources = d->getComputeResourceList();
 
   // Initializing Pthreads-based compute manager to run tasks in parallel
   HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
 
-  // Instantiating TaskR
+  // Creating taskr
   taskr::Runtime taskr(&computeManager);
 
-  // Assigning processing resource to TaskR
+  // Assigning processing resources to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
 
-  // Running Fibonacci example
-  auto result = fibonacciDriver(initialValue, taskr);
-
-  // Printing result
-  printf("Fib(%lu) = %lu\n", initialValue, result);
+  // Running worker-specific example
+  workerSpecific(taskr, computeResources.size());
 
   // Freeing up memory
   hwloc_topology_destroy(topology);
