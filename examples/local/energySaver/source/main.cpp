@@ -115,7 +115,7 @@ int main(int argc, char **argv)
   taskr.run();
   printf("Finished.\n");
 
-   // Finalizing taskr
+  // Finalizing taskr
   taskr.finalize();
 
   // Freeing up memory

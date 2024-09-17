@@ -4,8 +4,8 @@
 #include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
-static taskr::Runtime                          *_taskr;
-static std::atomic<uint64_t>                    _taskCounter;
+static taskr::Runtime       *_taskr;
+static std::atomic<uint64_t> _taskCounter;
 
 // Fibonacci without memoization to stress the tasking runtime
 uint64_t fibonacci(const uint64_t x)
@@ -39,15 +39,14 @@ uint64_t fibonacci(const uint64_t x)
   return result1 + result2;
 }
 
-uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime& taskr)
+uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
 {
-
   // Setting global variables
-  _taskr          = &taskr;
-  _taskCounter    = 0;
+  _taskr       = &taskr;
+  _taskCounter = 0;
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  _taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task* task) { _taskr->resumeTask(task); });
+  _taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { _taskr->resumeTask(task); });
 
   // Storage for result
   uint64_t result = 0;

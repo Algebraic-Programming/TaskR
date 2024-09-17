@@ -53,11 +53,12 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    */
-  Runtime(HiCR::L1::ComputeManager* computeManager) : _computeManager(computeManager)
+  Runtime(HiCR::L1::ComputeManager *computeManager)
+    : _computeManager(computeManager)
   {
     // Creating internal objects
-    _commonWaitingTaskQueue       = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _suspendedWorkerQueue = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
+    _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
+    _suspendedWorkerQueue   = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) {
@@ -98,19 +99,18 @@ class Runtime
       auto taskrTask = (taskr::Task *)task;
 
       // If not defined, resume task (by default)
-       if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
+      if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
 
       // If defined, trigger user-defined event
       this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
     });
   }
 
-  // Destructor 
+  // Destructor
   ~Runtime() = default;
 
-
   ///////////// Getting internal compute manager
-  HiCR::L1::ComputeManager* getComputeManager() const { return _computeManager; }
+  HiCR::L1::ComputeManager *getComputeManager() const { return _computeManager; }
 
   ///////////// Local tasking API
 
@@ -170,13 +170,15 @@ class Runtime
     const auto taskAffinity = task->getWorkerAffinity();
 
     // Sanity Check
-    if (taskAffinity >= (ssize_t)_workers.size()) HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _workers.size() - 1);
+    if (taskAffinity >= (ssize_t)_workers.size())
+      HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _workers.size() - 1);
 
     // If no affinity set, put in the common task queue
     if (taskAffinity < 0) _commonWaitingTaskQueue->push(task);
 
     // Otherwise put it in the corresponding queue
-    else _workerSpecificWaitingTaskQueues[taskAffinity]->push(task);
+    else
+      _workerSpecificWaitingTaskQueues[taskAffinity]->push(task);
   }
 
   /**
@@ -215,27 +217,27 @@ class Runtime
     if (task == nullptr) return nullptr;
 
     // Checking for task's pending dependencies
-    while(task->getDependencies().empty() == false)
+    while (task->getDependencies().empty() == false)
     {
       // Checking whether the dependency is already finished
       const auto dependency = task->getDependencies().front();
 
       // If it is not finished:
       if (_finishedObjects.contains(dependency) == false) [[likely]]
-       {
-         // Push the task back into back of the queue
-         _commonWaitingTaskQueue->push(task);
+      {
+        // Push the task back into back of the queue
+        _commonWaitingTaskQueue->push(task);
 
-         // Return nullptr, signaling no task was found
-         return nullptr;
-       }
+        // Return nullptr, signaling no task was found
+        return nullptr;
+      }
 
       // Otherwise, remove it out of the dependency queue
       task->getDependencies().pop();
     }
 
     // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
-    while(task->getPendingOperations().empty() == false)
+    while (task->getPendingOperations().empty() == false)
     {
       // Checking whether the operation has finished
       const auto pendingOperation = task->getPendingOperations().front();
@@ -246,12 +248,12 @@ class Runtime
       // If not satisfied:
       if (result == false)
       {
-         // Push the task back into back of the queue
+        // Push the task back into back of the queue
         _commonWaitingTaskQueue->push(task);
 
         // Return nullptr, signaling no task was found
         return nullptr;
-      } 
+      }
 
       // Otherwise, remove it out of the dependency queue
       task->getPendingOperations().pop();
@@ -299,7 +301,7 @@ class Runtime
     _isInitialized = true;
   }
 
-   /**
+  /**
    * Finalizes the TaskR runtime
    * Releases all workers and frees up their memory
    */
@@ -410,7 +412,7 @@ class Runtime
   /**
    * Pointer to the compute manager to use
    */
-  HiCR::L1::ComputeManager* const _computeManager;
+  HiCR::L1::ComputeManager *const _computeManager;
 
   /**
    * Type definition for the task's callback map

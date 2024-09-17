@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
   // Initializing taskr
   taskr.initialize();
-  
+
   // Running taskr
   taskr.run();
 

@@ -6,11 +6,11 @@
 
 #define _CONCURRENT_TASKS 1000ul
 
-void mutex(taskr::Runtime* taskr)
+void mutex(taskr::Runtime *taskr)
 {
   // Setting callback to free a task as soon as it finishes executing
   taskr->setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
-  
+
   // Contention value
   size_t value = 0;
 

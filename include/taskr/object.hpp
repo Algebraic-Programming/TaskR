@@ -33,7 +33,7 @@ class Object
    */
   typedef HiCR::tasking::uniqueId_t label_t;
 
-   /**
+  /**
    * The definition of a pending operation. It needs to return a boolean indicating whether the operation has ended.
    */
   typedef std::function<bool()> pendingOperation_t;
@@ -57,7 +57,7 @@ class Object
    */
   label_t getLabel() const { return _label; }
 
-   /**
+  /**
    * Adds one output dependency on the current object
    * 
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
@@ -66,12 +66,12 @@ class Object
    */
   __INLINE__ void addDependency(const label_t dependency) { _dependencies.push(dependency); }
 
-   /**
+  /**
     * Gets a reference to the task's pending dependencies
     * 
     * @return A reference to the queue containing the task's pending dependencies
     */
-  __INLINE__ std::queue<label_t>& getDependencies() { return _dependencies; }
+  __INLINE__ std::queue<label_t> &getDependencies() { return _dependencies; }
 
   /**
    * Adds one pending operation on the current object
@@ -80,12 +80,12 @@ class Object
    */
   __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push(pendingOperation); }
 
-   /**
+  /**
     * Gets a reference to the task's pending operations
     * 
     * @return A reference to the queue containing the task's pending operations
     */
-  __INLINE__ std::queue<pendingOperation_t>& getPendingOperations() { return _pendingOperations; }
+  __INLINE__ std::queue<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
 
   protected:
 

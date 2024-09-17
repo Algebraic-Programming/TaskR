@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 
   // Assigning processing resources to TaskR
   for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
-  
+
   // Running ABCtasks example
   pendingOperation(taskr);
 

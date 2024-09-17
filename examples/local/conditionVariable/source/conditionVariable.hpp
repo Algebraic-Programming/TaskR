@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 #define _INITIAL_VALUE 7ul
 
-void conditionVariable(taskr::Runtime& taskr)
+void conditionVariable(taskr::Runtime &taskr)
 {
   // Contention value
   size_t value = 0;

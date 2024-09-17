@@ -48,20 +48,19 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    * @param[in] executionUnit Specifies the function/kernel to execute.
    */
   __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, const workerId_t workerAffinity = -1)
-    : 
-      taskr::Object(label),
+    : taskr::Object(label),
       HiCR::tasking::Task(executionUnit, nullptr),
       _workerAffinity(workerAffinity)
   {}
 
-  __INLINE__ workerId_t getWorkerAffinity() const { return _workerAffinity; } 
+  __INLINE__ workerId_t getWorkerAffinity() const { return _workerAffinity; }
 
   private:
 
   /**
    * Represents the affinity to a given worker, if specified. -1 if not specified
    */
-   const workerId_t _workerAffinity;
+  const workerId_t _workerAffinity;
 
 }; // class Task
 

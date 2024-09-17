@@ -6,7 +6,7 @@
 #define REPETITIONS 5
 #define ITERATIONS 100
 
-void abcTasks(taskr::Runtime& taskr)
+void abcTasks(taskr::Runtime &taskr)
 {
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });

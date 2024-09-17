@@ -83,9 +83,9 @@ int main(int argc, char **argv)
   auto dt = std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
   printf("Finished in %.3f seconds.\n", (double)dt * 1.0e-9);
 
- // Finalizing taskR
+  // Finalizing taskR
   taskr.finalize();
-  
+
   // Freeing up memory
   hwloc_topology_destroy(topology);
 
