@@ -1,5 +1,6 @@
 subdir('abcTasks')
 subdir('conditionVariable')
+subdir('cholesky')
 subdir('mutex')
 subdir('energySaver')
 subdir('getCurrentTask')
