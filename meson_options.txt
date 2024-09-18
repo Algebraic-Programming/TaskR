@@ -1,6 +1,6 @@
 option('distributedEngine', type : 'combo',
        choices : [ 'mpi', 'lpf', 'none' ], 
-       description : 'Specifies which engine (if any) to use for distributed computing',
+       description : 'Specifies which engine (if any) to use for distributed computing examples',
        value: 'none'
        )
 
