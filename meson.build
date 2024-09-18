@@ -6,23 +6,31 @@ project('TaskR', [ 'cpp', 'c'],
   ]
 )
 
-####### Getting selected distributed engine
+####### Storage for TaskR dependencies
 
-distributedEngine = get_option('distributedEngine')
+taskrDependencies = [ ]
 
-####### Getting HiCR dependency
+####### Getting HiCR dependency (only if not a subproject)
 
-# Selecting default HiCR Backends
-HiCRBackends = [ 'host/hwloc', 'host/pthreads' ]
+if meson.is_subproject() == false
 
-# If, selected, adding the dependency for the distributed engine
-if distributedEngine != 'none'
-  HiCRBackends += distributedEngine
+  # Selecting default HiCR Backends
+  HiCRBackends = [ 'host/hwloc', 'host/pthreads' ]
+
+  # Getting selected distributed engine
+
+  distributedEngine = get_option('distributedEngine')
+
+  # If, selected, adding the dependency for the distributed engine
+  if distributedEngine != 'none'
+    HiCRBackends += distributedEngine
+  endif
+
+  HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends), 'frontends=tasking' ])
+  HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
+  taskrDependencies += HiCRBuildDep
+
 endif
-
-
-HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends), 'frontends=tasking' ])
-HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
 
 ####### Creating TaskR dependency
 
@@ -37,60 +45,15 @@ TaskRBuildCppArgs = [
   warningAsErrorFlags
  ]
 
-# Handling distributed engine options
-if distributedEngine == 'mpi'
- TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_MPI'
-endif
-
-if distributedEngine == 'lpf'
- TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_LPF'
-endif
-
-if distributedEngine == 'none'
- TaskRBuildCppArgs += '-D_TASKR_DISTRIBUTED_ENGINE_NONE'
-endif
-
 TaskRBuildIncludes = include_directories([
-   '../include'
+   'include'
   ])
   
 TaskRBuildDep = declare_dependency(
     compile_args: TaskRBuildCppArgs,
     include_directories: TaskRBuildIncludes,
-    dependencies: HiCRBuildDep
+    dependencies: taskrDependencies
     )
-
-
-####### Creating TaskR test dependencies
-
-if meson.is_subproject() or get_option('buildTests')
-  gtest_dep = dependency('gtest', main: true, required: true)
-  
-  TaskRTestCppFlags = [
-  ]
-  
-  cpp = meson.get_compiler('cpp')
-  if get_option('b_coverage')
-    gcov_args = [
-      '-fno-inline',
-      '-Wno-error=cpp',
-      '-DENABLE_COVERAGE',
-    ]
-    if cpp.get_id().to_lower() == 'gcc'
-      gcov_args += [
-        '-fno-default-inline',
-        '-fno-inline-small-functions',
-      ]
-    endif
-    
-    TaskRTestCppFlags += gcov_args
-  endif  
-  
-  TaskRTestDep = declare_dependency(
-      compile_args: TaskRTestCppFlags,
-      dependencies:  gtest_dep
-      )
-endif
 
 ####### Build test / example targets only if HiCR is being loaded as a subproject
 
