@@ -16,7 +16,7 @@
 #include <vector>
 #include <cstddef>
 #include <queue>
-#include <hicr/frontends/tasking/common.hpp>
+#include "common.hpp"
 
 namespace taskr
 {
@@ -27,11 +27,6 @@ namespace taskr
 class Object
 {
   public:
-
-  /**
-   * A unique identifier (label) for an object
-   */
-  typedef HiCR::tasking::uniqueId_t label_t;
 
   /**
    * The definition of a pending operation. It needs to return a boolean indicating whether the operation has ended.

@@ -14,15 +14,11 @@
 
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/task.hpp>
+#include "common.hpp"
 #include "object.hpp"
 
 namespace taskr
 {
-
-/**
- * Type for a locally-unique worker identifier
- */
-typedef ssize_t workerId_t;
 
 /**
  * This class defines the basic execution unit managed by TaskR.

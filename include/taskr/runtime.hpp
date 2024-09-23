@@ -22,21 +22,7 @@
 #include <hicr/core/concurrent/hashMap.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the common active task queue
- */
-#define __TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS 4194304
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the task-specific active task queue
- */
-#define __TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS 32768
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active worker queue
- */
-#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 8192
+#include "worker.hpp"
 
 namespace taskr
 {
@@ -60,7 +46,7 @@ class Runtime
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _suspendedWorkerQueue   = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
+    _suspendedWorkerQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) {
@@ -184,7 +170,7 @@ class Runtime
 
     // Otherwise put it in the corresponding queue
     else
-      _workerSpecificWaitingTaskQueues[taskAffinity]->push(task);
+      _workers[taskAffinity]->getWaitingTaskQueue()->push(task);
   }
 
   /**
@@ -202,7 +188,7 @@ class Runtime
     if (_activeTaskCount == 0)
     {
       // Getting a pointer to the currently executing worker
-      auto worker = HiCR::tasking::Worker::getCurrentWorker();
+      auto worker = taskr::Worker::getCurrentWorker();
 
       // Terminating worker.
       worker->terminate();
@@ -215,7 +201,7 @@ class Runtime
     checkMaximumActiveWorkerCount();
 
     // Trying to grab next task from my own task queue
-    auto task = _workerSpecificWaitingTaskQueues[workerId]->pop();
+    auto task = _workers[workerId]->getWaitingTaskQueue()->pop();
 
     // If nothing found there, poping next task from the common queue
     if (task == nullptr) task = _commonWaitingTaskQueue->pop();
@@ -285,17 +271,11 @@ class Runtime
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
 
-    // Clearing any old worker specific task queues
-    _workerSpecificWaitingTaskQueues.clear();
-
     // Creating one worker per processung unit in the list
     for (size_t i = 0; i < _processingUnits.size(); i++)
     {
-      // Creating new worker-specific task queue
-      _workerSpecificWaitingTaskQueues.push_back(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS));
-
       // Creating new worker
-      auto worker = new HiCR::tasking::Worker(_computeManager, [this, i]() { return getNextTask(i); });
+      auto worker = new taskr::Worker(_computeManager, [this, i]() { return getNextTask(i); });
 
       // Assigning resource to the thread
       worker->addProcessingUnit(std::move(_processingUnits[i]));
@@ -361,7 +341,7 @@ class Runtime
   __INLINE__ void checkMaximumActiveWorkerCount()
   {
     // Getting a pointer to the currently executing worker
-    auto worker = HiCR::tasking::Worker::getCurrentWorker();
+    auto worker = (taskr::Worker*)HiCR::tasking::Worker::getCurrentWorker();
 
     // Try to get the active worker queue lock, otherwise keep going
     if (_activeWorkerQueueLock.try_lock())
@@ -439,7 +419,7 @@ class Runtime
   /**
    * Set of workers assigned to execute tasks
    */
-  std::vector<HiCR::tasking::Worker *> _workers;
+  std::vector<taskr::Worker *> _workers;
 
   /**
    * Mutex for the active worker queue, required for the max active workers mechanism
@@ -463,11 +443,6 @@ class Runtime
   ssize_t _activeWorkerCount;
 
   /**
-   * Worker-specific lock-free queue for waiting tasks.
-   */
-  std::vector<std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>>> _workerSpecificWaitingTaskQueues;
-
-  /**
    * Common lock-free queue for waiting tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
@@ -475,7 +450,7 @@ class Runtime
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism
    */
-  std::unique_ptr<HiCR::concurrent::Queue<HiCR::tasking::Worker>> _suspendedWorkerQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Worker>> _suspendedWorkerQueue;
 
   /**
    * The processing units assigned to taskr to run workers from
