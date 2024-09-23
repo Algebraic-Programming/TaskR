@@ -42,6 +42,7 @@ class Runtime
    * Constructor of the TaskR Runtime.
    * 
    * @param[in] computeManager The compute manager used to run workers
+   * @param[in] config Optional configuration parameters passed in JSON format
    */
   Runtime(HiCR::L1::ComputeManager *computeManager, nlohmann::json config = nlohmann::json())
     : _computeManager(computeManager)
@@ -52,13 +53,13 @@ class Runtime
 
     // Setting task callback functions
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish,  [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
     _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync,    [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Parsing configuration
     if (config.contains("Worker Inactivity Time (Ms)")) _workerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Worker Inactivity Time (Ms)");
-    if (config.contains("Minimum Active Workers"))      _minimumActiveWorkers   = hicr::json::getNumber<size_t>(config,  "Minimum Active Workers");
+    if (config.contains("Minimum Active Workers")) _minimumActiveWorkers = hicr::json::getNumber<size_t>(config, "Minimum Active Workers");
   }
 
   // Destructor
@@ -146,8 +147,7 @@ class Runtime
     for (size_t workerId = 0; workerId < _processingUnits.size(); workerId++)
     {
       // Creating new worker
-      auto worker = new taskr::Worker(_computeManager, [this, workerId]() -> taskr::Task*
-      {
+      auto worker = new taskr::Worker(_computeManager, [this, workerId]() -> taskr::Task * {
         // Getting the worker's pointer
         const auto worker = _workers[workerId];
 
@@ -174,8 +174,8 @@ class Runtime
         // Getting next task to execute
         auto task = getNextTask(workerId);
 
-        // If no found was found and this is the first failure since the last success 
-        if (task == nullptr) 
+        // If no found was found and this is the first failure since the last success
+        if (task == nullptr)
         {
           // Set the worker's fail time, if not already set
           worker->setFailedToRetrieveTask();
@@ -187,7 +187,7 @@ class Runtime
         // If a task was found
         if (task != nullptr)
         {
-          // Setting worker as succeeded to retrieve task (resets the inactivity timer) 
+          // Setting worker as succeeded to retrieve task (resets the inactivity timer)
           worker->setSucceededToRetrieveTask();
 
           // If we've found a ready task, there might be other ready too. So we need to wake a worker up
@@ -257,42 +257,41 @@ class Runtime
   /**
    * Function to check whether the running thread needs to suspend
    */
-  __INLINE__ void checkWorkerSuspension(taskr::Worker* worker)
+  __INLINE__ void checkWorkerSuspension(taskr::Worker *worker)
   {
     // Check for inactivity time (to put the worker to sleep)
-    if (_workerInactivityTimeMs >= 0) // If this setting is, negative then no suspension is used
-    if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
-    if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t) _workerInactivityTimeMs)
-    {
-      // Reducing the number of active threads
-      size_t actualActiveWorkers = _activeWorkerCount.fetch_sub(1);
-
-      // If we are already at the minimum, do not suspend. Otherwise, go ahead
-      if (actualActiveWorkers > _minimumActiveWorkers)
-      {
-        // Creating additional thread to suspend the current one atomically
-        auto suspenderThread = std::thread([&]()
+    if (_workerInactivityTimeMs >= 0)                   // If this setting is, negative then no suspension is used
+      if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
+        if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_workerInactivityTimeMs)
         {
-          // Suspending worker
-          worker->suspend();
+          // Reducing the number of active threads
+          size_t actualActiveWorkers = _activeWorkerCount.fetch_sub(1);
 
-          // Adding worker to suspended worker queue
-          _suspendedWorkerQueue->push(worker);
-        });
+          // If we are already at the minimum, do not suspend. Otherwise, go ahead
+          if (actualActiveWorkers > _minimumActiveWorkers)
+          {
+            // Creating additional thread to suspend the current one atomically
+            auto suspenderThread = std::thread([&]() {
+              // Suspending worker
+              worker->suspend();
 
-        // Waiting until suspender thread finishes
-        suspenderThread.join();
-      }
+              // Adding worker to suspended worker queue
+              _suspendedWorkerQueue->push(worker);
+            });
 
-      // Re-setting success flags to prevent immediate re-suspension
-      worker->setSucceededToRetrieveTask();
+            // Waiting until suspender thread finishes
+            suspenderThread.join();
+          }
 
-      // Re-adding myself as active worker
-      _activeWorkerCount++;
-    } 
+          // Re-setting success flags to prevent immediate re-suspension
+          worker->setSucceededToRetrieveTask();
+
+          // Re-adding myself as active worker
+          _activeWorkerCount++;
+        }
   }
 
-   /**
+  /**
    * This function represents the main loop of a worker that is looking for work to do.
    * It first checks whether the maximum number of worker is exceeded. If that's the case, it enters suspension and returns upon restart.
    * Otherwise, it finds a task in the waiting queue and checks its dependencies. If the task is ready to go, it runs it.
@@ -469,7 +468,6 @@ class Runtime
    * This parallel set stores the id of all finished objects
    */
   HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
-
 
   //////// Configuration Elements
 

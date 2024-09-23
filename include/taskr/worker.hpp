@@ -40,22 +40,51 @@ class Worker : public HiCR::tasking::Worker
    */
   __INLINE__ Worker(HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
     : HiCR::tasking::Worker(computeManager, pullFunction),
-    _waitingTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
-  { }
+      _waitingTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
+  {}
 
+  /**
+  * Accessor for the worker's internal task queue 
+  * 
+  * @return The worker's internal waiting task queue
+  */
   auto getWaitingTaskQueue() const { return _waitingTaskQueue.get(); }
 
+  /**
+   * Indicates the worker has failed to retrieve a task
+   * It only updates its internal timer the first time it fails after a success, to keep track
+   * of how long it was since the last time it succeeded
+   */
   void setFailedToRetrieveTask()
   {
-   // Only update if previously succeeded (this is such that we remember the first time we failed in the current fail streak)
-   if (_hasFailedToRetrieveTask == false)
-   {
-     _hasFailedToRetrieveTask = true;
-     _failedToRetrieveTaskTime = std::chrono::high_resolution_clock::now();
-   }
+    // Only update if previously succeeded (this is such that we remember the first time we failed in the current fail streak)
+    if (_hasFailedToRetrieveTask == false)
+    {
+      _hasFailedToRetrieveTask  = true;
+      _failedToRetrieveTaskTime = std::chrono::high_resolution_clock::now();
+    }
   }
+
+  /**
+   *  Indicates the worker has succeeded to retrieve a task
+   */
   void setSucceededToRetrieveTask() { _hasFailedToRetrieveTask = false; }
-  size_t getTimeSinceFailedToRetrievetaskMs() const { return std::chrono::duration_cast<std::chrono::milliseconds>(_failedToRetrieveTaskTime - std::chrono::high_resolution_clock::now()).count(); };
+
+  /**
+   * Retrieves the time passed since the last task retrieving success
+   * 
+   * @return The time passed since the last task retrieving success in milliseconds
+   */
+  size_t getTimeSinceFailedToRetrievetaskMs() const
+  {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(_failedToRetrieveTaskTime - std::chrono::high_resolution_clock::now()).count();
+  };
+
+  /**
+   * Indicates the worker has failed to retrieve a task last time it tried
+   * 
+   * @return true, if has failed; false, if succeeded
+   */
   bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
 
   private:
