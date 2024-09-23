@@ -17,9 +17,6 @@ void workFc(const size_t iterations)
 
 void waitFc(taskr::Runtime *taskr, size_t secondsDelay)
 {
-  // Reducing maximum active workers to 1
-  taskr->setMaximumActiveWorkers(1);
-
   printf("Starting long task...\n");
   fflush(stdout);
 
@@ -27,9 +24,6 @@ void waitFc(taskr::Runtime *taskr, size_t secondsDelay)
 
   printf("Finished long task...\n");
   fflush(stdout);
-
-  // Increasing maximum active workers
-  taskr->setMaximumActiveWorkers(1024);
 }
 
 int main(int argc, char **argv)

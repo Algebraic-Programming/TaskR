@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/worker.hpp>
@@ -40,12 +41,20 @@ class Worker : public HiCR::tasking::Worker
   __INLINE__ Worker(HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
     : HiCR::tasking::Worker(computeManager, pullFunction),
     _waitingTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
-  {}
+  { }
 
   auto getWaitingTaskQueue() const { return _waitingTaskQueue.get(); }
-  
+
+  void updateActivityTime() { _lastActivityTime = std::chrono::high_resolution_clock::now(); }
+  size_t getTimeSinceLastActivityMs() { return std::chrono::duration_cast<std::chrono::milliseconds>(_lastActivityTime - std::chrono::high_resolution_clock::now()).count(); };
 
   private:
+
+  /**
+   * Activity time registers the last time the worker had something useful to do.
+   * This is used to put the thread to sleep after a time of inactivity
+   */
+  std::chrono::high_resolution_clock::time_point _lastActivityTime;
 
   /**
   * Worker-specific lock-free queue for waiting tasks.
