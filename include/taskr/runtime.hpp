@@ -143,13 +143,64 @@ class Runtime
     HiCR::tasking::initialize();
 
     // Creating one worker per processung unit in the list
-    for (size_t i = 0; i < _processingUnits.size(); i++)
+    for (size_t workerId = 0; workerId < _processingUnits.size(); workerId++)
     {
       // Creating new worker
-      auto worker = new taskr::Worker(_computeManager, [this, i]() { return getNextTask(i); });
+      auto worker = new taskr::Worker(_computeManager, [this, workerId]() -> taskr::Task*
+      {
+        // Getting the worker's pointer
+        const auto worker = _workers[workerId];
+
+        // If all tasks finished, then terminate execution immediately
+        if (_activeTaskCount == 0)
+        {
+          // Waking up all other possibly asleep workers
+          while (_activeWorkerCount != _workers.size())
+          {
+            auto resumableWorker = _suspendedWorkerQueue->pop();
+            if (resumableWorker != nullptr) resumableWorker->resume();
+          }
+
+          // Getting a pointer to the currently executing worker
+          auto worker = taskr::Worker::getCurrentWorker();
+
+          // Terminating worker.
+          worker->terminate();
+
+          // Returning a nullptr function
+          return nullptr;
+        }
+
+        // Getting next task to execute
+        auto task = getNextTask(workerId);
+
+        // If no found was found and this is the first failure since the last success 
+        if (task == nullptr) 
+        {
+          // Set the worker's fail time, if not already set
+          worker->setFailedToRetrieveTask();
+
+          // Check for inactivity time (to put the worker to sleep)
+          checkWorkerSuspension(worker);
+        }
+
+        // If a task was found
+        if (task != nullptr)
+        {
+          // Setting worker as succeeded to retrieve task (resets the inactivity timer) 
+          worker->setSucceededToRetrieveTask();
+
+          // If we've found a ready task, there might be other ready too. So we need to wake a worker up
+          auto resumableWorker = _suspendedWorkerQueue->pop();
+          if (resumableWorker != nullptr) resumableWorker->resume();
+        }
+
+        // Returning task pointer regardless if found or not
+        return task;
+      });
 
       // Assigning resource to the thread
-      worker->addProcessingUnit(std::move(_processingUnits[i]));
+      worker->addProcessingUnit(std::move(_processingUnits[workerId]));
 
       // Finally adding worker to the worker set
       _workers.push_back(worker);
@@ -191,9 +242,6 @@ class Runtime
     // Setting the number of active workers
     _activeWorkerCount = _workers.size();
 
-    // Updating worker activity timer (used for suspending for inactivity)
-    for (auto &w : _workers) w->updateActivityTime();
-
     // Initializing workers
     for (auto &w : _workers) w->initialize();
 
@@ -213,7 +261,8 @@ class Runtime
   {
     // Check for inactivity time (to put the worker to sleep)
     if (_workerInactivityTimeMs >= 0) // If this setting is, negative then no suspension is used
-    if (worker->getTimeSinceLastActivityMs() > (size_t) _workerInactivityTimeMs)
+    if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
+    if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t) _workerInactivityTimeMs)
     {
       // Reducing the number of active threads
       size_t actualActiveWorkers = _activeWorkerCount.fetch_sub(1);
@@ -235,8 +284,8 @@ class Runtime
         suspenderThread.join();
       }
 
-      // Updating activity time to not re-suspend immediately
-      worker->updateActivityTime();
+      // Re-setting success flags to prevent immediate re-suspension
+      worker->setSucceededToRetrieveTask();
 
       // Re-adding myself as active worker
       _activeWorkerCount++;
@@ -256,29 +305,6 @@ class Runtime
   {
     // Getting the worker's pointer
     const auto worker = _workers[workerId];
-
-    // If all tasks finished, then terminate execution immediately
-    if (_activeTaskCount == 0)
-    {
-      // Waking up all other possibly asleep workers
-      while (_activeWorkerCount != _workers.size())
-      {
-        auto resumableWorker = _suspendedWorkerQueue->pop();
-        if (resumableWorker != nullptr) resumableWorker->resume();
-      }
-
-      // Getting a pointer to the currently executing worker
-      auto worker = taskr::Worker::getCurrentWorker();
-
-      // Terminating worker.
-      worker->terminate();
-
-      // Returning a nullptr function
-      return nullptr;
-    }
-
-    // Check for inactivity time (to put the worker to sleep)
-    checkWorkerSuspension(worker);
 
     // Trying to grab next task from my own task queue
     auto task = worker->getWaitingTaskQueue()->pop();
@@ -331,13 +357,6 @@ class Runtime
       // Otherwise, remove it out of the dependency queue
       task->getPendingOperations().pop();
     }
-
-    // We've got a task to execute now, updating worker's last activity time
-    worker->updateActivityTime();
-
-    // If we've found a ready task, there might be other ready too. So we need to wake a worker up
-    auto resumableWorker = _suspendedWorkerQueue->pop();
-    if (resumableWorker != nullptr) resumableWorker->resume();
 
     // Returning ready task
     return task;

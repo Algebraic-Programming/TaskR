@@ -45,16 +45,31 @@ class Worker : public HiCR::tasking::Worker
 
   auto getWaitingTaskQueue() const { return _waitingTaskQueue.get(); }
 
-  void updateActivityTime() { _lastActivityTime = std::chrono::high_resolution_clock::now(); }
-  size_t getTimeSinceLastActivityMs() { return std::chrono::duration_cast<std::chrono::milliseconds>(_lastActivityTime - std::chrono::high_resolution_clock::now()).count(); };
+  void setFailedToRetrieveTask()
+  {
+   // Only update if previously succeeded (this is such that we remember the first time we failed in the current fail streak)
+   if (_hasFailedToRetrieveTask == false)
+   {
+     _hasFailedToRetrieveTask = true;
+     _failedToRetrieveTaskTime = std::chrono::high_resolution_clock::now();
+   }
+  }
+  void setSucceededToRetrieveTask() { _hasFailedToRetrieveTask = false; }
+  size_t getTimeSinceFailedToRetrievetaskMs() const { return std::chrono::duration_cast<std::chrono::milliseconds>(_failedToRetrieveTaskTime - std::chrono::high_resolution_clock::now()).count(); };
+  bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
 
   private:
 
   /**
-   * Activity time registers the last time the worker had something useful to do.
+   * Remembers whether the worker failed to retrieve a task last time.
    * This is used to put the thread to sleep after a time of inactivity
    */
-  std::chrono::high_resolution_clock::time_point _lastActivityTime;
+  bool _hasFailedToRetrieveTask = false;
+
+  /**
+   * Activity time registers the last time the worker failed to retrieve a task (because there were none available)
+   */
+  std::chrono::high_resolution_clock::time_point _failedToRetrieveTaskTime;
 
   /**
   * Worker-specific lock-free queue for waiting tasks.
