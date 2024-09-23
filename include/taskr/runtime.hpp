@@ -14,29 +14,17 @@
 
 #include <atomic>
 #include <map>
-#include <mutex>
 #include <memory>
+#include <thread>
+#include <nlohmann_json/json.hpp>
+#include <nlohmann_json/parser.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the common active task queue
- */
-#define __TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS 4194304
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the task-specific active task queue
- */
-#define __TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS 32768
-
-/**
- * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the active worker queue
- */
-#define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 8192
+#include "worker.hpp"
 
 namespace taskr
 {
@@ -54,58 +42,24 @@ class Runtime
    * Constructor of the TaskR Runtime.
    * 
    * @param[in] computeManager The compute manager used to run workers
+   * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(HiCR::L1::ComputeManager *computeManager)
+  Runtime(HiCR::L1::ComputeManager *computeManager, nlohmann::json config = nlohmann::json())
     : _computeManager(computeManager)
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _suspendedWorkerQueue   = std::make_unique<HiCR::concurrent::Queue<HiCR::tasking::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
+    _suspendedWorkerQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Worker>>(__TASKR_DEFAULT_MAX_ACTIVE_WORKERS);
 
     // Setting task callback functions
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) {
-      // Getting TaskR task pointer
-      auto taskrTask = (taskr::Task *)task;
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
+    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
-      // If defined, trigger user-defined event
-      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
-    });
-
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) {
-      // Getting TaskR task pointer
-      auto taskrTask = (taskr::Task *)task;
-
-      // Getting task label
-      const auto taskLabel = taskrTask->getLabel();
-
-      // Adding task to the finished object set
-      _finishedObjects.insert(taskLabel);
-
-      // If defined, trigger user-defined event
-      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
-
-      // Decreasing active task counter
-      _activeTaskCount--;
-    });
-
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) {
-      // Getting TaskR task pointer
-      auto taskrTask = (taskr::Task *)task;
-
-      // If defined, trigger user-defined event
-      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
-    });
-
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) {
-      // Getting TaskR task pointer
-      auto taskrTask = (taskr::Task *)task;
-
-      // If not defined, resume task (by default)
-      if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
-
-      // If defined, trigger user-defined event
-      this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
-    });
+    // Parsing configuration
+    if (config.contains("Worker Inactivity Time (Ms)")) _workerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Worker Inactivity Time (Ms)");
+    if (config.contains("Minimum Active Workers")) _minimumActiveWorkers = hicr::json::getNumber<size_t>(config, "Minimum Active Workers");
   }
 
   // Destructor
@@ -134,19 +88,6 @@ class Runtime
    * \param[in] pu The processing unit to add
    */
   __INLINE__ void addProcessingUnit(std::unique_ptr<HiCR::L0::ProcessingUnit> pu) { _processingUnits.push_back(std::move(pu)); }
-
-  /**
-   * Sets the maximum active worker count. If the current number of active workers exceeds this maximu, TaskR will put as many
-   * workers to sleep as necessary to get the active count as close as this value as possible. If this maximum is later increased,
-   * then any suspended workers will be awaken by active workers.
-   *
-   * \param[in] max The desired number of maximum workers. A non-positive value means that there is no limit.
-   */
-  __INLINE__ void setMaximumActiveWorkers(const size_t max)
-  {
-    // Storing new maximum active worker count
-    _maximumActiveWorkers = max;
-  }
 
   /**
    * Adds a task to the TaskR runtime for future execution. This can be called at any point, before or during the execution of TaskR.
@@ -184,7 +125,170 @@ class Runtime
 
     // Otherwise put it in the corresponding queue
     else
-      _workerSpecificWaitingTaskQueues[taskAffinity]->push(task);
+      _workers[taskAffinity]->getWaitingTaskQueue()->push(task);
+  }
+
+  /**
+   * Initailizes the TaskR runtime
+   * Creates a set of HiCR workers, based on the provided computeManager, and subscribes them to the pull function.
+   */
+  __INLINE__ void initialize()
+  {
+    // Verify taskr is not currently initialized
+    if (_isInitialized == true) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
+
+    // Checking if we have at least one processing unit
+    if (_processingUnits.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
+
+    // Initializing HiCR tasking
+    HiCR::tasking::initialize();
+
+    // Creating one worker per processung unit in the list
+    for (size_t workerId = 0; workerId < _processingUnits.size(); workerId++)
+    {
+      // Creating new worker
+      auto worker = new taskr::Worker(_computeManager, [this, workerId]() -> taskr::Task * {
+        // Getting the worker's pointer
+        const auto worker = _workers[workerId];
+
+        // If all tasks finished, then terminate execution immediately
+        if (_activeTaskCount == 0)
+        {
+          // Waking up all other possibly asleep workers
+          while (_activeWorkerCount != _workers.size())
+          {
+            auto resumableWorker = _suspendedWorkerQueue->pop();
+            if (resumableWorker != nullptr) resumableWorker->resume();
+          }
+
+          // Getting a pointer to the currently executing worker
+          auto worker = taskr::Worker::getCurrentWorker();
+
+          // Terminating worker.
+          worker->terminate();
+
+          // Returning a nullptr function
+          return nullptr;
+        }
+
+        // Getting next task to execute
+        auto task = getNextTask(workerId);
+
+        // If no found was found and this is the first failure since the last success
+        if (task == nullptr)
+        {
+          // Set the worker's fail time, if not already set
+          worker->setFailedToRetrieveTask();
+
+          // Check for inactivity time (to put the worker to sleep)
+          checkWorkerSuspension(worker);
+        }
+
+        // If a task was found
+        if (task != nullptr)
+        {
+          // Setting worker as succeeded to retrieve task (resets the inactivity timer)
+          worker->setSucceededToRetrieveTask();
+
+          // If we've found a ready task, there might be other ready too. So we need to wake a worker up
+          auto resumableWorker = _suspendedWorkerQueue->pop();
+          if (resumableWorker != nullptr) resumableWorker->resume();
+        }
+
+        // Returning task pointer regardless if found or not
+        return task;
+      });
+
+      // Assigning resource to the thread
+      worker->addProcessingUnit(std::move(_processingUnits[workerId]));
+
+      // Finally adding worker to the worker set
+      _workers.push_back(worker);
+    }
+
+    // Setting taskr as uninitialized
+    _isInitialized = true;
+  }
+
+  /**
+   * Finalizes the TaskR runtime
+   * Releases all workers and frees up their memory
+   */
+  __INLINE__ void finalize()
+  {
+    // Verify taskr is currently initialized
+    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently not initialized");
+
+    // Setting taskr as uninitialized
+    _isInitialized = false;
+
+    // Clearing created objects
+    for (auto &w : _workers) delete w;
+    _workers.clear();
+
+    // Finalizing HiCR tasking
+    HiCR::tasking::finalize();
+  }
+
+  /**
+   * Starts the execution of the TaskR runtime.
+   * It starts the workers and suspends the current context until they're back (all tasks have finished).
+   */
+  __INLINE__ void run()
+  {
+    // Verify taskr was correctly initialized
+    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
+
+    // Setting the number of active workers
+    _activeWorkerCount = _workers.size();
+
+    // Initializing workers
+    for (auto &w : _workers) w->initialize();
+
+    // Starting workers
+    for (auto &w : _workers) w->start();
+
+    // Waiting for workers to finish computing
+    for (auto &w : _workers) w->await();
+  }
+
+  private:
+
+  /**
+   * Function to check whether the running thread needs to suspend
+   */
+  __INLINE__ void checkWorkerSuspension(taskr::Worker *worker)
+  {
+    // Check for inactivity time (to put the worker to sleep)
+    if (_workerInactivityTimeMs >= 0)                   // If this setting is, negative then no suspension is used
+      if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
+        if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_workerInactivityTimeMs)
+        {
+          // Reducing the number of active threads
+          size_t actualActiveWorkers = _activeWorkerCount.fetch_sub(1);
+
+          // If we are already at the minimum, do not suspend. Otherwise, go ahead
+          if (actualActiveWorkers > _minimumActiveWorkers)
+          {
+            // Creating additional thread to suspend the current one atomically
+            auto suspenderThread = std::thread([&]() {
+              // Suspending worker
+              worker->suspend();
+
+              // Adding worker to suspended worker queue
+              _suspendedWorkerQueue->push(worker);
+            });
+
+            // Waiting until suspender thread finishes
+            suspenderThread.join();
+          }
+
+          // Re-setting success flags to prevent immediate re-suspension
+          worker->setSucceededToRetrieveTask();
+
+          // Re-adding myself as active worker
+          _activeWorkerCount++;
+        }
   }
 
   /**
@@ -198,24 +302,11 @@ class Runtime
    */
   __INLINE__ taskr::Task *getNextTask(const workerId_t workerId)
   {
-    // If all tasks finished, then terminate execution immediately
-    if (_activeTaskCount == 0)
-    {
-      // Getting a pointer to the currently executing worker
-      auto worker = HiCR::tasking::Worker::getCurrentWorker();
-
-      // Terminating worker.
-      worker->terminate();
-
-      // Returning a nullptr function
-      return nullptr;
-    }
-
-    // If maximum active workers is defined, then check if the threshold is exceeded
-    checkMaximumActiveWorkerCount();
+    // Getting the worker's pointer
+    const auto worker = _workers[workerId];
 
     // Trying to grab next task from my own task queue
-    auto task = _workerSpecificWaitingTaskQueues[workerId]->pop();
+    auto task = worker->getWaitingTaskQueue()->pop();
 
     // If nothing found there, poping next task from the common queue
     if (task == nullptr) task = _commonWaitingTaskQueue->pop();
@@ -270,145 +361,52 @@ class Runtime
     return task;
   }
 
-  /**
-   * Initailizes the TaskR runtime
-   * Creates a set of HiCR workers, based on the provided computeManager, and subscribes them to the pull function.
-   */
-  __INLINE__ void initialize()
+  __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *task)
   {
-    // Verify taskr is not currently initialized
-    if (_isInitialized == true) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
+    // Getting TaskR task pointer
+    auto taskrTask = (taskr::Task *)task;
 
-    // Checking if we have at least one processing unit
-    if (_processingUnits.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
-
-    // Initializing HiCR tasking
-    HiCR::tasking::initialize();
-
-    // Clearing any old worker specific task queues
-    _workerSpecificWaitingTaskQueues.clear();
-
-    // Creating one worker per processung unit in the list
-    for (size_t i = 0; i < _processingUnits.size(); i++)
-    {
-      // Creating new worker-specific task queue
-      _workerSpecificWaitingTaskQueues.push_back(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS));
-
-      // Creating new worker
-      auto worker = new HiCR::tasking::Worker(_computeManager, [this, i]() { return getNextTask(i); });
-
-      // Assigning resource to the thread
-      worker->addProcessingUnit(std::move(_processingUnits[i]));
-
-      // Finally adding worker to the worker set
-      _workers.push_back(worker);
-    }
-
-    // Setting taskr as uninitialized
-    _isInitialized = true;
+    // If defined, trigger user-defined event
+    _taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
   }
 
-  /**
-   * Finalizes the TaskR runtime
-   * Releases all workers and frees up their memory
-   */
-  __INLINE__ void finalize()
+  __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *task)
   {
-    // Verify taskr is currently initialized
-    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently not initialized");
+    // Getting TaskR task pointer
+    auto taskrTask = (taskr::Task *)task;
 
-    // Setting taskr as uninitialized
-    _isInitialized = false;
+    // Getting task label
+    const auto taskLabel = taskrTask->getLabel();
 
-    // Clearing created objects
-    for (auto &w : _workers) delete w;
-    _workers.clear();
+    // Adding task to the finished object set
+    _finishedObjects.insert(taskLabel);
 
-    // Finalizing HiCR tasking
-    HiCR::tasking::finalize();
+    // If defined, trigger user-defined event
+    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+
+    // Decreasing active task counter
+    _activeTaskCount--;
   }
 
-  /**
-   * Starts the execution of the TaskR runtime.
-   * It starts the workers and suspends the current context until they're back (all tasks have finished).
-   */
-  __INLINE__ void run()
+  __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *task)
   {
-    // Verify taskr was correctly initialized
-    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
+    // Getting TaskR task pointer
+    auto taskrTask = (taskr::Task *)task;
 
-    // Initializing active worker count
-    _activeWorkerCount = _workers.size();
-
-    // Initializing workers
-    for (auto &w : _workers) w->initialize();
-
-    // Starting workers
-    for (auto &w : _workers) w->start();
-
-    // Waiting for workers to finish computing
-    for (auto &w : _workers) w->await();
+    // If defined, trigger user-defined event
+    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
   }
 
-  private:
-
-  /**
-   * This function implements the auto-sleep mechanism that limits the number of active workers based on a user configuration
-   * It will put any calling worker to sleep if the number of active workers exceed the maximum.
-   * If the number of active workers is smaller than the maximum, it will try to 'wake up' other suspended workers, if any,
-   * until the maximum is reached again.
-   */
-  __INLINE__ void checkMaximumActiveWorkerCount()
+  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *task)
   {
-    // Getting a pointer to the currently executing worker
-    auto worker = HiCR::tasking::Worker::getCurrentWorker();
+    // Getting TaskR task pointer
+    auto taskrTask = (taskr::Task *)task;
 
-    // Try to get the active worker queue lock, otherwise keep going
-    if (_activeWorkerQueueLock.try_lock())
-    {
-      // If the number of workers exceeds that of maximum active workers,
-      // suspend current worker
-      if (_maximumActiveWorkers > 0 && _activeWorkerCount > (ssize_t)_maximumActiveWorkers)
-      {
-        // Adding worker to the queue
-        _suspendedWorkerQueue->push(worker);
+    // If not defined, resume task (by default)
+    if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
 
-        // Reducing active worker count
-        _activeWorkerCount--;
-
-        // Releasing lock, this is necessary here because the worker is going
-        // into sleep
-        _activeWorkerQueueLock.unlock();
-
-        // Suspending worker
-        worker->suspend();
-
-        // Returning now, because we've already released the lock and shouldn't
-        // do anything else without it
-        return;
-      }
-
-      // If the new maximum is higher than the number of active workers, we need
-      // to re-awaken some of them
-      while ((_maximumActiveWorkers == 0 || (ssize_t)_maximumActiveWorkers > _activeWorkerCount) && _suspendedWorkerQueue->wasEmpty() == false)
-      {
-        // Getting the worker from the queue of suspended workers
-        auto w = _suspendedWorkerQueue->pop();
-
-        // Do the following if a worker was obtained
-        if (w != nullptr)
-        {
-          // Increase the active worker count
-          _activeWorkerCount++;
-
-          // Resuming worker
-          if (w != nullptr) w->resume();
-        }
-      }
-
-      // Releasing lock
-      _activeWorkerQueueLock.unlock();
-    }
+    // If defined, trigger user-defined event
+    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
   }
 
   /**
@@ -439,33 +437,17 @@ class Runtime
   /**
    * Set of workers assigned to execute tasks
    */
-  std::vector<HiCR::tasking::Worker *> _workers;
+  std::vector<taskr::Worker *> _workers;
 
   /**
-   * Mutex for the active worker queue, required for the max active workers mechanism
+   * Number of active (not suspended) workers
    */
-  std::mutex _activeWorkerQueueLock;
+  std::atomic<size_t> _activeWorkerCount;
 
   /**
    * Counter for the current number of active tasks. Execution finishes when this counter reaches zero
    */
   std::atomic<size_t> _activeTaskCount = 0;
-
-  /**
-   * User-defined maximum active worker count. Required for the max active workers mechanism
-   * A zero value indicates that there is no limitation to the maximum active worker count.
-   */
-  size_t _maximumActiveWorkers = 0;
-
-  /**
-   * Keeps track of the currently active worker count. Required for the max active workers mechanism
-   */
-  ssize_t _activeWorkerCount;
-
-  /**
-   * Worker-specific lock-free queue for waiting tasks.
-   */
-  std::vector<std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>>> _workerSpecificWaitingTaskQueues;
 
   /**
    * Common lock-free queue for waiting tasks.
@@ -475,7 +457,7 @@ class Runtime
   /**
    * Lock-free queue storing workers that remain in suspension. Required for the max active workers mechanism
    */
-  std::unique_ptr<HiCR::concurrent::Queue<HiCR::tasking::Worker>> _suspendedWorkerQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Worker>> _suspendedWorkerQueue;
 
   /**
    * The processing units assigned to taskr to run workers from
@@ -486,6 +468,19 @@ class Runtime
    * This parallel set stores the id of all finished objects
    */
   HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
+
+  //////// Configuration Elements
+
+  /**
+   * Time (ms) before a worker thread suspends after not finding any ready tasks
+   */
+  ssize_t _workerInactivityTimeMs = 100;
+
+  /**
+   * Minimum of worker threads to keep active
+   */
+  size_t _minimumActiveWorkers = 1;
+
 }; // class Runtime
 
 } // namespace taskr

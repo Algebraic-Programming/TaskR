@@ -23,7 +23,7 @@ void abcTasks(taskr::Runtime &taskr)
   for (size_t r = 0; r < REPETITIONS; r++)
   {
     // Calculating the base task id for this repetition
-    taskr::Task::label_t repetitionLabel = r * ITERATIONS * 3;
+    auto repetitionLabel = r * ITERATIONS * 3;
 
     // Each run consists of several iterations of ABC
     for (size_t i = 0; i < ITERATIONS; i++)
