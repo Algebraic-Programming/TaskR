@@ -29,6 +29,11 @@
  */
 #define __TASKR_DEFAULT_MAX_ACTIVE_WORKERS 8192
 
+/**
+ * Required by the concurrent hash map implementation, the theoretical maximum number of entries in the services queue
+ */
+#define __TASKR_DEFAULT_MAX_SERVICES 256
+
 namespace taskr
 {
 
@@ -41,5 +46,11 @@ typedef HiCR::tasking::uniqueId_t label_t;
  * Type for a locally-unique worker identifier
  */
 typedef ssize_t workerId_t;
+
+
+/**
+ * The type of a service
+ */
+typedef std::function<void()> service_t;
 
 } // namespace taskr
