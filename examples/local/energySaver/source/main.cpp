@@ -80,13 +80,13 @@ int main(int argc, char **argv)
   }
 
   // Creating a single wait task that suspends all workers except for one
-  auto waitTask = new taskr::Task(0, waitExecutionUnit);
+  auto waitTask1 = new taskr::Task(0, waitExecutionUnit);
 
   // Building task graph. First a lot of pure work tasks. The wait task depends on these
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(i + 1, workExecutionUnit);
-    waitTask->addDependency(workTask->getLabel());
+    waitTask1->addDependency(workTask->getLabel());
     taskr.addTask(workTask);
   }
 
@@ -94,12 +94,27 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(workTaskCount + i + 1, workExecutionUnit);
-    workTask->addDependency(waitTask->getLabel());
+    workTask->addDependency(waitTask1->getLabel());
     taskr.addTask(workTask);
   }
 
-  // Adding work task
-  taskr.addTask(waitTask);
+  // Then creating another wait task
+  auto waitTask2 = new taskr::Task(2 * workTaskCount + 1, waitExecutionUnit);
+
+  // The wait task depends on the second set of work tasks
+  for (size_t i = 0; i < workTaskCount; i++) waitTask2->addDependency(workTaskCount + i + 1);
+
+  // Last set of work tasks
+  for (size_t i = 0; i < workTaskCount; i++)
+  {
+    auto workTask = new taskr::Task(2 * workTaskCount + i + 2, workExecutionUnit);
+    workTask->addDependency(waitTask2->getLabel());
+    taskr.addTask(workTask);
+  }
+
+  // Adding work tasks
+  taskr.addTask(waitTask1);
+  taskr.addTask(waitTask2);
 
   // Initializing taskr
   taskr.initialize();

@@ -53,10 +53,6 @@ int main(int carg, char *argv[])
   MPI_Barrier(MPI_COMM_WORLD);
   double execTime = -MPI_Wtime();
   g.solve();
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  // Getting final time
-  execTime += MPI_Wtime();
 
   // Calculating residual
   double residual = g.calculateResidual(nIters);
@@ -76,6 +72,9 @@ int main(int carg, char *argv[])
 
   if (isRootRank)
   {
+    // Getting final time
+    execTime += MPI_Wtime();
+
     double gflops = nIters * (double)N * (double)N * (double)N * (2 + gDepth * 8) / (1.0e9);
     printf("%.4fs, %.3f GFlop/s (L2 Norm: %.10g)\n", execTime, gflops / execTime, residual);
   }
