@@ -238,7 +238,6 @@ int main(int argc, char *argv[])
     // Running Taskr
     taskr.run();
 
-
     ////// Calculating residual
 
     // Reset local residual to zero

@@ -47,7 +47,6 @@ typedef HiCR::tasking::uniqueId_t label_t;
  */
 typedef ssize_t workerId_t;
 
-
 /**
  * The type of a service
  */

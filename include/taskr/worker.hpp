@@ -89,15 +89,14 @@ class Worker : public HiCR::tasking::Worker
 
   __INLINE__ bool checkResumeConditions() override { return _checkResumeFunction(this); }
 
-  void setCheckResumeFunction(std::function<bool(taskr::Worker*)> fc) { _checkResumeFunction = fc; };
-
+  void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
 
   private:
 
   /**
    * Function to check whether the worker can resume after being suspended
    */
-  std::function<bool(taskr::Worker*)> _checkResumeFunction;
+  std::function<bool(taskr::Worker *)> _checkResumeFunction;
 
   /**
    * Remembers whether the worker failed to retrieve a task last time.
