@@ -87,8 +87,18 @@ class Worker : public HiCR::tasking::Worker
    */
   bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
 
+  /**
+   * Ths function is called at set intervals to check whether the worker must resume or not
+   * 
+   * @return true, if the worker must resume; false, if it must remain suspended
+   */
   __INLINE__ bool checkResumeConditions() override { return _checkResumeFunction(this); }
 
+  /**
+   * This function enables TaskR set a TaskR-specific check resume funciton
+   * 
+   * @param fc The function that checks whether the worker may continue executing after being suspended
+   */
   void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
 
   private:
