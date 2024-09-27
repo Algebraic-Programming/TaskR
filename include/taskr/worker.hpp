@@ -40,15 +40,15 @@ class Worker : public HiCR::tasking::Worker
    */
   __INLINE__ Worker(HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
     : HiCR::tasking::Worker(computeManager, pullFunction),
-      _waitingTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
+      _readyTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
   {}
 
   /**
-  * Accessor for the worker's internal task queue 
+  * Accessor for the worker's internal ready task queue 
   * 
-  * @return The worker's internal waiting task queue
+  * @return The worker's internal ready task queue
   */
-  auto getWaitingTaskQueue() const { return _waitingTaskQueue.get(); }
+  auto getReadyTaskQueue() const { return _readyTaskQueue.get(); }
 
   /**
    * Indicates the worker has failed to retrieve a task
@@ -68,7 +68,7 @@ class Worker : public HiCR::tasking::Worker
   /**
    *  Indicates the worker has succeeded to retrieve a task
    */
-  void setSucceededToRetrieveTask() { _hasFailedToRetrieveTask = false; }
+  void resetRetrieveTaskSuccessFlag() { _hasFailedToRetrieveTask = false; }
 
   /**
    * Retrieves the time passed since the last task retrieving success
@@ -77,7 +77,7 @@ class Worker : public HiCR::tasking::Worker
    */
   size_t getTimeSinceFailedToRetrievetaskMs() const
   {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(_failedToRetrieveTaskTime - std::chrono::high_resolution_clock::now()).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - _failedToRetrieveTaskTime).count();
   };
 
   /**
@@ -87,7 +87,26 @@ class Worker : public HiCR::tasking::Worker
    */
   bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
 
+  /**
+   * Ths function is called at set intervals to check whether the worker must resume or not
+   * 
+   * @return true, if the worker must resume; false, if it must remain suspended
+   */
+  __INLINE__ bool checkResumeConditions() override { return _checkResumeFunction(this); }
+
+  /**
+   * This function enables TaskR set a TaskR-specific check resume funciton
+   * 
+   * @param fc The function that checks whether the worker may continue executing after being suspended
+   */
+  void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
+
   private:
+
+  /**
+   * Function to check whether the worker can resume after being suspended
+   */
+  std::function<bool(taskr::Worker *)> _checkResumeFunction;
 
   /**
    * Remembers whether the worker failed to retrieve a task last time.
@@ -101,9 +120,9 @@ class Worker : public HiCR::tasking::Worker
   std::chrono::high_resolution_clock::time_point _failedToRetrieveTaskTime;
 
   /**
-  * Worker-specific lock-free queue for waiting tasks.
+  * Worker-specific lock-free queue for ready tasks.
   */
-  const std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _waitingTaskQueue;
+  const std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _readyTaskQueue;
 
 }; // class Worker
 

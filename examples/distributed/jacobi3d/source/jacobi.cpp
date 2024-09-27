@@ -238,20 +238,6 @@ int main(int argc, char *argv[])
     // Running Taskr
     taskr.run();
 
-    // Synchronizing all instances before measuring the final time
-    if (isRootInstance == false) g->residualProducerChannel->push(g->residualSendBuffer, 1);
-    if (isRootInstance == true)
-    {
-      while (g->residualConsumerChannel->getDepth() != instanceCount - 1)
-        ;
-      g->residualConsumerChannel->pop(instanceCount - 1);
-    }
-
-    // Setting final time now
-    auto                         tf       = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<float> dt       = tf - t0;
-    float                        execTime = dt.count();
-
     ////// Calculating residual
 
     // Reset local residual to zero
@@ -303,6 +289,11 @@ int main(int argc, char *argv[])
       g->residualConsumerChannel->pop();
       globalRes += *residualPtr;
     }
+
+    // Setting final time now
+    auto                         tf       = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> dt       = tf - t0;
+    float                        execTime = dt.count();
 
     double residual = sqrt(globalRes / ((double)(N - 1) * (double)(N - 1) * (double)(N - 1)));
     double gflops   = nIters * (double)N * (double)N * (double)N * (2 + gDepth * 8) / (1.0e9);
