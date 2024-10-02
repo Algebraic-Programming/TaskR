@@ -67,6 +67,9 @@ void conditionVariable(taskr::Runtime &taskr)
   // Running taskr
   taskr.run();
 
+  // Waiting for task to finish
+  taskr.await();
+
   // Finalizing taskr
   taskr.finalize();
 

@@ -45,6 +45,9 @@ int main(int argc, char **argv)
   // Running taskr
   taskr.run();
 
+  // Waiting for taskr to finish
+  taskr.await();
+
   // Finalizing taskR
   taskr.finalize();
 

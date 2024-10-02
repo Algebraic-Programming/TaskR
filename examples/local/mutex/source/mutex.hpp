@@ -33,6 +33,9 @@ void mutex(taskr::Runtime *taskr)
   // Running taskR
   taskr->run();
 
+  // Waiting for taskR to finish
+  taskr->await();
+
   // Finalizing TaskR
   taskr->finalize();
 

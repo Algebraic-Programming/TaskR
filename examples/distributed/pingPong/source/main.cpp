@@ -175,6 +175,9 @@ int main(int argc, char **argv)
     // Running TaskR
     taskr.run();
 
+    // Waiting for Taskr to finish
+    taskr.await();
+    
     // Finalizing TaskR
     taskr.finalize();
   });
