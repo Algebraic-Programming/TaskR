@@ -57,6 +57,9 @@ void pendingOperation(taskr::Runtime &taskr)
   // Running taskr
   taskr.run();
 
+  // Waiting for taskR to finish
+  taskr.await();
+
   // Finalizing taskR
   taskr.finalize();
 }

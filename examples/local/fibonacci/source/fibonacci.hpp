@@ -64,6 +64,7 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   // Running taskr
   auto startTime = std::chrono::high_resolution_clock::now();
   taskr.run();
+  taskr.await();
   auto endTime     = std::chrono::high_resolution_clock::now();
   auto computeTime = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
   printf("Running Time: %0.5fs\n", computeTime.count());

@@ -61,6 +61,9 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
   // Running taskr for the current repetition
   taskr.run();
 
+  // Waiting for taskr to finish
+  taskr.await();
+
   // Finalizing taskr
   taskr.finalize();
 }

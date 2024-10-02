@@ -122,6 +122,7 @@ int main(int argc, char **argv)
   // Running taskr
   printf("Starting (open 'htop' in another console to see the workers going to sleep during the long task)...\n");
   taskr.run();
+  taskr.await();
   printf("Finished.\n");
 
   // Finalizing taskr

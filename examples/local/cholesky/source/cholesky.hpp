@@ -208,6 +208,7 @@ void choleskyDriver(const uint32_t                                           mat
   // Run the task graph
   auto start = std::chrono::high_resolution_clock::now();
   taskr.run();
+  taskr.await();
   auto end   = std::chrono::high_resolution_clock::now();
   auto delta = std::chrono::duration<double>(end - start);
 

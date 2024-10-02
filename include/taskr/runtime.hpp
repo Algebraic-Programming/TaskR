@@ -29,6 +29,27 @@ namespace taskr
 {
 
 /**
+ * Enumeration of states in which the TaskR runtime can be in
+ */
+enum state_t
+{
+  /**
+    * The runtime has not yet been initialized
+    */
+  uninitialized,
+
+  /**
+    * The runtime is initialized, but not running
+    */
+  initialized,
+
+  /**
+    * The runtime is currently running
+    */
+  running
+};
+
+/**
  * Implementation of a tasking runtime class implemented with the HiCR tasking frontend
  *
  * It holds the entire running state of the tasks and the dependency graph.
@@ -137,7 +158,7 @@ class Runtime
   __INLINE__ void initialize()
   {
     // Verify taskr is not currently initialized
-    if (_isInitialized == true) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
+    if (_state != state_t::uninitialized) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
 
     // Checking if we have at least one processing unit
     if (_processingUnits.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
@@ -190,28 +211,7 @@ class Runtime
     }
 
     // Setting taskr as uninitialized
-    _isInitialized = true;
-  }
-
-  /**
-   * Finalizes the TaskR runtime
-   * Releases all workers and frees up their memory
-   */
-  __INLINE__ void finalize()
-  {
-    // Verify taskr is currently initialized
-    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently not initialized");
-
-    // Setting taskr as uninitialized
-    _isInitialized = false;
-
-    // Clearing created objects
-    for (auto &w : _serviceWorkers) delete w;
-    for (auto &w : _taskWorkers) delete w;
-    _taskWorkers.clear();
-
-    // Finalizing HiCR tasking
-    HiCR::tasking::finalize();
+    _state = state_t::initialized;
   }
 
   /**
@@ -220,8 +220,9 @@ class Runtime
    */
   __INLINE__ void run()
   {
-    // Verify taskr was correctly initialized
-    if (_isInitialized == false) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
+    // Verify taskr is correctly initialized and not running
+    if (_state == state_t::uninitialized) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
+    if (_state == state_t::running) HICR_THROW_LOGIC("Trying to run TaskR, but it is currently running");
 
     // Initializing workers
     for (auto &w : _serviceWorkers) w->initialize();
@@ -231,9 +232,46 @@ class Runtime
     for (auto &w : _serviceWorkers) w->start();
     for (auto &w : _taskWorkers) w->start();
 
+    // Set state to running
+    _state = state_t::running;
+  }
+
+  /**
+   * Awaits for the finalization of the current execution of the TaskR runtime.
+   */
+  __INLINE__ void await()
+  {
+    // Verify taskr is correctly running
+    if (_state != state_t::running) HICR_THROW_LOGIC("Trying to wait for TaskR, but it was not running");
+
     // Waiting for workers to finish computing
     for (auto &w : _serviceWorkers) w->await();
     for (auto &w : _taskWorkers) w->await();
+
+    // Set state back to initialized
+    _state = state_t::initialized;
+  }
+
+  /**
+   * Finalizes the TaskR runtime
+   * Releases all workers and frees up their memory
+   */
+  __INLINE__ void finalize()
+  {
+    // Verify taskr is currently initialized
+    if (_state == state_t::uninitialized) HICR_THROW_LOGIC("Trying to finalize TaskR, but it is currently not initialized");
+    if (_state == state_t::running) HICR_THROW_LOGIC("Trying to finalize TaskR, but it is currently running. You need to run 'await' first to make sure it has stopped.");
+
+    // Clearing created objects
+    for (auto &w : _serviceWorkers) delete w;
+    for (auto &w : _taskWorkers) delete w;
+    _taskWorkers.clear();
+
+    // Finalizing HiCR tasking
+    HiCR::tasking::finalize();
+
+    // Setting state back to uninitialized
+    _state = state_t::uninitialized;
   }
 
   private:
@@ -498,7 +536,7 @@ class Runtime
   /**
    * A flag to indicate whether taskR was initialized
    */
-  bool _isInitialized = false;
+  state_t _state = state_t::uninitialized;
 
   /**
    * Pointer to the compute manager to use

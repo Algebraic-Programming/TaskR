@@ -31,6 +31,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension)
   }
 
   _taskr->run();
+  _taskr->await();
 
   for (int i = 0; i < n; i++)
   {
@@ -47,6 +48,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension)
   }
 
   _taskr->run();
+  _taskr->await();
 
   // Increase the diagonal by N
   for (int i = 0; i < n; i++) matrix[i + i * n] += (double)n;

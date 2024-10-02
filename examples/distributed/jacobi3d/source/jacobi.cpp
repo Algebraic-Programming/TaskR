@@ -208,6 +208,9 @@ int main(int argc, char *argv[])
     // Running Taskr initially
     taskr.run();
 
+    // Waiting for Taskr to finish
+    taskr.await();
+
     // Creating initial set tasks to solve the first iteration
     if (nIters > 0) // Only compute if at least one iteartion is required
       for (ssize_t i = 0; i < lt.x; i++)
@@ -238,6 +241,9 @@ int main(int argc, char *argv[])
     // Running Taskr
     taskr.run();
 
+    // Waiting for Taskr to finish
+    taskr.await();
+
     ////// Calculating residual
 
     // Reset local residual to zero
@@ -254,6 +260,9 @@ int main(int argc, char *argv[])
 
     // Running Taskr
     taskr.run();
+
+    // Waiting for Taskr to finish
+    taskr.await();
 
     // Finalizing TaskR
     taskr.finalize();
