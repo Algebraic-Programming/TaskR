@@ -45,6 +45,9 @@ void abcTasks(taskr::Runtime &taskr)
 
     // Running taskr for the current repetition
     taskr.run();
+
+    // Waiting current repetition to end
+    taskr.await();
   }
 
   // Finalizing taskr

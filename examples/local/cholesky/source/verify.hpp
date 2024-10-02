@@ -31,6 +31,7 @@ bool areMatrixEqual(double *__restrict__ expected, double *__restrict__ actual, 
   }
 
   _taskr->run();
+  _taskr->await();
 
   return equal.load();
 }

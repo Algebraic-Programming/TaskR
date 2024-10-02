@@ -78,6 +78,7 @@ int main(int argc, char **argv)
   // Running taskr only on the core subset
   auto t0 = std::chrono::high_resolution_clock::now();
   taskr.run();
+  taskr.await();
   auto tf = std::chrono::high_resolution_clock::now();
 
   auto dt = std::chrono::duration_cast<std::chrono::nanoseconds>(tf - t0).count();
