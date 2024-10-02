@@ -31,22 +31,23 @@ namespace taskr
 /**
  * Enumeration of states in which the TaskR runtime can be in
  */
-enum state_t {
-   /**
+enum state_t
+{
+  /**
     * The runtime has not yet been initialized
     */
-   uninitialized,
+  uninitialized,
 
-   /**
+  /**
     * The runtime is initialized, but not running
     */
-   initialized,
+  initialized,
 
-   /**
+  /**
     * The runtime is currently running
     */
-   running
-  };
+  running
+};
 
 /**
  * Implementation of a tasking runtime class implemented with the HiCR tasking frontend
@@ -235,7 +236,7 @@ class Runtime
     _state = state_t::running;
   }
 
-    /**
+  /**
    * Awaits for the finalization of the current execution of the TaskR runtime.
    */
   __INLINE__ void await()
@@ -251,7 +252,7 @@ class Runtime
     _state = state_t::initialized;
   }
 
-    /**
+  /**
    * Finalizes the TaskR runtime
    * Releases all workers and frees up their memory
    */
