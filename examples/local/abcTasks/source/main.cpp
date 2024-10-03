@@ -1,5 +1,4 @@
 #include <hwloc.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include "abcTasks.hpp"
 
@@ -23,14 +22,8 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
   // Creating taskr
-  taskr::Runtime taskr(&computeManager);
-
-  // Assigning processing resources to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
+  taskr::Runtime taskr(computeResources);
 
   // Running ABCtasks example
   abcTasks(taskr);

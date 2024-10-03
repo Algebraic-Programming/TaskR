@@ -703,7 +703,7 @@ void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
   if (it == nIters - 1) return;
 
   // Creating new task for the next iteration
-  auto newTask = new Task("Compute", lx, ly, lz, it + 1, computeFc);
+  auto newTask = new Task("Compute", lx, ly, lz, it + 1, computeFc.get());
 
   // Adding compute dependencies for the next iteration
   if (subGrid.X0.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx - 1, ly + 0, lz + 0, it));
@@ -738,7 +738,7 @@ void Grid::receive(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
   if (it == nIters - 1) return;
 
   // Creating new task for the next iteration
-  auto newTask = new Task("Receive", lx, ly, lz, it + 1, receiveFc);
+  auto newTask = new Task("Receive", lx, ly, lz, it + 1, receiveFc.get());
   newTask->addDependency(Task::encodeTaskName("Unpack", lx, ly, lz, it));
 
   // Creating task for the next iteration only if we haven't reached the end
@@ -813,7 +813,7 @@ void Grid::unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const
   if (it == nIters - 1) return;
 
   // Creating new task for the next iteration
-  auto newTask = new Task("Unpack", lx, ly, lz, it + 1, unpackFc);
+  auto newTask = new Task("Unpack", lx, ly, lz, it + 1, unpackFc.get());
 
   // Adding compute dependency for the next iteration
   newTask->addDependency(Task::encodeTaskName("Receive", lx, ly, lz, it + 1));
@@ -889,7 +889,7 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
   if (it == nIters - 1) return;
 
   // Creating new task for the next iteration
-  auto newTask = new Task("Pack", lx, ly, lz, it + 1, packFc);
+  auto newTask = new Task("Pack", lx, ly, lz, it + 1, packFc.get());
 
   // Adding compute dependency for the next iteration
   newTask->addDependency(Task::encodeTaskName("Compute", lx, ly, lz, it + 1));
@@ -917,7 +917,7 @@ void Grid::send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
   if (it == nIters - 1) return;
 
   // Creating new task for the next iteration
-  auto newTask = new Task("Send", lx, ly, lz, it + 1, sendFc);
+  auto newTask = new Task("Send", lx, ly, lz, it + 1, sendFc.get());
 
   // Adding compute dependency for the next iteration
   newTask->addDependency(encodeTaskName("Pack", lx, ly, lz, it + 1));

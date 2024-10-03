@@ -3,7 +3,6 @@
 #include <string>
 #include <memory>
 #include <taskr/taskr.hpp>
-#include <hicr/core/L0/executionUnit.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/core/L1/topologyManager.hpp>
 #include <hicr/frontends/channel/fixedSize/spsc/consumer.hpp>
@@ -120,13 +119,13 @@ class Grid
   std::atomic<double>                                                _residual;
 
   // Execution unit definitions
-  std::shared_ptr<HiCR::L0::ExecutionUnit> resetFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> computeFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> receiveFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> unpackFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> packFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> sendFc;
-  std::shared_ptr<HiCR::L0::ExecutionUnit> localResidualFc;
+  std::unique_ptr<taskr::Function> resetFc;
+  std::unique_ptr<taskr::Function> computeFc;
+  std::unique_ptr<taskr::Function> receiveFc;
+  std::unique_ptr<taskr::Function> unpackFc;
+  std::unique_ptr<taskr::Function> packFc;
+  std::unique_ptr<taskr::Function> sendFc;
+  std::unique_ptr<taskr::Function> localResidualFc;
 
   Grid(const int                             processId,
        const size_t                          N,

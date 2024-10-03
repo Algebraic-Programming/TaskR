@@ -3,7 +3,6 @@
 #include <thread>
 #include <chrono>
 #include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/runtime.hpp>
 
 using namespace std::chrono_literals;
@@ -21,7 +20,7 @@ void conditionVariable(taskr::Runtime &taskr)
   HiCR::tasking::ConditionVariable cv;
 
   // Creating task functions
-  auto thread1Fc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
+  auto thread1Fc = taskr::Function([&](taskr::Task *task) {
     // Using lock to update the value
     mutex.lock();
     printf("Thread 1: I go first and set value to 1\n");
@@ -38,7 +37,7 @@ void conditionVariable(taskr::Runtime &taskr)
     printf("Thread 1: The condition (value == 2) is satisfied now\n");
   });
 
-  auto thread2Fc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
+  auto thread2Fc = taskr::Function([&](taskr::Task *task) {
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
     cv.wait(mutex, [&]() { return value == 1; });
@@ -55,8 +54,8 @@ void conditionVariable(taskr::Runtime &taskr)
     cv.notifyOne();
   });
 
-  taskr::Task task1(0, thread1Fc);
-  taskr::Task task2(1, thread2Fc);
+  taskr::Task task1(0, &thread1Fc);
+  taskr::Task task2(1, &thread2Fc);
 
   taskr.addTask(&task1);
   taskr.addTask(&task2);

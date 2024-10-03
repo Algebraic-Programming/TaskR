@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <sched.h>
 #include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 void workFc()
@@ -49,14 +48,14 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
-  auto workTaskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { workFc(); });
+  auto workTaskfc = taskr::Function([](taskr::Task *task) { workFc(); });
 
   // Initializing taskr
   taskr.initialize();
 
   // Run only on even worker ids
   for (size_t i = 0; i < workerCount; i++)
-    if (i % 2 == 0) taskr.addTask(new taskr::Task(i, workTaskfc, i));
+    if (i % 2 == 0) taskr.addTask(new taskr::Task(i, &workTaskfc, i));
 
   // Running taskr for the current repetition
   taskr.run();

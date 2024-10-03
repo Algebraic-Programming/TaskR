@@ -1,5 +1,4 @@
 #include <hwloc.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include "jobs.hpp"
 
@@ -23,21 +22,15 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
   // Create taskr runtime
-  taskr::Runtime taskr(&computeManager);
+  taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
-  // Assigning processing Re to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
-
   // Adding multiple jobs to TaskR
-  job1(&computeManager, taskr);
-  job2(&computeManager, taskr);
+  job1(taskr);
+  job2(taskr);
 
   // Initializing taskR
   taskr.initialize();

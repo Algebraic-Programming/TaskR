@@ -1,5 +1,4 @@
 #include <hwloc.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include "conditionVariable.hpp"
 
@@ -27,10 +26,7 @@ int main(int argc, char **argv)
   HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
 
   // Instantiating TaskR
-  taskr::Runtime taskr(&computeManager);
-
-  // Assigning processing resource to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
+  taskr::Runtime taskr(computeResources);
 
   // Running ABCtasks example
   conditionVariable(taskr);

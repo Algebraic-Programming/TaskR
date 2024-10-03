@@ -17,12 +17,15 @@
 #include <memory>
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
+#include <hicr/core/L0/device.hpp>
+#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
+#include "taskImpl.hpp"
 #include "worker.hpp"
 
 namespace taskr
@@ -61,11 +64,11 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    * 
-   * @param[in] computeManager The compute manager used to run workers
+   * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(HiCR::L1::ComputeManager *computeManager, nlohmann::json config = nlohmann::json())
-    : _computeManager(computeManager)
+  Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
+    : _computeResources(computeResources)
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -104,7 +107,7 @@ class Runtime
    * 
    * @return A pointer to the compute manager
    */
-  HiCR::L1::ComputeManager *getComputeManager() const { return _computeManager; }
+  HiCR::L1::ComputeManager *getComputeManager() { return &_computeManager; }
 
   ///////////// Local tasking API
 
@@ -115,13 +118,6 @@ class Runtime
    * \param[in] fc The callback function to call when the event is triggered
    */
   __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task *> fc) { _taskrCallbackMap.setCallback(event, fc); }
-
-  /**
-   * This function adds a processing unit to be used by TaskR in the execution of tasks
-   *
-   * \param[in] pu The processing unit to add
-   */
-  __INLINE__ void addProcessingUnit(std::unique_ptr<HiCR::L0::ProcessingUnit> pu) { _processingUnits.push_back(std::move(pu)); }
 
   /**
    * Adds a task to the TaskR runtime for future execution. This can be called at any point, before or during the execution of TaskR.
@@ -136,7 +132,7 @@ class Runtime
     // Making sure the task has its callback map correctly assigned
     task->setCallbackMap(&_hicrCallbackMap);
 
-    // Add task to the ready queue
+    // Add task to the common waiting queue
     resumeTask(task);
   }
 
@@ -161,24 +157,24 @@ class Runtime
     if (_state != state_t::uninitialized) HICR_THROW_LOGIC("Trying to initialize TaskR, but it is currently initialized");
 
     // Checking if we have at least one processing unit
-    if (_processingUnits.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
+    if (_computeResources.empty()) HICR_THROW_LOGIC("Trying to initialize TaskR with no processing units assigned to it");
 
     // Checking if we have enough processing units
-    if (_serviceWorkerCount >= _processingUnits.size())
-      HICR_THROW_LOGIC("Trying to create equal or more service worker counts (%lu) than processing units (%lu) provided", _serviceWorkerCount, _processingUnits.size());
+    if (_serviceWorkerCount >= _computeResources.size())
+      HICR_THROW_LOGIC("Trying to create equal or more service worker counts (%lu) than processing units (%lu) provided", _serviceWorkerCount, _computeResources.size());
 
     // Initializing HiCR tasking
     HiCR::tasking::initialize();
 
     // Creating service workers, as specified by the configuration
     size_t serviceWorkerId = 0;
-    for (size_t processingUnitId = 0; processingUnitId < _serviceWorkerCount; processingUnitId++)
+    for (size_t computeResourceId = 0; computeResourceId < _serviceWorkerCount; computeResourceId++)
     {
       // Creating new service worker
-      auto serviceWorker = new taskr::Worker(_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
+      auto serviceWorker = new taskr::Worker(&_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
 
       // Assigning resource to the thread
-      serviceWorker->addProcessingUnit(std::move(_processingUnits[processingUnitId]));
+      serviceWorker->addProcessingUnit(_computeManager.createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding worker to the service worker set
       _serviceWorkers.push_back(serviceWorker);
@@ -189,10 +185,10 @@ class Runtime
 
     // Creating one task worker per remaining processung unit in the list after creating the service workers
     size_t taskWorkerId = 0;
-    for (size_t processingUnitId = _serviceWorkerCount; processingUnitId < _processingUnits.size(); processingUnitId++)
+    for (size_t computeResourceId = _serviceWorkerCount; computeResourceId < _computeResources.size(); computeResourceId++)
     {
       // Creating new task worker
-      auto taskWorker = new taskr::Worker(_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
+      auto taskWorker = new taskr::Worker(&_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
 
       // Setting resume check function
       taskWorker->setCheckResumeFunction([this](taskr::Worker *worker) { return checkResumeWorker(worker); });
@@ -201,7 +197,7 @@ class Runtime
       taskWorker->setSuspendInterval(_taskWorkerSuspendIntervalTimeMs);
 
       // Assigning resource to the thread
-      taskWorker->addProcessingUnit(std::move(_processingUnits[processingUnitId]));
+      taskWorker->addProcessingUnit(_computeManager.createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding task worker to the task worker vector
       _taskWorkers.push_back(taskWorker);
@@ -541,7 +537,7 @@ class Runtime
   /**
    * Pointer to the compute manager to use
    */
-  HiCR::L1::ComputeManager *const _computeManager;
+  HiCR::backend::host::pthreads::L1::ComputeManager _computeManager;
 
   /**
    * Type definition for the task's callback map
@@ -596,9 +592,9 @@ class Runtime
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
 
   /**
-   * The processing units assigned to taskr to run workers from
+   * The compute resources to use to run workers with
    */
-  std::vector<std::unique_ptr<HiCR::L0::ProcessingUnit>> _processingUnits;
+  HiCR::L0::Device::computeResourceList_t _computeResources;
 
   /**
    * This parallel set stores the id of all finished objects

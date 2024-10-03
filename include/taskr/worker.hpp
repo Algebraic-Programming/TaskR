@@ -18,6 +18,7 @@
 #include <hicr/frontends/tasking/worker.hpp>
 #include "common.hpp"
 #include "task.hpp"
+#include "taskImpl.hpp"
 
 namespace taskr
 {

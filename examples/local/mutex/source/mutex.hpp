@@ -1,7 +1,5 @@
 #include <cstdio>
 #include <cassert>
-#include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 #define _CONCURRENT_TASKS 1000ul
@@ -18,14 +16,14 @@ void mutex(taskr::Runtime *taskr)
   HiCR::tasking::Mutex m;
 
   // Creating task function
-  auto taskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() {
+  auto taskfc = taskr::Function([&](taskr::Task *task) {
     m.lock();
     value++;
     m.unlock();
   });
 
   // Running concurrent tasks
-  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr->addTask(new taskr::Task(i, taskfc));
+  for (size_t i = 0; i < _CONCURRENT_TASKS; i++) taskr->addTask(new taskr::Task(i, &taskfc));
 
   // Initializing TaskR
   taskr->initialize();
