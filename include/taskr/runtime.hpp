@@ -235,7 +235,7 @@ class Runtime
     _state = state_t::running;
   }
 
-    /**
+   /**
    * Awaits for the finalization of the current execution of the TaskR runtime.
    */
   __INLINE__ void await()
@@ -251,7 +251,7 @@ class Runtime
     _state = state_t::initialized;
   }
 
-    /**
+   /**
    * Finalizes the TaskR runtime
    * Releases all workers and frees up their memory
    */
