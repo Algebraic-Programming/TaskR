@@ -43,7 +43,7 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    * The task is considered finished when the function runs to completion.
    *
    * @param[in] label The unique label to assign to this task
-   * @param[in] function Specifies the TaskR-formatted function to use
+   * @param[in] fc Specifies the TaskR-formatted function to use
    * @param[in] workerAffinity The worker affinity to set from the start. Default -1 indicates no affinity.
    */
   Task(const label_t label, Function* fc, const workerId_t workerAffinity = -1);

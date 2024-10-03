@@ -64,7 +64,7 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    * 
-   * @param[in] computeManager The compute manager used to run workers
+   * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
   Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json()) :

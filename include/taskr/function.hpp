@@ -47,6 +47,8 @@ class Function
 
   /**
    * Returns the internal execution unit
+   * 
+   * @return The function's internal execution unit
    */
   __INLINE__ std::shared_ptr<HiCR::L0::ExecutionUnit> getExecutionUnit() const { return _executionUnit; }
 

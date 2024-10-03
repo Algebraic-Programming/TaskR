@@ -21,10 +21,6 @@ namespace taskr
   /**
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
-   *
-   * @param[in] label The unique label to assign to this task
-   * @param[in] executionUnit Specifies the function/kernel to execute.
-   * @param[in] workerAffinity The worker affinity to set from the start. Default -1 indicates no affinity.
    */
   __INLINE__ Task::Task(const label_t label, Function* fc, const workerId_t workerAffinity)
     : taskr::Object(label),
