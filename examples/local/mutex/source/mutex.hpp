@@ -16,7 +16,7 @@ void mutex(taskr::Runtime *taskr)
   HiCR::tasking::Mutex m;
 
   // Creating task function
-  auto taskfc = taskr::Function([&](taskr::Task* task) {
+  auto taskfc = taskr::Function([&](taskr::Task *task) {
     m.lock();
     value++;
     m.unlock();

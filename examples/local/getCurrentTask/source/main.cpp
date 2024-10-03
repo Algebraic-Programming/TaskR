@@ -28,7 +28,7 @@ int main(int argc, char **argv)
   taskr::Runtime taskr(computeResources);
 
   // Creating task  execution unit
-  auto taskFc = taskr::Function([&](taskr::Task* task) {
+  auto taskFc = taskr::Function([&](taskr::Task *task) {
     // Printing associated task label
     const auto myTask = taskr::getCurrentTask();
     printf("Current Task Pointer: %p and Label: %lu.\n", myTask, myTask->getLabel());

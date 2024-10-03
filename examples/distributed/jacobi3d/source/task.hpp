@@ -7,7 +7,7 @@ class Task final : public taskr::Task
 {
   public:
 
-  Task(std::string taskType, ssize_t i, ssize_t j, ssize_t k, ssize_t iteration, taskr::Function* fc)
+  Task(std::string taskType, ssize_t i, ssize_t j, ssize_t k, ssize_t iteration, taskr::Function *fc)
     : taskr::Task(encodeTaskName(taskType, i, j, k, iteration), fc),
       i(i),
       j(j),

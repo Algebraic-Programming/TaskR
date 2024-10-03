@@ -11,9 +11,9 @@ void abcTasks(taskr::Runtime &taskr)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskAfc = taskr::Function([](taskr::Task* task) { printf("Task A %ld\n", task->getLabel()); });
-  auto taskBfc = taskr::Function([](taskr::Task* task) { printf("Task B %ld\n", task->getLabel()); });
-  auto taskCfc = taskr::Function([](taskr::Task* task) { printf("Task C %ld\n", task->getLabel()); });
+  auto taskAfc = taskr::Function([](taskr::Task *task) { printf("Task A %ld\n", task->getLabel()); });
+  auto taskBfc = taskr::Function([](taskr::Task *task) { printf("Task B %ld\n", task->getLabel()); });
+  auto taskCfc = taskr::Function([](taskr::Task *task) { printf("Task C %ld\n", task->getLabel()); });
 
   // Initializing taskr
   taskr.initialize();

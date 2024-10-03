@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     HiCR::deployer::Instance::message_t recvMsg;
 
     // Creating execution units
-    auto rootSendFunction = taskr::Function([&](taskr::Task* task) {
+    auto rootSendFunction = taskr::Function([&](taskr::Task *task) {
       // Creating message to send
       std::string sendMsg = "Hello, Non-Root Instance";
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         if (instance->isRootInstance() == false) deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);
     });
 
-    auto rootRecvFunction = taskr::Function([&](taskr::Task* task) {
+    auto rootRecvFunction = taskr::Function([&](taskr::Task *task) {
       // Receiving message from others
       for (size_t i = 0; i < instanceManager->getInstances().size() - 1; i++)
       {
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
       }
     });
 
-    auto workerRecvFunction = taskr::Function([&](taskr::Task* task) {
+    auto workerRecvFunction = taskr::Function([&](taskr::Task *task) {
       // Add pending operation
       taskr::getCurrentTask()->addPendingOperation([&]() {
         recvMsg = deployer.getCurrentInstance()->recvMessageAsync();
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
       printf("Worker Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char *)recvMsg.data);
     });
 
-    auto workerSendFunction = taskr::Function([&](taskr::Task* task) {
+    auto workerSendFunction = taskr::Function([&](taskr::Task *task) {
       // Creating message to send
       std::string sendMsg = "Hello, Root Instance";
 

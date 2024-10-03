@@ -20,7 +20,7 @@ void conditionVariable(taskr::Runtime &taskr)
   HiCR::tasking::ConditionVariable cv;
 
   // Creating task functions
-  auto thread1Fc = taskr::Function([&](taskr::Task* task) {
+  auto thread1Fc = taskr::Function([&](taskr::Task *task) {
     // Using lock to update the value
     mutex.lock();
     printf("Thread 1: I go first and set value to 1\n");
@@ -37,7 +37,7 @@ void conditionVariable(taskr::Runtime &taskr)
     printf("Thread 1: The condition (value == 2) is satisfied now\n");
   });
 
-  auto thread2Fc = taskr::Function([&](taskr::Task* task) {
+  auto thread2Fc = taskr::Function([&](taskr::Task *task) {
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
     cv.wait(mutex, [&]() { return value == 1; });

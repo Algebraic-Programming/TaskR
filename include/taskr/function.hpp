@@ -22,14 +22,14 @@ namespace taskr
 /**
  * The shape of a function accepted by TaskR
  */
-typedef std::function<void(taskr::Task*)> function_t;
+typedef std::function<void(taskr::Task *)> function_t;
 
 /**
  * This class defines the basic execution unit managed by TaskR.
  *
  * It represents a function to execute with a pointer to the task executing it as argument
  */
-class Function 
+class Function
 {
   public:
 
@@ -42,8 +42,8 @@ class Function
    * @param[in] fc Specifies the function to execute.
    */
   __INLINE__ Function(const function_t fc)
-    : _executionUnit(HiCR::backend::host::L1::ComputeManager::createExecutionUnit([fc](void* task) { fc(static_cast<taskr::Task*>(static_cast<HiCR::tasking::Task*>(task))); }))
-   { }
+    : _executionUnit(HiCR::backend::host::L1::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
+  {}
 
   /**
    * Returns the internal execution unit

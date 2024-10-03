@@ -55,12 +55,12 @@ int main(int argc, char **argv)
       // If the core affinity is included in the list, Add it to the list
       if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
     }
-    
+
   // Creating taskr
   taskr::Runtime taskr(selectedComputeResources);
 
   // Creating task function
-  auto taskFunction = taskr::Function([&iterations](taskr::Task* task) { work(iterations); });
+  auto taskFunction = taskr::Function([&iterations](taskr::Task *task) { work(iterations); });
 
   // Adding multiple compute tasks
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());

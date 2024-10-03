@@ -67,8 +67,8 @@ class Runtime
    * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json()) :
-  _computeResources(computeResources)
+  Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
+    : _computeResources(computeResources)
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -232,7 +232,7 @@ class Runtime
     _state = state_t::running;
   }
 
-   /**
+  /**
    * Awaits for the finalization of the current execution of the TaskR runtime.
    */
   __INLINE__ void await()
@@ -248,7 +248,7 @@ class Runtime
     _state = state_t::initialized;
   }
 
-   /**
+  /**
    * Finalizes the TaskR runtime
    * Releases all workers and frees up their memory
    */

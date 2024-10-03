@@ -67,10 +67,7 @@ __INLINE__ void syrk(double *A, double *B, const uint32_t blockSize, const uint3
   cblas_dsyrk(CblasRowMajor, CblasUpper, CblasTrans, blockSize, blockSize, -1.0, A, matrixDimensionSize, 1.0, B, matrixDimensionSize);
 }
 
-void cholesky(taskr::Runtime                                                       &taskr,
-              std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix,
-              const uint32_t                                                        blocks,
-              const uint32_t                                                        blockSize)
+void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix, const uint32_t blocks, const uint32_t blockSize)
 {
   double *pointer0;
   double *pointer1;
@@ -79,7 +76,7 @@ void cholesky(taskr::Runtime                                                    
   {
     // Diagonal Block factorization
     pointer0                = (double *)blockMatrix[i][i]->getPointer();
-    auto potrfExecutionUnit = new taskr::Function([=](taskr::Task* task) { potrf(pointer0, blockSize, blockSize); });
+    auto potrfExecutionUnit = new taskr::Function([=](taskr::Task *task) { potrf(pointer0, blockSize, blockSize); });
     auto potrfTask          = new taskr::Task(_taskCounter->fetch_add(1), potrfExecutionUnit);
     addTaskDependency(potrfTask, i, i);
     updateDependencyGrid(potrfTask, i, i);
@@ -90,7 +87,7 @@ void cholesky(taskr::Runtime                                                    
     {
       pointer0               = (double *)blockMatrix[i][i]->getPointer();
       pointer1               = (double *)blockMatrix[i][j]->getPointer();
-      auto trsmExecutionUnit = new taskr::Function([=](taskr::Task* task) { trsm(pointer0, pointer1, blockSize, blockSize); });
+      auto trsmExecutionUnit = new taskr::Function([=](taskr::Task *task) { trsm(pointer0, pointer1, blockSize, blockSize); });
       auto trsmTask          = new taskr::Task(_taskCounter->fetch_add(1), trsmExecutionUnit);
       addTaskDependency(trsmTask, i, i);
       addTaskDependency(trsmTask, i, j);
@@ -106,7 +103,7 @@ void cholesky(taskr::Runtime                                                    
         pointer0               = (double *)blockMatrix[i][k]->getPointer();
         pointer1               = (double *)blockMatrix[i][j]->getPointer();
         pointer2               = (double *)blockMatrix[k][j]->getPointer();
-        auto gemmExecutionUnit = new taskr::Function([=](taskr::Task* task) { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
+        auto gemmExecutionUnit = new taskr::Function([=](taskr::Task *task) { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
         auto gemmTask          = new taskr::Task(_taskCounter->fetch_add(1), gemmExecutionUnit);
         addTaskDependency(gemmTask, i, j);
         addTaskDependency(gemmTask, i, k);
@@ -117,7 +114,7 @@ void cholesky(taskr::Runtime                                                    
 
       pointer0               = (double *)blockMatrix[i][j]->getPointer();
       pointer1               = (double *)blockMatrix[j][j]->getPointer();
-      auto syrkExecutionUnit = new taskr::Function([=](taskr::Task* task) { syrk(pointer0, pointer1, blockSize, blockSize); });
+      auto syrkExecutionUnit = new taskr::Function([=](taskr::Task *task) { syrk(pointer0, pointer1, blockSize, blockSize); });
       auto syrkTask          = new taskr::Task(_taskCounter->fetch_add(1), syrkExecutionUnit);
       addTaskDependency(syrkTask, i, j);
       addTaskDependency(syrkTask, j, j);
@@ -156,7 +153,7 @@ void choleskyDriver(const uint32_t                                           mat
   auto taskCounter = std::atomic<uint64_t>(0);
   _taskCounter     = &taskCounter;
   _taskr           = &taskr;
-  
+
   // Initialize dependency grid (blocks * blocks)
   _dependencyGrid =
     std::vector<std::vector<std::unordered_set<taskr::label_t>>>(blocks, std::vector<std::unordered_set<taskr::label_t>>(blocks, std::unordered_set<taskr::label_t>()));

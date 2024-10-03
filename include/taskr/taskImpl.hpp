@@ -18,15 +18,15 @@
 namespace taskr
 {
 
-  /**
+/**
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    */
-  __INLINE__ Task::Task(const label_t label, Function* fc, const workerId_t workerAffinity)
-    : taskr::Object(label),
-      HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
-      _workerAffinity(workerAffinity)
-  {}
+__INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t workerAffinity)
+  : taskr::Object(label),
+    HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
+    _workerAffinity(workerAffinity)
+{}
 
 /**
  * Returns the task/worker affinity
@@ -41,6 +41,5 @@ __INLINE__ workerId_t Task::getWorkerAffinity() const { return _workerAffinity; 
  * @param[in] workerAffinity The worker affinity to set
  */
 __INLINE__ void Task::setWorkerAffinity(const workerId_t workerAffinity) { _workerAffinity = workerAffinity; }
-
 
 } // namespace taskr

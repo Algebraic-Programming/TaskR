@@ -13,8 +13,8 @@ uint64_t fibonacci(const uint64_t x)
 
   uint64_t result1 = 0;
   uint64_t result2 = 0;
-  auto     fibFc1  = taskr::Function([&](taskr::Task* task) { result1 = fibonacci(x - 1); });
-  auto     fibFc2  = taskr::Function([&](taskr::Task* task) { result2 = fibonacci(x - 2); });
+  auto     fibFc1  = taskr::Function([&](taskr::Task *task) { result1 = fibonacci(x - 1); });
+  auto     fibFc2  = taskr::Function([&](taskr::Task *task) { result2 = fibonacci(x - 2); });
 
   // Creating two new tasks
   taskr::Task subTask1(_taskCounter++, &fibFc1);
@@ -50,7 +50,7 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   uint64_t result = 0;
 
   // Creating task functions
-  auto initialFc = taskr::Function([&](taskr::Task* task) { result = fibonacci(initialValue); });
+  auto initialFc = taskr::Function([&](taskr::Task *task) { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
   taskr::Task initialTask(_taskCounter++, &initialFc);

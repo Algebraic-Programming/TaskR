@@ -48,7 +48,7 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
-  auto workTaskfc = taskr::Function([](taskr::Task* task) { workFc(); });
+  auto workTaskfc = taskr::Function([](taskr::Task *task) { workFc(); });
 
   // Initializing taskr
   taskr.initialize();
