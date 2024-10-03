@@ -4,7 +4,6 @@
 #include <hicr/core/L1/instanceManager.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/deployer/deployer.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
@@ -43,23 +42,13 @@ int main(int argc, char **argv)
   auto computeResources = d->getComputeResourceList();
 
   //// Instantiating Taskr
-  taskr::Runtime taskr(&computeManager);
+  taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-
-  // Create processing units from the detected compute resource list and giving them to taskr
-  for (auto &resource : computeResources)
-  {
-    // Creating a processing unit out of the computational resource
-    auto processingUnit = computeManager.createProcessingUnit(resource);
-
-    // Assigning resource to the taskr
-    taskr.addProcessingUnit(std::move(processingUnit));
-  }
 
   //// Instantiating distributed execution machinery
 
@@ -106,7 +95,7 @@ int main(int argc, char **argv)
     HiCR::deployer::Instance::message_t recvMsg;
 
     // Creating execution units
-    auto rootSendExecutionUnit = computeManager.createExecutionUnit([&]() {
+    auto rootSendFunction = taskr::Function([&](taskr::Task* task) {
       // Creating message to send
       std::string sendMsg = "Hello, Non-Root Instance";
 
@@ -115,7 +104,7 @@ int main(int argc, char **argv)
         if (instance->isRootInstance() == false) deployer.getCurrentInstance()->sendMessage(instance->getId(), sendMsg.data(), sendMsg.size() + 1);
     });
 
-    auto rootRecvExecutionUnit = computeManager.createExecutionUnit([&]() {
+    auto rootRecvFunction = taskr::Function([&](taskr::Task* task) {
       // Receiving message from others
       for (size_t i = 0; i < instanceManager->getInstances().size() - 1; i++)
       {
@@ -133,7 +122,7 @@ int main(int argc, char **argv)
       }
     });
 
-    auto workerRecvExecutionUnit = computeManager.createExecutionUnit([&]() {
+    auto workerRecvFunction = taskr::Function([&](taskr::Task* task) {
       // Add pending operation
       taskr::getCurrentTask()->addPendingOperation([&]() {
         recvMsg = deployer.getCurrentInstance()->recvMessageAsync();
@@ -147,7 +136,7 @@ int main(int argc, char **argv)
       printf("Worker Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char *)recvMsg.data);
     });
 
-    auto workerSendExecutionUnit = computeManager.createExecutionUnit([&]() {
+    auto workerSendFunction = taskr::Function([&](taskr::Task* task) {
       // Creating message to send
       std::string sendMsg = "Hello, Root Instance";
 
@@ -159,8 +148,8 @@ int main(int argc, char **argv)
     printf("Instance %03lu / %03lu %s has started.\n", myInstanceId, instanceCount, myInstanceId == rootInstanceId ? "(Root)" : "");
 
     // Declaring tasks
-    auto sendTask = new taskr::Task(0, myInstanceId == rootInstanceId ? rootSendExecutionUnit : workerSendExecutionUnit);
-    auto recvTask = new taskr::Task(1, myInstanceId == rootInstanceId ? rootRecvExecutionUnit : workerRecvExecutionUnit);
+    auto sendTask = new taskr::Task(0, myInstanceId == rootInstanceId ? &rootSendFunction : &workerSendFunction);
+    auto recvTask = new taskr::Task(1, myInstanceId == rootInstanceId ? &rootRecvFunction : &workerRecvFunction);
 
     // Workers: we don't send pong until receiving the root's ping
     if (myInstanceId != rootInstanceId) sendTask->addDependency(recvTask->getLabel());

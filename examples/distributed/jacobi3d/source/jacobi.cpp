@@ -5,7 +5,6 @@
 #include <hicr/core/L1/instanceManager.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/deployer/deployer.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
@@ -69,9 +68,6 @@ int main(int argc, char *argv[])
   // Reserving memory for hwloc
   hwloc_topology_init(&topology);
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
   // Initializing HWLoc-based host (CPU) topology manager
   HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
 
@@ -93,23 +89,13 @@ int main(int argc, char *argv[])
   printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Creating taskr object
-  taskr::Runtime taskr(&computeManager);
+  taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-
-  // Create processing units from the detected compute resource list and giving them to taskr
-  for (auto &resource : computeResources)
-  {
-    // Creating a processing unit out of the computational resource
-    auto processingUnit = computeManager.createProcessingUnit(resource);
-
-    // Assigning resource to the taskr
-    taskr.addProcessingUnit(std::move(processingUnit));
-  }
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
@@ -147,47 +133,14 @@ int main(int argc, char *argv[])
   bool success = g->initialize();
   if (success == false) instanceManager->abort(-1);
 
-  // Creating reset function
-  g->resetFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->reset(currentTask->i, currentTask->j, currentTask->k);
-  });
-
-  // Creating compute function
-  g->computeFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->compute(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-
-  // Creating receive function
-  g->receiveFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->receive(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-
-  // Creating unpack function
-  g->unpackFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->unpack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-
-  // Creating pack function
-  g->packFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->pack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-
-  // Creating send function
-  g->sendFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->send(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-
-  // Creating residual calculation function
-  g->localResidualFc = computeManager.createExecutionUnit([&g]() {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->calculateLocalResidual(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
+  // Creating grid processing functions
+  g->resetFc         = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->reset(currentTask->i, currentTask->j, currentTask->k); });
+  g->computeFc       = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->compute(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration); });
+  g->receiveFc       = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->receive(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration); });
+  g->unpackFc        = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->unpack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);  });
+  g->packFc          = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->pack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration); });
+  g->sendFc          = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->send(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration); });
+  g->localResidualFc = std::make_unique<taskr::Function>([&g](taskr::Task* task) { auto currentTask = (Task *)taskr::getCurrentTask(); g->calculateLocalResidual(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration); });
 
   // Defining execution unit to run by all the instances
   instanceManager->addRPCTarget("processGrid", [&]() {
@@ -198,7 +151,7 @@ int main(int argc, char *argv[])
       for (ssize_t j = 0; j < lt.y; j++)
         for (ssize_t k = 0; k < lt.z; k++)
         {
-          auto resetTask = new Task("Reset", i, j, k, 0, g->resetFc);
+          auto resetTask = new Task("Reset", i, j, k, 0, g->resetFc.get());
           taskr.addTask(resetTask);
         }
 
@@ -217,20 +170,20 @@ int main(int argc, char *argv[])
         for (ssize_t j = 0; j < lt.y; j++)
           for (ssize_t k = 0; k < lt.z; k++)
           {
-            taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc));
+            taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc.get()));
 
-            auto packTask = new Task("Pack", i, j, k, 0, g->packFc);
+            auto packTask = new Task("Pack", i, j, k, 0, g->packFc.get());
             packTask->addDependency(Task::encodeTaskName("Compute", i, j, k, 0));
             taskr.addTask(packTask);
 
-            auto sendTask = new Task("Send", i, j, k, 0, g->sendFc);
+            auto sendTask = new Task("Send", i, j, k, 0, g->sendFc.get());
             sendTask->addDependency(Task::encodeTaskName("Pack", i, j, k, 0));
             taskr.addTask(sendTask);
 
-            auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc);
+            auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc.get());
             taskr.addTask(recvTask);
 
-            auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc);
+            auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc.get());
             unpackTask->addDependency(Grid::encodeTaskName("Receive", i, j, k, 0));
             taskr.addTask(unpackTask);
           }
@@ -254,7 +207,7 @@ int main(int argc, char *argv[])
       for (ssize_t j = 0; j < lt.y; j++)
         for (ssize_t k = 0; k < lt.z; k++)
         {
-          auto residualTask = new Task("Residual", i, j, k, nIters, g->localResidualFc);
+          auto residualTask = new Task("Residual", i, j, k, nIters, g->localResidualFc.get());
           taskr.addTask(residualTask);
         }
 

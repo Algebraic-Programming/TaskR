@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include <taskr/taskr.hpp>
 
@@ -12,9 +11,6 @@ int main(int argc, char **argv)
 
   // Reserving memory for hwloc
   hwloc_topology_init(&topology);
-
-  // Initializing Pthread-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
 
   // Initializing HWLoc-based host (CPU) topology manager
   HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
@@ -29,27 +25,17 @@ int main(int argc, char **argv)
   auto computeResources = d->getComputeResourceList();
 
   // Instantiating taskr
-  taskr::Runtime taskr(&computeManager);
-
-  // Create processing units from the detected compute resource list and giving them to taskr
-  for (auto resource : computeResources)
-  {
-    // Creating a processing unit out of the computational resource
-    auto processingUnit = computeManager.createProcessingUnit(resource);
-
-    // Assigning resource to the taskr
-    taskr.addProcessingUnit(std::move(processingUnit));
-  }
+  taskr::Runtime taskr(computeResources);
 
   // Creating task  execution unit
-  auto taskExecutionUnit = computeManager.createExecutionUnit([]() {
+  auto taskFc = taskr::Function([&](taskr::Task* task) {
     // Printing associated task label
     const auto myTask = taskr::getCurrentTask();
     printf("Current Task Pointer: %p and Label: %lu.\n", myTask, myTask->getLabel());
   });
 
   // Creating a single task to print the internal references
-  taskr::Task task(TASK_LABEL, taskExecutionUnit);
+  taskr::Task task(TASK_LABEL, &taskFc);
 
   // Adding task to TaskR
   taskr.addTask(&task);

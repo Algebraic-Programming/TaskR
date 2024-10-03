@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 #define REPETITIONS 5
@@ -12,9 +11,9 @@ void abcTasks(taskr::Runtime &taskr)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskAfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task A %lu\n", (taskr::getCurrentTask())->getLabel()); });
-  auto taskBfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task B %lu\n", (taskr::getCurrentTask())->getLabel()); });
-  auto taskCfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { printf("Task C %lu\n", (taskr::getCurrentTask())->getLabel()); });
+  auto taskAfc = taskr::Function([](taskr::Task* task) { printf("Task A %ld\n", task->getLabel()); });
+  auto taskBfc = taskr::Function([](taskr::Task* task) { printf("Task B %ld\n", task->getLabel()); });
+  auto taskCfc = taskr::Function([](taskr::Task* task) { printf("Task C %ld\n", task->getLabel()); });
 
   // Initializing taskr
   taskr.initialize();
@@ -28,9 +27,9 @@ void abcTasks(taskr::Runtime &taskr)
     // Each run consists of several iterations of ABC
     for (size_t i = 0; i < ITERATIONS; i++)
     {
-      auto taskB = new taskr::Task(repetitionLabel + i * 3 + 1, taskBfc);
-      auto taskA = new taskr::Task(repetitionLabel + i * 3 + 0, taskAfc);
-      auto taskC = new taskr::Task(repetitionLabel + i * 3 + 2, taskCfc);
+      auto taskB = new taskr::Task(repetitionLabel + i * 3 + 1, &taskBfc);
+      auto taskA = new taskr::Task(repetitionLabel + i * 3 + 0, &taskAfc);
+      auto taskC = new taskr::Task(repetitionLabel + i * 3 + 2, &taskCfc);
 
       // Creating dependencies
       if (i > 0) taskA->addDependency(repetitionLabel + i * 3 - 1);

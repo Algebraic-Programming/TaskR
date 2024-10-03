@@ -27,9 +27,6 @@ int main(int argc, char **argv)
   std::vector<HiCR::L0::Device::computeResourceList_t> computeResourceLists;
   for (auto d : t.getDevices()) computeResourceLists.push_back(d->getComputeResourceList());
 
-  // Creating taskr
-  taskr::Runtime taskr(&computeManager);
-
   // Getting work task count
   size_t workTaskCount = 100;
   size_t iterations    = 5000;
@@ -48,29 +45,26 @@ int main(int argc, char **argv)
   }
 
   // Create processing units from the detected compute resource list and giving them to taskr
+  HiCR::L0::Device::computeResourceList_t selectedComputeResources;
   for (auto computeResourceList : computeResourceLists)
     for (auto computeResource : computeResourceList)
     {
       // Interpreting compute resource as core
       auto core = dynamic_pointer_cast<HiCR::backend::host::L0::ComputeResource>(computeResource);
 
-      // If the core affinity is included in the list, create new processing unit
-      if (coreSubset.contains(core->getProcessorId()))
-      {
-        // Creating a processing unit out of the computational resource
-        auto processingUnit = computeManager.createProcessingUnit(computeResource);
-
-        // Assigning resource to the taskr
-        taskr.addProcessingUnit(std::move(processingUnit));
-      }
+      // If the core affinity is included in the list, Add it to the list
+      if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
     }
+    
+  // Creating taskr
+  taskr::Runtime taskr(selectedComputeResources);
 
-  // Creating task  execution unit
-  auto taskExecutionUnit = computeManager.createExecutionUnit([&iterations]() { work(iterations); });
+  // Creating task function
+  auto taskFunction = taskr::Function([&iterations](taskr::Task* task) { work(iterations); });
 
   // Adding multiple compute tasks
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());
-  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new taskr::Task(i, taskExecutionUnit));
+  for (size_t i = 0; i < workTaskCount; i++) taskr.addTask(new taskr::Task(i, &taskFunction));
 
   // Initializing taskR
   taskr.initialize();

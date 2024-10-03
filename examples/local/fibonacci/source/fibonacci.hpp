@@ -1,7 +1,5 @@
 #include <cstdio>
 #include <chrono>
-#include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 static taskr::Runtime       *_taskr;
@@ -15,12 +13,12 @@ uint64_t fibonacci(const uint64_t x)
 
   uint64_t result1 = 0;
   uint64_t result2 = 0;
-  auto     fibFc1  = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result1 = fibonacci(x - 1); });
-  auto     fibFc2  = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result2 = fibonacci(x - 2); });
+  auto     fibFc1  = taskr::Function([&](taskr::Task* task) { result1 = fibonacci(x - 1); });
+  auto     fibFc2  = taskr::Function([&](taskr::Task* task) { result2 = fibonacci(x - 2); });
 
   // Creating two new tasks
-  taskr::Task subTask1(_taskCounter++, fibFc1);
-  taskr::Task subTask2(_taskCounter++, fibFc2);
+  taskr::Task subTask1(_taskCounter++, &fibFc1);
+  taskr::Task subTask2(_taskCounter++, &fibFc2);
 
   // Getting the current task
   auto currentTask = taskr::getCurrentTask();
@@ -52,10 +50,10 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   uint64_t result = 0;
 
   // Creating task functions
-  auto initialFc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([&]() { result = fibonacci(initialValue); });
+  auto initialFc = taskr::Function([&](taskr::Task* task) { result = fibonacci(initialValue); });
 
   // Now creating tasks and their dependency graph
-  taskr::Task initialTask(_taskCounter++, initialFc);
+  taskr::Task initialTask(_taskCounter++, &initialFc);
   taskr.addTask(&initialTask);
 
   // Initializing taskR

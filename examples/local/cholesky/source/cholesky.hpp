@@ -5,7 +5,6 @@
 #include <hicr/backends/host/L1/computeManager.hpp>
 #include <hicr/core/L0/device.hpp>
 #include <hicr/core/L0/computeResource.hpp>
-#include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
 #include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
 #include <taskr/taskr.hpp>
 
@@ -19,7 +18,6 @@
 */
 extern std::vector<std::vector<std::unordered_set<taskr::label_t>>> _dependencyGrid;
 extern taskr::Runtime                                              *_taskr;
-extern HiCR::backend::host::L1::ComputeManager                     *_computeManager;
 extern std::atomic<uint64_t>                                       *_taskCounter;
 
 /**
@@ -70,7 +68,6 @@ __INLINE__ void syrk(double *A, double *B, const uint32_t blockSize, const uint3
 }
 
 void cholesky(taskr::Runtime                                                       &taskr,
-              HiCR::backend::host::L1::ComputeManager                              *_computeManager,
               std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix,
               const uint32_t                                                        blocks,
               const uint32_t                                                        blockSize)
@@ -82,7 +79,7 @@ void cholesky(taskr::Runtime                                                    
   {
     // Diagonal Block factorization
     pointer0                = (double *)blockMatrix[i][i]->getPointer();
-    auto potrfExecutionUnit = _computeManager->createExecutionUnit([=]() { potrf(pointer0, blockSize, blockSize); });
+    auto potrfExecutionUnit = new taskr::Function([=](taskr::Task* task) { potrf(pointer0, blockSize, blockSize); });
     auto potrfTask          = new taskr::Task(_taskCounter->fetch_add(1), potrfExecutionUnit);
     addTaskDependency(potrfTask, i, i);
     updateDependencyGrid(potrfTask, i, i);
@@ -93,7 +90,7 @@ void cholesky(taskr::Runtime                                                    
     {
       pointer0               = (double *)blockMatrix[i][i]->getPointer();
       pointer1               = (double *)blockMatrix[i][j]->getPointer();
-      auto trsmExecutionUnit = _computeManager->createExecutionUnit([=]() { trsm(pointer0, pointer1, blockSize, blockSize); });
+      auto trsmExecutionUnit = new taskr::Function([=](taskr::Task* task) { trsm(pointer0, pointer1, blockSize, blockSize); });
       auto trsmTask          = new taskr::Task(_taskCounter->fetch_add(1), trsmExecutionUnit);
       addTaskDependency(trsmTask, i, i);
       addTaskDependency(trsmTask, i, j);
@@ -109,7 +106,7 @@ void cholesky(taskr::Runtime                                                    
         pointer0               = (double *)blockMatrix[i][k]->getPointer();
         pointer1               = (double *)blockMatrix[i][j]->getPointer();
         pointer2               = (double *)blockMatrix[k][j]->getPointer();
-        auto gemmExecutionUnit = _computeManager->createExecutionUnit([=]() { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
+        auto gemmExecutionUnit = new taskr::Function([=](taskr::Task* task) { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
         auto gemmTask          = new taskr::Task(_taskCounter->fetch_add(1), gemmExecutionUnit);
         addTaskDependency(gemmTask, i, j);
         addTaskDependency(gemmTask, i, k);
@@ -120,7 +117,7 @@ void cholesky(taskr::Runtime                                                    
 
       pointer0               = (double *)blockMatrix[i][j]->getPointer();
       pointer1               = (double *)blockMatrix[j][j]->getPointer();
-      auto syrkExecutionUnit = _computeManager->createExecutionUnit([=]() { syrk(pointer0, pointer1, blockSize, blockSize); });
+      auto syrkExecutionUnit = new taskr::Function([=](taskr::Task* task) { syrk(pointer0, pointer1, blockSize, blockSize); });
       auto syrkTask          = new taskr::Task(_taskCounter->fetch_add(1), syrkExecutionUnit);
       addTaskDependency(syrkTask, i, j);
       addTaskDependency(syrkTask, j, j);
@@ -134,7 +131,6 @@ void choleskyDriver(const uint32_t                                           mat
                     const uint32_t                                           blocks,
                     const bool                                               readFromFile,
                     const bool                                               checkResult,
-                    HiCR::backend::host::L1::ComputeManager                 *computeManager,
                     HiCR::backend::host::hwloc::L1::MemoryManager           *memoryManager,
                     HiCR::backend::host::pthreads::L1::CommunicationManager *communicationManager,
                     const HiCR::L0::Device::computeResourceList_t           &computeResources,
@@ -142,13 +138,10 @@ void choleskyDriver(const uint32_t                                           mat
                     const std::string                                       &matrixPath)
 {
   // Instantiate taskr
-  taskr::Runtime taskr(computeManager);
+  taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
-
-  // Assigning processing resource to TaskR
-  for (const auto &computeResource : computeResources) { taskr.addProcessingUnit(computeManager->createProcessingUnit(computeResource)); }
 
   // Initalize TaskR
   taskr.initialize();
@@ -163,7 +156,7 @@ void choleskyDriver(const uint32_t                                           mat
   auto taskCounter = std::atomic<uint64_t>(0);
   _taskCounter     = &taskCounter;
   _taskr           = &taskr;
-  _computeManager  = computeManager;
+  
   // Initialize dependency grid (blocks * blocks)
   _dependencyGrid =
     std::vector<std::vector<std::unordered_set<taskr::label_t>>>(blocks, std::vector<std::unordered_set<taskr::label_t>>(blocks, std::unordered_set<taskr::label_t>()));
@@ -202,7 +195,7 @@ void choleskyDriver(const uint32_t                                           mat
   convertToBlockMatrix((double *)matrix->getPointer(), matrixDimension, blockSize, blockMatrix);
 
   // Create cholesky decomposition task graph
-  cholesky(taskr, computeManager, blockMatrix, blocks, blockSize);
+  cholesky(taskr, blockMatrix, blocks, blockSize);
 
   printf("Start...\n");
   // Run the task graph

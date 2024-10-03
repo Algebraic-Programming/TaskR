@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include "fibonacci.hpp"
 
@@ -41,14 +40,8 @@ int main(int argc, char **argv)
     computeResources.insert(computeResources.end(), cr.begin(), cr.end());
   }
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
   // Instantiating TaskR
-  taskr::Runtime taskr(&computeManager);
-
-  // Assigning processing resource to TaskR
-  for (const auto &computeResource : computeResources) taskr.addProcessingUnit(computeManager.createProcessingUnit(computeResource));
+  taskr::Runtime taskr(computeResources);
 
   // Running Fibonacci example
   auto result = fibonacciDriver(initialValue, taskr);

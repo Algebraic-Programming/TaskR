@@ -46,10 +46,10 @@ void pendingOperation(taskr::Runtime &taskr)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = HiCR::backend::host::L1::ComputeManager::createExecutionUnit([]() { heavyTask(); });
+  auto taskfc = taskr::Function([](taskr::Task* task) { heavyTask(); });
 
   // Now creating heavy many tasks task
-  for (size_t i = 0; i < 100; i++) taskr.addTask(new taskr::Task(i, taskfc));
+  for (size_t i = 0; i < 100; i++) taskr.addTask(new taskr::Task(i, &taskfc));
 
   // Initializing taskR
   taskr.initialize();

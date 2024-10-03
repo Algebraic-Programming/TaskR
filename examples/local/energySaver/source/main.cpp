@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
 #include <taskr/taskr.hpp>
 
@@ -58,34 +57,24 @@ int main(int argc, char **argv)
   auto computeResources = d->getComputeResourceList();
 
   // Initializing taskr
-  taskr::Runtime taskr(&computeManager);
+  taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
-  // Creating task work execution unit
-  auto workExecutionUnit = computeManager.createExecutionUnit([&iterations]() { workFc(iterations); });
+  // Creating task work function
+  auto workFunction = taskr::Function([&iterations](taskr::Task* task) { workFc(iterations); });
 
-  // Creating task wait execution unit
-  auto waitExecutionUnit = computeManager.createExecutionUnit([&taskr, &secondsDelay]() { waitFc(&taskr, secondsDelay); });
-
-  // Create processing units from the detected compute resource list and giving them to taskr
-  for (auto &resource : computeResources)
-  {
-    // Creating a processing unit out of the computational resource
-    auto processingUnit = computeManager.createProcessingUnit(resource);
-
-    // Assigning resource to the taskr
-    taskr.addProcessingUnit(std::move(processingUnit));
-  }
+  // Creating task wait function
+  auto waitFunction = taskr::Function([&taskr, &secondsDelay](taskr::Task* task) { waitFc(&taskr, secondsDelay); });
 
   // Creating a single wait task that suspends all workers except for one
-  auto waitTask1 = new taskr::Task(0, waitExecutionUnit);
+  auto waitTask1 = new taskr::Task(0, &waitFunction);
 
   // Building task graph. First a lot of pure work tasks. The wait task depends on these
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new taskr::Task(i + 1, workExecutionUnit);
+    auto workTask = new taskr::Task(i + 1, &workFunction);
     waitTask1->addDependency(workTask->getLabel());
     taskr.addTask(workTask);
   }
@@ -93,13 +82,13 @@ int main(int argc, char **argv)
   // Then creating another batch of work tasks that depends on the wait task
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new taskr::Task(workTaskCount + i + 1, workExecutionUnit);
+    auto workTask = new taskr::Task(workTaskCount + i + 1, &workFunction);
     workTask->addDependency(waitTask1->getLabel());
     taskr.addTask(workTask);
   }
 
   // Then creating another wait task
-  auto waitTask2 = new taskr::Task(2 * workTaskCount + 1, waitExecutionUnit);
+  auto waitTask2 = new taskr::Task(2 * workTaskCount + 1, &waitFunction);
 
   // The wait task depends on the second set of work tasks
   for (size_t i = 0; i < workTaskCount; i++) waitTask2->addDependency(workTaskCount + i + 1);
@@ -107,7 +96,7 @@ int main(int argc, char **argv)
   // Last set of work tasks
   for (size_t i = 0; i < workTaskCount; i++)
   {
-    auto workTask = new taskr::Task(2 * workTaskCount + i + 2, workExecutionUnit);
+    auto workTask = new taskr::Task(2 * workTaskCount + i + 2, &workFunction);
     workTask->addDependency(waitTask2->getLabel());
     taskr.addTask(workTask);
   }

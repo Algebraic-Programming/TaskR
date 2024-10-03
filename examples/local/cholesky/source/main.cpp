@@ -3,7 +3,6 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
 #include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
   HiCR::backend::host::pthreads::L1::CommunicationManager communicationManager;
 
   // Running Cholesky factorization example
-  choleskyDriver(matrixDimension, blocks, readFromFile, checkResult, &computeManager, &memoryManager, &communicationManager, computeResources, memorySpace, matrixPath);
+  choleskyDriver(matrixDimension, blocks, readFromFile, checkResult, &memoryManager, &communicationManager, computeResources, memorySpace, matrixPath);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

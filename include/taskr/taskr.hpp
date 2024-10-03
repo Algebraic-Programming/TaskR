@@ -13,6 +13,8 @@
 #pragma once
 
 #include "task.hpp"
+#include "taskImpl.hpp"
+#include "function.hpp"
 #include "runtime.hpp"
 
 namespace taskr

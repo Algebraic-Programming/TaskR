@@ -20,8 +20,10 @@
 namespace taskr
 {
 
+class Function;
+
 /**
- * This class defines the basic execution unit managed by TaskR.
+ * This class defines a basic scheduling unit managed by TaskR.
  *
  * It includes a function to execute, an internal state, and an callback map that triggers callbacks (if defined) whenever a state transition occurs.
  *
@@ -41,28 +43,24 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    * The task is considered finished when the function runs to completion.
    *
    * @param[in] label The unique label to assign to this task
-   * @param[in] executionUnit Specifies the function/kernel to execute.
+   * @param[in] function Specifies the TaskR-formatted function to use
    * @param[in] workerAffinity The worker affinity to set from the start. Default -1 indicates no affinity.
    */
-  __INLINE__ Task(const label_t label, std::shared_ptr<HiCR::L0::ExecutionUnit> executionUnit, const workerId_t workerAffinity = -1)
-    : taskr::Object(label),
-      HiCR::tasking::Task(executionUnit, nullptr),
-      _workerAffinity(workerAffinity)
-  {}
+  Task(const label_t label, Function* fc, const workerId_t workerAffinity = -1);
 
   /**
    * Returns the task/worker affinity
    * 
    * @return The worker affinity currently set for this task
    */
-  __INLINE__ workerId_t getWorkerAffinity() const { return _workerAffinity; }
+  workerId_t getWorkerAffinity() const;
 
   /**
    * Sets the task's worker affinity. 
    * 
    * @param[in] workerAffinity The worker affinity to set
    */
-  __INLINE__ void setWorkerAffinity(const workerId_t workerAffinity) { _workerAffinity = workerAffinity; }
+  void setWorkerAffinity(const workerId_t workerAffinity);
 
   private:
 

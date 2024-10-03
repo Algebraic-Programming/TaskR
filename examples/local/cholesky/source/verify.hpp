@@ -3,7 +3,6 @@
 #include <atomic>
 
 extern taskr::Runtime                          *_taskr;
-extern HiCR::backend::host::L1::ComputeManager *_computeManager;
 extern std::atomic<uint64_t>                   *_taskCounter;
 
 /**
@@ -19,7 +18,7 @@ bool areMatrixEqual(double *__restrict__ expected, double *__restrict__ actual, 
 
   for (uint32_t i = 0; i < matrixSize; i++)
   {
-    auto executionUnit = _computeManager->createExecutionUnit([=, &equal]() {
+    auto executionUnit = new taskr::Function([=, &equal](taskr::Task* task) {
       for (uint32_t j = 0; j <= i; j++)
       {
         if (equal.load() == false) { break; }
