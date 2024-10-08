@@ -17,9 +17,9 @@ void mutex(taskr::Runtime *taskr)
 
   // Creating task function
   auto taskfc = taskr::Function([&](taskr::Task *task) {
-    m.lock();
+    m.lock(task);
     value++;
-    m.unlock();
+    m.unlock(task);
   });
 
   // Running concurrent tasks

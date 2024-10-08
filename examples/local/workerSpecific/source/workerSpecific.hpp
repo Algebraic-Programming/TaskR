@@ -3,9 +3,8 @@
 #include <hicr/core/L0/device.hpp>
 #include <taskr/taskr.hpp>
 
-void workFc()
+void workFc(taskr::Task *currentTask)
 {
-  auto currentTask  = taskr::getCurrentTask();
   auto taskLabel    = currentTask->getLabel();
   int  currentCPUId = sched_getcpu();
 
@@ -48,7 +47,7 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
   taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
-  auto workTaskfc = taskr::Function([](taskr::Task *task) { workFc(); });
+  auto workTaskfc = taskr::Function([](taskr::Task *task) { workFc(task); });
 
   // Initializing taskr
   taskr.initialize();

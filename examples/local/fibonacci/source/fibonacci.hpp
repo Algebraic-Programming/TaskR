@@ -6,22 +6,19 @@ static taskr::Runtime       *_taskr;
 static std::atomic<uint64_t> _taskCounter;
 
 // Fibonacci without memoization to stress the tasking runtime
-uint64_t fibonacci(const uint64_t x)
+uint64_t fibonacci(taskr::Task *currentTask, const uint64_t x)
 {
   if (x == 0) return 0;
   if (x == 1) return 1;
 
   uint64_t result1 = 0;
   uint64_t result2 = 0;
-  auto     fibFc1  = taskr::Function([&](taskr::Task *task) { result1 = fibonacci(x - 1); });
-  auto     fibFc2  = taskr::Function([&](taskr::Task *task) { result2 = fibonacci(x - 2); });
+  auto     fibFc1  = taskr::Function([&](taskr::Task *task) { result1 = fibonacci(task, x - 1); });
+  auto     fibFc2  = taskr::Function([&](taskr::Task *task) { result2 = fibonacci(task, x - 2); });
 
   // Creating two new tasks
   taskr::Task subTask1(_taskCounter++, &fibFc1);
   taskr::Task subTask2(_taskCounter++, &fibFc2);
-
-  // Getting the current task
-  auto currentTask = taskr::getCurrentTask();
 
   // Adding dependencies with the newly created tasks
   currentTask->addDependency(subTask1.getLabel());
@@ -50,7 +47,7 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   uint64_t result = 0;
 
   // Creating task functions
-  auto initialFc = taskr::Function([&](taskr::Task *task) { result = fibonacci(initialValue); });
+  auto initialFc = taskr::Function([&](taskr::Task *task) { result = fibonacci(task, initialValue); });
 
   // Now creating tasks and their dependency graph
   taskr::Task initialTask(_taskCounter++, &initialFc);

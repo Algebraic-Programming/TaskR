@@ -163,9 +163,6 @@ class Runtime
     if (_serviceWorkerCount >= _computeResources.size())
       HICR_THROW_LOGIC("Trying to create equal or more service worker counts (%lu) than processing units (%lu) provided", _serviceWorkerCount, _computeResources.size());
 
-    // Initializing HiCR tasking
-    HiCR::tasking::initialize();
-
     // Creating service workers, as specified by the configuration
     size_t serviceWorkerId = 0;
     for (size_t computeResourceId = 0; computeResourceId < _serviceWorkerCount; computeResourceId++)
@@ -263,9 +260,6 @@ class Runtime
     for (auto &w : _taskWorkers) delete w;
     _taskWorkers.clear();
 
-    // Finalizing HiCR tasking
-    HiCR::tasking::finalize();
-
     // Setting state back to uninitialized
     _state = state_t::uninitialized;
   }
@@ -340,6 +334,9 @@ class Runtime
       // Check whether the conditions are met to put the worker to sleep due to inactivity
       checkTaskWorkerSuspension(worker);
     }
+
+    // If task was found, set it as a success (to prevent the worker from going to sleep)
+    if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Check for termination
     checkTermination(worker);
@@ -499,10 +496,6 @@ class Runtime
 
     // If defined, trigger user-defined event
     this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
-
-    // Updating the thread activity time (so that it doesn't go to sleep immediately)
-    const auto worker = (taskr::Worker *)taskr::Worker::getCurrentWorker();
-    worker->resetRetrieveTaskSuccessFlag();
 
     // Decreasing active task counter
     _activeTaskCount--;
