@@ -1,7 +1,0 @@
-testSuite = [ 'examples', 'local' ]
-
-getCurrentTask = executable('getCurrentTask', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ])
-
-if get_option('buildTests')
-    test('getCurrentTask', getCurrentTask, args : [ ], suite: testSuite)
-endif

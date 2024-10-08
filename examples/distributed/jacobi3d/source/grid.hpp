@@ -152,49 +152,44 @@ class Grid
   bool initialize();
   void finalize();
   void print(const uint32_t it);
-  void compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
-  void receive(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
-  void send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
-  void pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
-  void unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
-  void reset(const uint64_t lx, const uint64_t ly, const uint64_t lz);
+
+  void compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void reset(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz);
 
   void resetResidual() { _residual = 0.0; }
-  void calculateLocalResidual(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
+  void calculateLocalResidual(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
   void sync();
 
-  static inline void tryPush(HiCR::channel::fixedSize::SPSC::Producer *channel, std::shared_ptr<HiCR::L0::LocalMemorySlot> slot)
+  static inline void tryPush(taskr::Task *currentTask, HiCR::channel::fixedSize::SPSC::Producer *channel, std::shared_ptr<HiCR::L0::LocalMemorySlot> slot)
   {
     // If the channel is full, suspend task until it frees up
     if (channel->isFull())
     {
-      // Getting currently executing task
-      auto currentTask = taskr::getCurrentTask();
-
       // Adding pending operation: channel being freed up
       currentTask->addPendingOperation([&]() { return channel->isFull() == false; });
 
       // Suspending until the operation is finished
-      taskr::getCurrentTask()->suspend();
+      currentTask->suspend();
     }
 
     // Otherwise go ahead and push
     channel->push(slot);
   }
 
-  static double_t *tryPeek(HiCR::channel::fixedSize::SPSC::Consumer *channel, const size_t tokenSize)
+  static double_t *tryPeek(taskr::Task *currentTask, HiCR::channel::fixedSize::SPSC::Consumer *channel, const size_t tokenSize)
   {
     // If the channel is full, suspend task until it frees up
     if (channel->isEmpty())
     {
-      // Getting currently executing task
-      auto currentTask = taskr::getCurrentTask();
-
       // Adding pending operation: channel being freed up
       currentTask->addPendingOperation([&]() { return channel->isEmpty() == false; });
 
       // Suspending until the operation is finished
-      taskr::getCurrentTask()->suspend();
+      currentTask->suspend();
     }
 
     // Otherwise go ahead and push

@@ -593,7 +593,7 @@ void Grid::finalize()
   free(localSubGridMapping);
 }
 
-void Grid::reset(const uint64_t lx, const uint64_t ly, const uint64_t lz)
+void Grid::reset(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz)
 {
   auto &t = subgrids[localSubGridMapping[lz][ly][lx]];
 
@@ -656,7 +656,7 @@ void Grid::reset(const uint64_t lx, const uint64_t ly, const uint64_t lz)
         for (int d = 0; d < gDepth; d++) Un[(ps.z + gDepth + d) * fs.x * fs.y + j * fs.x + i] = 0.0;
 }
 
-void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
@@ -720,19 +720,19 @@ void Grid::compute(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
   _taskr->addTask(newTask);
 }
 
-void Grid::receive(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
   //  printf("Rank %d running receive (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
 
-  if (subGrid.X0.type == REMOTE) { subGrid.X0UnpackBuffer = tryPeek(subGrid.X0RecvChannel.get(), bufferSizeX); }
-  if (subGrid.X1.type == REMOTE) { subGrid.X1UnpackBuffer = tryPeek(subGrid.X1RecvChannel.get(), bufferSizeX); }
-  if (subGrid.Y0.type == REMOTE) { subGrid.Y0UnpackBuffer = tryPeek(subGrid.Y0RecvChannel.get(), bufferSizeY); }
-  if (subGrid.Y1.type == REMOTE) { subGrid.Y1UnpackBuffer = tryPeek(subGrid.Y1RecvChannel.get(), bufferSizeY); }
-  if (subGrid.Z0.type == REMOTE) { subGrid.Z0UnpackBuffer = tryPeek(subGrid.Z0RecvChannel.get(), bufferSizeZ); }
-  if (subGrid.Z1.type == REMOTE) { subGrid.Z1UnpackBuffer = tryPeek(subGrid.Z1RecvChannel.get(), bufferSizeZ); }
+  if (subGrid.X0.type == REMOTE) { subGrid.X0UnpackBuffer = tryPeek(currentTask, subGrid.X0RecvChannel.get(), bufferSizeX); }
+  if (subGrid.X1.type == REMOTE) { subGrid.X1UnpackBuffer = tryPeek(currentTask, subGrid.X1RecvChannel.get(), bufferSizeX); }
+  if (subGrid.Y0.type == REMOTE) { subGrid.Y0UnpackBuffer = tryPeek(currentTask, subGrid.Y0RecvChannel.get(), bufferSizeY); }
+  if (subGrid.Y1.type == REMOTE) { subGrid.Y1UnpackBuffer = tryPeek(currentTask, subGrid.Y1RecvChannel.get(), bufferSizeY); }
+  if (subGrid.Z0.type == REMOTE) { subGrid.Z0UnpackBuffer = tryPeek(currentTask, subGrid.Z0RecvChannel.get(), bufferSizeZ); }
+  if (subGrid.Z1.type == REMOTE) { subGrid.Z1UnpackBuffer = tryPeek(currentTask, subGrid.Z1RecvChannel.get(), bufferSizeZ); }
 
   // If we reached the iteration before the end, no more communication is needed
   if (it == nIters - 1) return;
@@ -745,7 +745,7 @@ void Grid::receive(const uint64_t lx, const uint64_t ly, const uint64_t lz, cons
   _taskr->addTask(newTask);
 }
 
-void Grid::unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
@@ -823,7 +823,7 @@ void Grid::unpack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const
   _taskr->addTask(newTask);
 }
 
-void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto    localId = localSubGridMapping[lz][ly][lx];
   auto   &subGrid = subgrids[localId];
@@ -899,19 +899,19 @@ void Grid::pack(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
   _taskr->addTask(newTask);
 }
 
-void Grid::send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
   //  printf("Rank %d running send (%lu, %lu, %lu, It: %u)\n", processId, lx, ly, lz, it); fflush(stdout);
 
-  if (subGrid.X0.type == REMOTE) tryPush(subGrid.X0SendChannel.get(), subGrid.X0PackMemorySlot);
-  if (subGrid.X1.type == REMOTE) tryPush(subGrid.X1SendChannel.get(), subGrid.X1PackMemorySlot);
-  if (subGrid.Y0.type == REMOTE) tryPush(subGrid.Y0SendChannel.get(), subGrid.Y0PackMemorySlot);
-  if (subGrid.Y1.type == REMOTE) tryPush(subGrid.Y1SendChannel.get(), subGrid.Y1PackMemorySlot);
-  if (subGrid.Z0.type == REMOTE) tryPush(subGrid.Z0SendChannel.get(), subGrid.Z0PackMemorySlot);
-  if (subGrid.Z1.type == REMOTE) tryPush(subGrid.Z1SendChannel.get(), subGrid.Z1PackMemorySlot);
+  if (subGrid.X0.type == REMOTE) tryPush(currentTask, subGrid.X0SendChannel.get(), subGrid.X0PackMemorySlot);
+  if (subGrid.X1.type == REMOTE) tryPush(currentTask, subGrid.X1SendChannel.get(), subGrid.X1PackMemorySlot);
+  if (subGrid.Y0.type == REMOTE) tryPush(currentTask, subGrid.Y0SendChannel.get(), subGrid.Y0PackMemorySlot);
+  if (subGrid.Y1.type == REMOTE) tryPush(currentTask, subGrid.Y1SendChannel.get(), subGrid.Y1PackMemorySlot);
+  if (subGrid.Z0.type == REMOTE) tryPush(currentTask, subGrid.Z0SendChannel.get(), subGrid.Z0PackMemorySlot);
+  if (subGrid.Z1.type == REMOTE) tryPush(currentTask, subGrid.Z1SendChannel.get(), subGrid.Z1PackMemorySlot);
 
   // If we reached the iteration before the end, no more communication is needed
   if (it == nIters - 1) return;
@@ -926,7 +926,7 @@ void Grid::send(const uint64_t lx, const uint64_t ly, const uint64_t lz, const u
   _taskr->addTask(newTask);
 }
 
-void Grid::calculateLocalResidual(const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
+void Grid::calculateLocalResidual(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
   auto   &t      = subgrids[localSubGridMapping[lz][ly][lx]];
   double *localU = it % 2 == 0 ? U : Un;

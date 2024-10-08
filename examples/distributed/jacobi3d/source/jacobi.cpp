@@ -134,34 +134,16 @@ int main(int argc, char *argv[])
   if (success == false) instanceManager->abort(-1);
 
   // Creating grid processing functions
-  g->resetFc         = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->reset(currentTask->i, currentTask->j, currentTask->k);
-  });
-  g->computeFc       = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->compute(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-  g->receiveFc       = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->receive(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-  g->unpackFc        = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->unpack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-  g->packFc          = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->pack(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-  g->sendFc          = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->send(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
-  g->localResidualFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) {
-    auto currentTask = (Task *)taskr::getCurrentTask();
-    g->calculateLocalResidual(currentTask->i, currentTask->j, currentTask->k, currentTask->iteration);
-  });
+  g->resetFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->reset(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k); });
+  g->computeFc =
+    std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->compute(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->receiveFc =
+    std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->receive(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->unpackFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->unpack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->packFc   = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->pack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->sendFc   = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->send(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->localResidualFc = std::make_unique<taskr::Function>(
+    [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
   // Defining execution unit to run by all the instances
   instanceManager->addRPCTarget("processGrid", [&]() {

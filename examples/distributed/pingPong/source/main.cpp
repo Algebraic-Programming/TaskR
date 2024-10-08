@@ -109,13 +109,13 @@ int main(int argc, char **argv)
       for (size_t i = 0; i < instanceManager->getInstances().size() - 1; i++)
       {
         // Add pending operation
-        taskr::getCurrentTask()->addPendingOperation([&]() {
+        task->addPendingOperation([&]() {
           recvMsg = deployer.getCurrentInstance()->recvMessageAsync();
           return recvMsg.data != nullptr;
         });
 
         // Suspending task until the operation is ready
-        taskr::getCurrentTask()->suspend();
+        task->suspend();
 
         // Printing message
         printf("Root Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char *)recvMsg.data);
@@ -124,13 +124,13 @@ int main(int argc, char **argv)
 
     auto workerRecvFunction = taskr::Function([&](taskr::Task *task) {
       // Add pending operation
-      taskr::getCurrentTask()->addPendingOperation([&]() {
+      task->addPendingOperation([&]() {
         recvMsg = deployer.getCurrentInstance()->recvMessageAsync();
         return recvMsg.data != nullptr;
       });
 
       // Suspending task until the operation is ready
-      taskr::getCurrentTask()->suspend();
+      task->suspend();
 
       // Printing message
       printf("Worker Instance %03lu / %03lu received message: %s\n", myInstanceId, instanceCount, (char *)recvMsg.data);
