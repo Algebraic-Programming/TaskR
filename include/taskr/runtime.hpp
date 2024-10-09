@@ -125,7 +125,10 @@ class Runtime
    * \param[in] event The worker callback event to assin the callback to
    * \param[in] fc The callback function to call when the event is triggered
    */
-  __INLINE__ void setServiceWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc) { _serviceWorkerCallbackMap.setCallback(event, fc); }
+  __INLINE__ void setServiceWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _serviceWorkerCallbackMap.setCallback(event, fc);
+  }
 
   /**
    * Adds a callback for a particular task worker event (e.g., on starting, suspend, resume, finishing)
@@ -133,7 +136,10 @@ class Runtime
    * \param[in] event The worker callback event to assin the callback to
    * \param[in] fc The callback function to call when the event is triggered
    */
-  __INLINE__ void setTaskWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc) { _taskWorkerCallbackMap.setCallback(event, fc); }
+  __INLINE__ void setTaskWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _taskWorkerCallbackMap.setCallback(event, fc);
+  }
 
   /**
    * Adds a task to the TaskR runtime for future execution. This can be called at any point, before or during the execution of TaskR.
