@@ -41,10 +41,10 @@ void workFc(taskr::Task *currentTask)
 void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
 {
   // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Auto-adding task when it suspends.
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
   auto workTaskfc = taskr::Function([](taskr::Task *task) { workFc(task); });

@@ -76,10 +76,10 @@ class Runtime
     _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
-    _hicrCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
+    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
+    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
+    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
+    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Setting default services
     _serviceQueue->push(&checkOneWaitingTaskService);
@@ -112,12 +112,34 @@ class Runtime
   ///////////// Local tasking API
 
   /**
-   * Adds a callback for a particular callback
+   * Adds a callback for a particular task event (e.g., on starting, suspending, finishing)
    *
-   * \param[in] event The callback event to assin the callback to
+   * \param[in] event The task callback event to assin the callback to
    * \param[in] fc The callback function to call when the event is triggered
    */
-  __INLINE__ void setCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task *> fc) { _taskrCallbackMap.setCallback(event, fc); }
+  __INLINE__ void setTaskCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task *> fc) { _taskCallbackMap.setCallback(event, fc); }
+
+  /**
+   * Adds a callback for a particular service worker event (e.g., on starting, finishing)
+   *
+   * \param[in] event The worker callback event to assin the callback to
+   * \param[in] fc The callback function to call when the event is triggered
+   */
+  __INLINE__ void setServiceWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _serviceWorkerCallbackMap.setCallback(event, fc);
+  }
+
+  /**
+   * Adds a callback for a particular task worker event (e.g., on starting, suspend, resume, finishing)
+   *
+   * \param[in] event The worker callback event to assin the callback to
+   * \param[in] fc The callback function to call when the event is triggered
+   */
+  __INLINE__ void setTaskWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _taskWorkerCallbackMap.setCallback(event, fc);
+  }
 
   /**
    * Adds a task to the TaskR runtime for future execution. This can be called at any point, before or during the execution of TaskR.
@@ -130,7 +152,7 @@ class Runtime
     _activeTaskCount++;
 
     // Making sure the task has its callback map correctly assigned
-    task->setCallbackMap(&_hicrCallbackMap);
+    task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
     resumeTask(task);
@@ -170,6 +192,9 @@ class Runtime
       // Creating new service worker
       auto serviceWorker = new taskr::Worker(&_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
 
+      // Making sure the worker has its callback map correctly assigned
+      serviceWorker->setCallbackMap(&_serviceWorkerCallbackMap);
+
       // Assigning resource to the thread
       serviceWorker->addProcessingUnit(_computeManager.createProcessingUnit(_computeResources[computeResourceId]));
 
@@ -186,6 +211,9 @@ class Runtime
     {
       // Creating new task worker
       auto taskWorker = new taskr::Worker(&_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
+
+      // Making sure the worker has its callback map correctly assigned
+      taskWorker->setCallbackMap(&_taskWorkerCallbackMap);
 
       // Setting resume check function
       taskWorker->setCheckResumeFunction([this](taskr::Worker *worker) { return checkResumeWorker(worker); });
@@ -480,7 +508,7 @@ class Runtime
     auto taskrTask = (taskr::Task *)task;
 
     // If defined, trigger user-defined event
-    _taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
+    _taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
   }
 
   __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *task)
@@ -495,7 +523,7 @@ class Runtime
     _finishedObjects.insert(taskLabel);
 
     // If defined, trigger user-defined event
-    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
     // Decreasing active task counter
     _activeTaskCount--;
@@ -507,7 +535,7 @@ class Runtime
     auto taskrTask = (taskr::Task *)task;
 
     // If defined, trigger user-defined event
-    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
   }
 
   __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *task)
@@ -516,10 +544,10 @@ class Runtime
     auto taskrTask = (taskr::Task *)task;
 
     // If not defined, resume task (by default)
-    if (this->_taskrCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
+    if (this->_taskCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
 
     // If defined, trigger user-defined event
-    this->_taskrCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
+    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
   }
 
   /**
@@ -535,17 +563,32 @@ class Runtime
   /**
    * Type definition for the task's callback map
    */
-  typedef HiCR::tasking::CallbackMap<taskr::Task *, HiCR::tasking::Task::callback_t> taskrCallbackMap_t;
+  typedef HiCR::tasking::CallbackMap<taskr::Task *, HiCR::tasking::Task::callback_t> taskCallbackMap_t;
 
   /**
    *  HiCR callback map shared by all tasks
    */
-  HiCR::tasking::Task::taskCallbackMap_t _hicrCallbackMap;
+  HiCR::tasking::Task::taskCallbackMap_t _hicrTaskCallbackMap;
 
   /**
    *  TaskR-specific callmap, customizable by the user
    */
-  taskrCallbackMap_t _taskrCallbackMap;
+  taskCallbackMap_t _taskCallbackMap;
+
+  /**
+   * Type definition for the worker's callback map
+   */
+  typedef HiCR::tasking::CallbackMap<taskr::Worker *, HiCR::tasking::Worker::callback_t> workerCallbackMap_t;
+
+  /**
+   *  HiCR callback map shared by all service workers
+   */
+  HiCR::tasking::Worker::workerCallbackMap_t _serviceWorkerCallbackMap;
+
+  /**
+   *  HiCR callback map shared by all task workers
+   */
+  HiCR::tasking::Worker::workerCallbackMap_t _taskWorkerCallbackMap;
 
   /**
    * Set of workers assigned to execute tasks

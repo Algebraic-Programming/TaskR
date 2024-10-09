@@ -40,10 +40,10 @@ void heavyTask(taskr::Task *currentTask)
 void pendingOperation(taskr::Runtime &taskr)
 {
   // Auto-adding task when it suspends. It won't be re-executed until pending operations finish
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
   auto taskfc = taskr::Function([](taskr::Task *task) { heavyTask(task); });
