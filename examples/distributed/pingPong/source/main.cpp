@@ -45,10 +45,10 @@ int main(int argc, char **argv)
   taskr::Runtime taskr(computeResources);
 
   // Setting callback to free a task as soon as it finishes executing
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  taskr.setCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
   //// Instantiating distributed execution machinery
 
