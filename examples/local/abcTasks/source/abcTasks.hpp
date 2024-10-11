@@ -7,8 +7,14 @@
 
 void abcTasks(taskr::Runtime &taskr)
 {
-  // Setting callback to free a task as soon as it finishes executing
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  // Setting onTaskFinish callback
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
+    // Add task to the list of finished objects (for depdendency management)
+    taskr.setFinishedObject(task->getLabel());
+
+    // Free the task's memory
+    delete task;
+  });
 
   // Creating the execution units (functions that the tasks will run)
   auto taskAfc = taskr::Function([](taskr::Task *task) { printf("Task A %ld\n", task->getLabel()); });
