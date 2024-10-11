@@ -25,8 +25,14 @@ int main(int argc, char **argv)
   // Create taskr runtime
   taskr::Runtime taskr(computeResources);
 
-  // Setting callback to free a task as soon as it finishes executing
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [](taskr::Task *task) { delete task; });
+  // Setting onTaskFinish callback
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
+    // Add task to the list of finished objects (for depdendency management)
+    taskr.setFinishedObject(task->getLabel());
+
+    // Free the task's memory
+    delete task;
+  });
 
   // Adding multiple jobs to TaskR
   job1(taskr);

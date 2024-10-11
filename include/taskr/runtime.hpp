@@ -292,6 +292,14 @@ class Runtime
     _state = state_t::uninitialized;
   }
 
+  /**
+   * This function informs TaskR that a certain object (with a given unique label) has finished
+   * If this object the last remaining dependency for a given task, now the task may be scheduled for execution.
+   * 
+   * @param[in] object Label of the object to report as finished
+   */
+  __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object) { _finishedObjects.insert(object); }
+
   private:
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
@@ -515,12 +523,6 @@ class Runtime
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
-
-    // Getting task label
-    const auto taskLabel = taskrTask->getLabel();
-
-    // Adding task to the finished object set
-    _finishedObjects.insert(taskLabel);
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
