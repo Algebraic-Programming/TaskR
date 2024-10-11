@@ -296,7 +296,7 @@ class Runtime
    * This function informs TaskR that a certain object (with a given unique label) has finished
    * If this object the last remaining dependency for a given task, now the task may be scheduled for execution.
    * 
-   * 
+   * @param[in] object Label of the object to report as finished
    */
   __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object) { _finishedObjects.insert(object); }
 
