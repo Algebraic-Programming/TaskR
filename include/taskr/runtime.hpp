@@ -357,21 +357,21 @@ class Runtime
     // If no task found, try to get one from the common waiting task queue
     if (task == nullptr) task = this->checkOneWaitingTask();
 
-    // // Check again if nothing in the task's own queue now
-    // if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
+    // Check again if nothing in the task's own queue now
+    if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
 
-    // // If still no found was found set it as a failure to get useful job
-    // if (task == nullptr)
-    // {
-    //   // Set the worker's fail time, if not already set
-    //   worker->setFailedToRetrieveTask();
+    // If still no found was found set it as a failure to get useful job
+    if (task == nullptr)
+    {
+      // Set the worker's fail time, if not already set
+      worker->setFailedToRetrieveTask();
 
-    //   // Check whether the conditions are met to put the worker to sleep due to inactivity
-    //   checkTaskWorkerSuspension(worker);
-    // }
+      // Check whether the conditions are met to put the worker to sleep due to inactivity
+      checkTaskWorkerSuspension(worker);
+    }
 
-    // // If task was found, set it as a success (to prevent the worker from going to sleep)
-    // if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
+    // If task was found, set it as a success (to prevent the worker from going to sleep)
+    if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Check for termination
     if (task == nullptr) checkTermination(worker);
@@ -422,12 +422,12 @@ class Runtime
    */
   __INLINE__ void checkTaskWorkerSuspension(taskr::Worker *worker)
   {
-    // // Check for inactivity time (to put the worker to sleep)
-    // if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
-    //   if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
-    //     if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
-    //       if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) // If we are already at the minimum, do not suspend.
-    //         worker->suspend();
+    // Check for inactivity time (to put the worker to sleep)
+    if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
+      if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
+        if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
+          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) // If we are already at the minimum, do not suspend.
+            worker->suspend();
   }
 
   /**
