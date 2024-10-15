@@ -30,14 +30,15 @@ int main(int argc, char **argv)
   // Compute resources to use
   HiCR::L0::Device::computeResourceList_t computeResources;
 
-  // Adding all compute resources found
-  for (auto &d : t.getDevices())
-  {
-    // Getting compute resources in this device
-    auto cr = d->getComputeResourceList();
+  // Getting compute resources in this device
+  auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
 
-    // Adding it to the list
-    computeResources.insert(computeResources.end(), cr.begin(), cr.end());
+  // Adding it to the list
+  auto itr = cr.begin();
+  for (int i = 0; i < 8; i++)
+  {
+    computeResources.push_back(*itr);
+    itr++;
   }
 
   // Instantiating TaskR
