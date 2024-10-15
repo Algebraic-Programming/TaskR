@@ -72,7 +72,6 @@ class Runtime
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _commonReadyTaskQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
@@ -80,9 +79,6 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
-
-    // Setting default services
-    _serviceQueue->push(&checkOneWaitingTaskService);
 
     // Assigning configuration defaults
     _taskWorkerInactivityTimeMs      = 10;   // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
@@ -358,24 +354,27 @@ class Runtime
     // Getting next task to execute from the worker's own queue
     auto task = worker->getReadyTaskQueue()->pop();
 
-    // If no task found, try to get one from the common ready queue
-    if (task == nullptr) task = _commonReadyTaskQueue->pop();
+    // If no task found, try to get one from the common waiting task queue
+    if (task == nullptr) task = this->checkOneWaitingTask();
 
-    // If still no found was found set it as a failure to get useful job
-    if (task == nullptr)
-    {
-      // Set the worker's fail time, if not already set
-      worker->setFailedToRetrieveTask();
+    // // Check again if nothing in the task's own queue now
+    // if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
 
-      // Check whether the conditions are met to put the worker to sleep due to inactivity
-      checkTaskWorkerSuspension(worker);
-    }
+    // // If still no found was found set it as a failure to get useful job
+    // if (task == nullptr)
+    // {
+    //   // Set the worker's fail time, if not already set
+    //   worker->setFailedToRetrieveTask();
 
-    // If task was found, set it as a success (to prevent the worker from going to sleep)
-    if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
+    //   // Check whether the conditions are met to put the worker to sleep due to inactivity
+    //   checkTaskWorkerSuspension(worker);
+    // }
+
+    // // If task was found, set it as a success (to prevent the worker from going to sleep)
+    // if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Check for termination
-    checkTermination(worker);
+    if (task == nullptr) checkTermination(worker);
 
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
@@ -414,9 +413,6 @@ class Runtime
     // The worker has pending tasks in its own ready task queue
     if (worker->getReadyTaskQueue()->wasEmpty() == false) return true;
 
-    // There are pending ready tasks in the common queue
-    if (_commonReadyTaskQueue->wasEmpty() == false) return true;
-
     // Return false (stay suspended)
     return false;
   }
@@ -426,12 +422,12 @@ class Runtime
    */
   __INLINE__ void checkTaskWorkerSuspension(taskr::Worker *worker)
   {
-    // Check for inactivity time (to put the worker to sleep)
-    if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
-      if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
-        if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
-          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) // If we are already at the minimum, do not suspend.
-            worker->suspend();
+    // // Check for inactivity time (to put the worker to sleep)
+    // if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
+    //   if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
+    //     if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
+    //       if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) // If we are already at the minimum, do not suspend.
+    //         worker->suspend();
   }
 
   /**
@@ -442,13 +438,13 @@ class Runtime
    *
    * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
-  __INLINE__ void checkOneWaitingTask()
+  __INLINE__ taskr::Task* checkOneWaitingTask()
   {
     // Poping task from the common waiting task queue
     auto task = _commonWaitingTaskQueue->pop();
 
     // If still no task was found (queue was empty), then return immediately
-    if (task == nullptr) return;
+    if (task == nullptr) return nullptr;
 
     // Checking for task's pending dependencies
     while (task->getDependencies().empty() == false)
@@ -463,7 +459,7 @@ class Runtime
         _commonWaitingTaskQueue->push(task);
 
         // Return immediately: task was not ready
-        return;
+        return nullptr;
       }
 
       // Otherwise, remove it out of the dependency queue
@@ -486,14 +482,14 @@ class Runtime
         _commonWaitingTaskQueue->push(task);
 
         // Return immediately: task was not ready
-        return;
+        return nullptr;
       }
 
       // Otherwise, remove it out of the dependency queue
       task->getPendingOperations().pop();
     }
 
-    // The task is ready to execute, add it to the corresponding queue
+    // The task is ready to execute, check if it's been reserved for
 
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
@@ -502,12 +498,21 @@ class Runtime
     if (taskAffinity >= (ssize_t)_taskWorkers.size())
       HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
 
-    // If no affinity set, push it into the common task queue
-    if (taskAffinity < 0) _commonReadyTaskQueue->push(task);
+    // If affinity set, 
+    if (taskAffinity >= 0) 
+    {
+      // Push it into the worker's own task queue
+      _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
 
-    // If the affinity was set, put it in the corresponding task worker's queue
-    else
+      // Just in case it was asleep, awaken worker
       _taskWorkers[taskAffinity]->resume();
+
+      // The task no longer applies to us
+      task = nullptr;
+    }
+
+    // Returning task (nullptr if nothing was found)
+    return task;
   }
 
   __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *task)
@@ -625,11 +630,6 @@ class Runtime
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
 
   /**
-   * Common lock-free queue for ready tasks.
-   */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
-
-  /**
    * The compute resources to use to run workers with
    */
   HiCR::L0::Device::computeResourceList_t _computeResources;
@@ -643,11 +643,6 @@ class Runtime
    * Common lock-free queue for services.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::service_t>> _serviceQueue;
-
-  /**
-   * Default service to check for waiting tasks's dependencies and pending operations to see if they are now ready
-   */
-  taskr::service_t checkOneWaitingTaskService = [this]() { this->checkOneWaitingTask(); };
 
   //////// Configuration Elements
 
