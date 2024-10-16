@@ -50,7 +50,7 @@ class Object
    * 
    * @return The object's label
    */
-  label_t getLabel() const { return _label; }
+  __INLINE__ label_t getLabel() const { return _label; }
 
   /**
    * Adds one output dependency on the current object

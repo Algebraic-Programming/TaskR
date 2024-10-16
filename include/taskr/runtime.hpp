@@ -85,7 +85,7 @@ class Runtime
     _taskWorkerSuspendIntervalTimeMs = 1;    // Worker will sleep for 1ms when suspended
     _minimumActiveTaskWorkers        = 1;    // Guarantee that there is at least one active task worker
     _serviceWorkerCount              = 0;    // No service workers (Typical setting for HPC applications)
-    _makeTaskWorkersRunServices      = true; // Since no service workers are created by default, have task workers check on services
+    _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
 
     // Parsing configuration
     if (config.contains("Task Worker Inactivity Time (Ms)")) _taskWorkerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Worker Inactivity Time (Ms)");
@@ -352,12 +352,9 @@ class Runtime
     }
 
     // Getting next task to execute from the worker's own queue
-    auto task = worker->getReadyTaskQueue()->pop();
+    auto task =  this->checkOneWaitingTask();
 
     // If no task found, try to get one from the common waiting task queue
-    if (task == nullptr) task = this->checkOneWaitingTask();
-
-    // Check again if nothing in the task's own queue now
     if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
 
     // If still no found was found set it as a failure to get useful job
