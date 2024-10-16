@@ -463,7 +463,7 @@ class Runtime
       }
 
       // Otherwise, remove it out of the dependency queue
-      task->getDependencies().pop();
+      task->getDependencies().pop_front();
     }
 
     // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
@@ -486,7 +486,7 @@ class Runtime
       }
 
       // Otherwise, remove it out of the dependency queue
-      task->getPendingOperations().pop();
+      task->getPendingOperations().pop_front();
     }
 
     // The task is ready to execute, check if it's been reserved for
