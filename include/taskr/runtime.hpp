@@ -81,10 +81,10 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Assigning configuration defaults
-    _taskWorkerInactivityTimeMs      = 10;   // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
-    _taskWorkerSuspendIntervalTimeMs = 1;    // Worker will sleep for 1ms when suspended
-    _minimumActiveTaskWorkers        = 1;    // Guarantee that there is at least one active task worker
-    _serviceWorkerCount              = 0;    // No service workers (Typical setting for HPC applications)
+    _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
+    _taskWorkerSuspendIntervalTimeMs = 1;     // Worker will sleep for 1ms when suspended
+    _minimumActiveTaskWorkers        = 1;     // Guarantee that there is at least one active task worker
+    _serviceWorkerCount              = 0;     // No service workers (Typical setting for HPC applications)
     _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
 
     // Parsing configuration
@@ -352,7 +352,7 @@ class Runtime
     }
 
     // Getting next task to execute from the worker's own queue
-    auto task =  this->checkOneWaitingTask();
+    auto task = this->checkOneWaitingTask();
 
     // If no task found, try to get one from the common waiting task queue
     if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
@@ -435,7 +435,7 @@ class Runtime
    *
    * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
-  __INLINE__ taskr::Task* checkOneWaitingTask()
+  __INLINE__ taskr::Task *checkOneWaitingTask()
   {
     // Poping task from the common waiting task queue
     auto task = _commonWaitingTaskQueue->pop();
@@ -495,8 +495,8 @@ class Runtime
     if (taskAffinity >= (ssize_t)_taskWorkers.size())
       HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
 
-    // If affinity set, 
-    if (taskAffinity >= 0) 
+    // If affinity set,
+    if (taskAffinity >= 0)
     {
       // Push it into the worker's own task queue
       _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
@@ -525,6 +525,9 @@ class Runtime
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
+
+    // Setting task as finished object
+    setFinishedObject(taskrTask->getLabel());
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);

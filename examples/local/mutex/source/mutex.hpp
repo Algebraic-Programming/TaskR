@@ -6,14 +6,8 @@
 
 void mutex(taskr::Runtime *taskr)
 {
-  // Setting onTaskFinish callback
-  taskr->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr->setFinishedObject(task->getLabel());
-
-    // Free the task's memory
-    delete task;
-  });
+  // Setting onTaskFinish callback to free up task memory after it finishes
+  taskr->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [taskr](taskr::Task *task) { delete task; });
 
   // Contention value
   size_t value = 0;
