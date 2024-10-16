@@ -53,14 +53,14 @@ class Task : public taskr::Object, public HiCR::tasking::Task
    * 
    * @return The worker affinity currently set for this task
    */
-  workerId_t getWorkerAffinity() const;
+  __INLINE__ workerId_t getWorkerAffinity() const;
 
   /**
    * Sets the task's worker affinity. 
    * 
    * @param[in] workerAffinity The worker affinity to set
    */
-  void setWorkerAffinity(const workerId_t workerAffinity);
+  __INLINE__ void setWorkerAffinity(const workerId_t workerAffinity);
 
   private:
 

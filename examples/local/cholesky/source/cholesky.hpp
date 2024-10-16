@@ -137,14 +137,8 @@ void choleskyDriver(const uint32_t                                           mat
   // Instantiate taskr
   taskr::Runtime taskr(computeResources);
 
-  // Setting onTaskFinish callback
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr.setFinishedObject(task->getLabel());
-
-    // Free the task's memory
-    delete task;
-  });
+  // Setting onTaskFinish callback to free up task memory when it finishes
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Initalize TaskR
   taskr.initialize();

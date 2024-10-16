@@ -49,14 +49,14 @@ class Worker : public HiCR::tasking::Worker
   * 
   * @return The worker's internal ready task queue
   */
-  auto getReadyTaskQueue() const { return _readyTaskQueue.get(); }
+  __INLINE__ auto getReadyTaskQueue() const { return _readyTaskQueue.get(); }
 
   /**
    * Indicates the worker has failed to retrieve a task
    * It only updates its internal timer the first time it fails after a success, to keep track
    * of how long it was since the last time it succeeded
    */
-  void setFailedToRetrieveTask()
+  __INLINE__ void setFailedToRetrieveTask()
   {
     // Only update if previously succeeded (this is such that we remember the first time we failed in the current fail streak)
     if (_hasFailedToRetrieveTask == false)
@@ -69,14 +69,14 @@ class Worker : public HiCR::tasking::Worker
   /**
    *  Indicates the worker has succeeded to retrieve a task
    */
-  void resetRetrieveTaskSuccessFlag() { _hasFailedToRetrieveTask = false; }
+  __INLINE__ void resetRetrieveTaskSuccessFlag() { _hasFailedToRetrieveTask = false; }
 
   /**
    * Retrieves the time passed since the last task retrieving success
    * 
    * @return The time passed since the last task retrieving success in milliseconds
    */
-  size_t getTimeSinceFailedToRetrievetaskMs() const
+  __INLINE__ size_t getTimeSinceFailedToRetrievetaskMs() const
   {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - _failedToRetrieveTaskTime).count();
   };
@@ -86,7 +86,7 @@ class Worker : public HiCR::tasking::Worker
    * 
    * @return true, if has failed; false, if succeeded
    */
-  bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
+  __INLINE__ bool getHasFailedToRetrieveTask() const { return _hasFailedToRetrieveTask; }
 
   /**
    * Ths function is called at set intervals to check whether the worker must resume or not
@@ -100,7 +100,7 @@ class Worker : public HiCR::tasking::Worker
    * 
    * @param fc The function that checks whether the worker may continue executing after being suspended
    */
-  void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
+  __INLINE__ void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
 
   private:
 

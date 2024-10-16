@@ -42,14 +42,8 @@ void pendingOperation(taskr::Runtime &taskr)
   // Auto-adding task when it suspends. It won't be re-executed until pending operations finish
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
 
-  // Setting onTaskFinish callback
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr.setFinishedObject(task->getLabel());
-
-    // Free the task's memory
-    delete task;
-  });
+  // Setting onTaskFinish callback to free up task's memory after it finishes
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
   auto taskfc = taskr::Function([](taskr::Task *task) { heavyTask(task); });

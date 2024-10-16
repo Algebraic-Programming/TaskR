@@ -9,12 +9,6 @@ using namespace std::chrono_literals;
 
 void conditionVariable(taskr::Runtime &taskr)
 {
-  // Setting onTaskFinish callback
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr.setFinishedObject(task->getLabel());
-  });
-
   // Contention value
   size_t value = 0;
 

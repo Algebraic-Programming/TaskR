@@ -15,7 +15,7 @@
 #include <atomic>
 #include <vector>
 #include <cstddef>
-#include <queue>
+#include <list>
 #include "common.hpp"
 
 namespace taskr
@@ -50,7 +50,7 @@ class Object
    * 
    * @return The object's label
    */
-  label_t getLabel() const { return _label; }
+  __INLINE__ label_t getLabel() const { return _label; }
 
   /**
    * Adds one output dependency on the current object
@@ -59,28 +59,28 @@ class Object
    * 
    * @param[in] dependency The label of the object that depends on this object
    */
-  __INLINE__ void addDependency(const label_t dependency) { _dependencies.push(dependency); }
+  __INLINE__ void addDependency(const label_t dependency) { _dependencies.push_back(dependency); }
 
   /**
     * Gets a reference to the task's pending dependencies
     * 
     * @return A reference to the queue containing the task's pending dependencies
     */
-  __INLINE__ std::queue<label_t> &getDependencies() { return _dependencies; }
+  __INLINE__ std::list<label_t> &getDependencies() { return _dependencies; }
 
   /**
    * Adds one pending operation on the current object
    *
    * @param[in] pendingOperation A function that checks whether the pending operation has completed or not
    */
-  __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push(pendingOperation); }
+  __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push_back(pendingOperation); }
 
   /**
     * Gets a reference to the task's pending operations
     * 
     * @return A reference to the queue containing the task's pending operations
     */
-  __INLINE__ std::queue<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
+  __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
 
   protected:
 
@@ -92,12 +92,12 @@ class Object
   /**
    * This holds all the objects this object depends on
    */
-  std::queue<label_t> _dependencies;
+  std::list<label_t> _dependencies;
 
   /**
    * This holds all pending operations the object needs to wait on
    */
-  std::queue<pendingOperation_t> _pendingOperations;
+  std::list<pendingOperation_t> _pendingOperations;
 
 }; // class Task
 

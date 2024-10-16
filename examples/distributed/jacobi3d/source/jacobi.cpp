@@ -91,14 +91,8 @@ int main(int argc, char *argv[])
   // Creating taskr object
   taskr::Runtime taskr(computeResources);
 
-  // Setting onTaskFinish callback
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr.setFinishedObject(task->getLabel());
-
-    // Free the task's memory
-    delete task;
-  });
+  // Setting onTaskFinish callback to free up its memory when it's done
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });

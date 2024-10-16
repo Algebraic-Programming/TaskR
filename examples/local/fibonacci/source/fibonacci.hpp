@@ -40,12 +40,6 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   _taskr       = &taskr;
   _taskCounter = 0;
 
-  // Setting onTaskFinish callback
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) {
-    // Add task to the list of finished objects (for depdendency management)
-    taskr.setFinishedObject(task->getLabel());
-  });
-
   // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
   _taskr->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { _taskr->resumeTask(task); });
 
