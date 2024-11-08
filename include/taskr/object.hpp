@@ -59,14 +59,23 @@ class Object
    * 
    * @param[in] dependency The label of the object that depends on this object
    */
-  __INLINE__ void addDependency(const label_t dependency) { _dependencies.push_back(dependency); }
+  __INLINE__ void addDependency() { _dependencyCount++; }
+
+    /**
+   * Adds one output dependency on the current object
+   * 
+   * This dependency represents an object (local or remote) that cannot be ready until this object finishes
+   * 
+   * @param[in] dependency The label of the object that depends on this object
+   */
+  __INLINE__ void removeDependency() { _dependencyCount--; }
 
   /**
     * Gets a reference to the task's pending dependencies
     * 
     * @return A reference to the queue containing the task's pending dependencies
     */
-  __INLINE__ std::list<label_t> &getDependencies() { return _dependencies; }
+  __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
 
   /**
    * Adds one pending operation on the current object
@@ -92,7 +101,7 @@ class Object
   /**
    * This holds all the objects this object depends on
    */
-  std::list<label_t> _dependencies;
+  std::atomic<size_t> _dependencyCount{0};
 
   /**
    * This holds all pending operations the object needs to wait on

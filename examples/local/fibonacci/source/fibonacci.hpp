@@ -21,8 +21,8 @@ uint64_t fibonacci(taskr::Task *currentTask, const uint64_t x)
   taskr::Task subTask2(_taskCounter++, &fibFc2);
 
   // Adding dependencies with the newly created tasks
-  currentTask->addDependency(subTask1.getLabel());
-  currentTask->addDependency(subTask2.getLabel());
+  _taskr->addDependency(currentTask, subTask1.getLabel());
+  _taskr->addDependency(currentTask, subTask2.getLabel());
 
   // Adding new tasks to TaskR
   _taskr->addTask(&subTask1);

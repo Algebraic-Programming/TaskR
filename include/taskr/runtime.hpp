@@ -172,6 +172,12 @@ class Runtime
     if (isReady == false) _commonWaitingTaskQueue->push(task);
   }
 
+  __INLINE__ void addDependency(taskr::Task* task, const label_t dependency)
+  {
+     task->addDependency();
+     _outputDependencies[dependency].push_front(task);
+  }
+
   /**
    * Initailizes the TaskR runtime
    * Creates a set of HiCR workers, based on the provided processing units and compute manager
@@ -301,7 +307,17 @@ class Runtime
    * 
    * @param[in] object Label of the object to report as finished
    */
-  __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object) { _finishedObjects.insert(object); }
+  __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
+  {
+     _finishedObjects.insert(object);
+
+     for (auto& task : _outputDependencies[object])
+     {
+      task->removeDependency();
+      //bool isReady = checkTaskDependencies(task);
+      //if (isReady == true) _commonReadyTaskQueue->push(task);
+     }
+  }
 
   private:
 
@@ -487,17 +503,7 @@ class Runtime
   __INLINE__ bool checkTaskDependencies(taskr::Task * const task)
   {
     // Checking for task's pending dependencies
-    while (task->getDependencies().empty() == false)
-    {
-      // Checking whether the dependency is already finished
-      const auto dependency = task->getDependencies().front();
-
-      // If it is not finished:
-      if (_finishedObjects.contains(dependency) == false) [[likely]] return false;
-
-      // Otherwise, remove it out of the dependency queue
-      task->getDependencies().pop_front();
-    }
+    if (task->getDependencyCount() > 0) return false;
 
     // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
     while (task->getPendingOperations().empty() == false)
@@ -640,6 +646,11 @@ class Runtime
    * Common lock-free queue for ready tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
+
+  /**
+   * Map for output dependencies
+   */
+  HiCR::concurrent::HashMap<taskr::label_t, std::list<taskr::Task*>> _outputDependencies;
 
   /**
    * The compute resources to use to run workers with
