@@ -72,6 +72,7 @@ class Runtime
   {
     // Creating internal objects
     _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
+    _commonReadyTaskQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
@@ -161,8 +162,14 @@ class Runtime
    */
   __INLINE__ void resumeTask(taskr::Task *task)
   {
-    // Push it into the common waiting task queue (its dependencies will be checked later)
-    _commonWaitingTaskQueue->push(task);
+    // Check if the task has pending dependencies
+    bool isReady = checkTaskDependencies(task);
+    
+    // If it is ready to go, add it immediately to the ready task queue
+    if (isReady == true) _commonReadyTaskQueue->push(task);
+
+    // Otherwise push it into the common waiting task queue (its dependencies will be checked later)
+    if (isReady == false) _commonWaitingTaskQueue->push(task);
   }
 
   /**
@@ -352,10 +359,52 @@ class Runtime
     }
 
     // Getting next task to execute from the worker's own queue
-    auto task = this->checkOneWaitingTask();
+    auto task = worker->getReadyTaskQueue()->pop();
+
+    // If no task found, check the comment ready task queue
+    if (task == nullptr) task = _commonReadyTaskQueue->pop();
 
     // If no task found, try to get one from the common waiting task queue
-    if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
+    if (task == nullptr)
+    {
+      // Getting task from the waiting task queue
+      task = _commonWaitingTaskQueue->pop();
+
+      // If we found a task
+      if (task != nullptr) 
+      {
+        // Checking if task is ready
+        bool isReady = checkTaskDependencies(task);
+
+        // If not, return it to the queue
+        if (isReady == false) { _commonWaitingTaskQueue->push(task); task = nullptr; }
+      }
+    } 
+
+
+    // A task is ready to execute, check if it's been reserved for
+    if (task != nullptr) 
+    {
+      // Getting task's affinity
+      const auto taskAffinity = task->getWorkerAffinity();
+
+      // Sanity Check
+      if (taskAffinity >= (ssize_t)_taskWorkers.size())
+        HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
+
+      // If affinity set,
+      if (taskAffinity >= 0)
+      {
+        // Push it into the worker's own task queue
+        _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
+
+        // Just in case it was asleep, awaken worker
+        _taskWorkers[taskAffinity]->resume();
+
+        // The task no longer applies to us
+        task = nullptr;
+      }
+    }
 
     // If still no found was found set it as a failure to get useful job
     if (task == nullptr)
@@ -435,14 +484,8 @@ class Runtime
    *
    * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
    */
-  __INLINE__ taskr::Task *checkOneWaitingTask()
+  __INLINE__ bool checkTaskDependencies(taskr::Task * const task)
   {
-    // Poping task from the common waiting task queue
-    auto task = _commonWaitingTaskQueue->pop();
-
-    // If still no task was found (queue was empty), then return immediately
-    if (task == nullptr) return nullptr;
-
     // Checking for task's pending dependencies
     while (task->getDependencies().empty() == false)
     {
@@ -450,14 +493,7 @@ class Runtime
       const auto dependency = task->getDependencies().front();
 
       // If it is not finished:
-      if (_finishedObjects.contains(dependency) == false) [[likely]]
-      {
-        // Push the task back into back of the queue
-        _commonWaitingTaskQueue->push(task);
-
-        // Return immediately: task was not ready
-        return nullptr;
-      }
+      if (_finishedObjects.contains(dependency) == false) [[likely]] return false;
 
       // Otherwise, remove it out of the dependency queue
       task->getDependencies().pop_front();
@@ -473,43 +509,14 @@ class Runtime
       const auto result = pendingOperation();
 
       // If not satisfied:
-      if (result == false)
-      {
-        // Push the task back into back of the queue
-        _commonWaitingTaskQueue->push(task);
-
-        // Return immediately: task was not ready
-        return nullptr;
-      }
+      if (result == false) [[likely]] return false;
 
       // Otherwise, remove it out of the dependency queue
       task->getPendingOperations().pop_front();
     }
 
-    // The task is ready to execute, check if it's been reserved for
-
-    // Getting task's affinity
-    const auto taskAffinity = task->getWorkerAffinity();
-
-    // Sanity Check
-    if (taskAffinity >= (ssize_t)_taskWorkers.size())
-      HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
-
-    // If affinity set,
-    if (taskAffinity >= 0)
-    {
-      // Push it into the worker's own task queue
-      _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
-
-      // Just in case it was asleep, awaken worker
-      _taskWorkers[taskAffinity]->resume();
-
-      // The task no longer applies to us
-      task = nullptr;
-    }
-
-    // Returning task (nullptr if nothing was found)
-    return task;
+    // Returning true: task is ready to execute
+    return true;
   }
 
   __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *task)
@@ -628,6 +635,11 @@ class Runtime
    * Common lock-free queue for waiting tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
+
+  /**
+   * Common lock-free queue for ready tasks.
+   */
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
 
   /**
    * The compute resources to use to run workers with
