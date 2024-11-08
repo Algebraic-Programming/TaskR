@@ -71,7 +71,6 @@ class Runtime
     : _computeResources(computeResources)
   {
     // Creating internal objects
-    _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _commonReadyTaskQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
@@ -167,9 +166,6 @@ class Runtime
     
     // If it is ready to go, add it immediately to the ready task queue
     if (isReady == true) _commonReadyTaskQueue->push(task);
-
-    // Otherwise push it into the common waiting task queue (its dependencies will be checked later)
-    if (isReady == false) _commonWaitingTaskQueue->push(task);
   }
 
   __INLINE__ void addDependency(taskr::Task* task, const label_t dependency)
@@ -314,8 +310,8 @@ class Runtime
      for (auto& task : _outputDependencies[object])
      {
       task->removeDependency();
-      //bool isReady = checkTaskDependencies(task);
-      //if (isReady == true) _commonReadyTaskQueue->push(task);
+      bool isReady = checkTaskDependencies(task);
+      if (isReady == true) if (task->getState() != HiCR::L0::ExecutionState::state_t::running) _commonReadyTaskQueue->push(task);
      }
   }
 
@@ -379,24 +375,6 @@ class Runtime
 
     // If no task found, check the comment ready task queue
     if (task == nullptr) task = _commonReadyTaskQueue->pop();
-
-    // If no task found, try to get one from the common waiting task queue
-    if (task == nullptr)
-    {
-      // Getting task from the waiting task queue
-      task = _commonWaitingTaskQueue->pop();
-
-      // If we found a task
-      if (task != nullptr) 
-      {
-        // Checking if task is ready
-        bool isReady = checkTaskDependencies(task);
-
-        // If not, return it to the queue
-        if (isReady == false) { _commonWaitingTaskQueue->push(task); task = nullptr; }
-      }
-    } 
-
 
     // A task is ready to execute, check if it's been reserved for
     if (task != nullptr) 
@@ -556,6 +534,9 @@ class Runtime
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+
+    // Re-adding task to the ready task queue, if ready
+    resumeTask(taskrTask);
   }
 
   __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *task)
@@ -564,7 +545,7 @@ class Runtime
     auto taskrTask = (taskr::Task *)task;
 
     // If not defined, resume task (by default)
-    if (this->_taskCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
+    if (this->_taskCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonReadyTaskQueue->push(taskrTask);
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
@@ -636,11 +617,6 @@ class Runtime
    * Counter for the current number of active tasks. Execution finishes when this counter reaches zero
    */
   std::atomic<size_t> _activeTaskCount = 0;
-
-  /**
-   * Common lock-free queue for waiting tasks.
-   */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
 
   /**
    * Common lock-free queue for ready tasks.
