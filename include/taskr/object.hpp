@@ -28,11 +28,6 @@ class Object
 {
   public:
 
-  /**
-   * The definition of a pending operation. It needs to return a boolean indicating whether the operation has ended.
-   */
-  typedef std::function<bool()> pendingOperation_t;
-
   Object()  = delete;
   ~Object() = default;
 
@@ -58,8 +53,9 @@ class Object
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
    * 
    * @param[in] dependency The label of the object that depends on this object
+   * @return The value before the operation was performed
    */
-  __INLINE__ void addDependency() { _dependencyCount++; }
+  __INLINE__ size_t addDependency() { return _dependencyCount.fetch_add(1); }
 
     /**
    * Adds one output dependency on the current object
@@ -67,8 +63,9 @@ class Object
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
    * 
    * @param[in] dependency The label of the object that depends on this object
+   * @return The value before the operation was performed
    */
-  __INLINE__ void removeDependency() { _dependencyCount--; }
+  __INLINE__ size_t removeDependency() { return _dependencyCount.fetch_sub(1); }
 
   /**
     * Gets a reference to the task's pending dependencies
@@ -76,21 +73,7 @@ class Object
     * @return A reference to the queue containing the task's pending dependencies
     */
   __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
-
-  /**
-   * Adds one pending operation on the current object
-   *
-   * @param[in] pendingOperation A function that checks whether the pending operation has completed or not
-   */
-  __INLINE__ void addPendingOperation(const pendingOperation_t pendingOperation) { _pendingOperations.push_back(pendingOperation); }
-
-  /**
-    * Gets a reference to the task's pending operations
-    * 
-    * @return A reference to the queue containing the task's pending operations
-    */
-  __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
-
+  
   protected:
 
   /**
@@ -102,11 +85,6 @@ class Object
    * This holds all the objects this object depends on
    */
   std::atomic<size_t> _dependencyCount{0};
-
-  /**
-   * This holds all pending operations the object needs to wait on
-   */
-  std::list<pendingOperation_t> _pendingOperations;
 
 }; // class Task
 
