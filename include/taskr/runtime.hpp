@@ -161,7 +161,26 @@ class Runtime
    */
   __INLINE__ void resumeTask(taskr::Task * const task)
   {
-   _commonReadyTaskQueue->push(task);
+    // Getting task's affinity
+    const auto taskAffinity = task->getWorkerAffinity();
+
+    // Sanity Check
+    if (taskAffinity >= (ssize_t)_taskWorkers.size())
+      HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
+
+    // If affinity set,
+    if (taskAffinity >= 0)
+    {
+      // Push it into the worker's own task queue
+      _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
+
+      // Just in case it was asleep, awaken worker
+      _taskWorkers[taskAffinity]->resume();
+    }
+    else // add to the common ready task queue
+    {
+      _commonReadyTaskQueue->push(task);
+    }
   }
 
   __INLINE__ void addDependency(taskr::Task* task, const label_t dependency)
@@ -372,28 +391,20 @@ class Runtime
     // If no task found, check the comment ready task queue
     if (task == nullptr) task = _commonReadyTaskQueue->pop();
 
-    // A task is ready to execute, check if it's been reserved for
-    if (task != nullptr) 
+    // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
+    if (task != nullptr) while (task->getPendingOperations().empty() == false)
     {
-      // Getting task's affinity
-      const auto taskAffinity = task->getWorkerAffinity();
+      // Checking whether the operation has finished
+      const auto pendingOperation = task->getPendingOperations().front();
 
-      // Sanity Check
-      if (taskAffinity >= (ssize_t)_taskWorkers.size())
-        HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
+      // Running pending operation checker
+      const auto result = pendingOperation();
 
-      // If affinity set,
-      if (taskAffinity >= 0)
-      {
-        // Push it into the worker's own task queue
-        _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
+      // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
+      if (result == false) [[likely]] { resumeTask(task); task = nullptr; break;  }
 
-        // Just in case it was asleep, awaken worker
-        _taskWorkers[taskAffinity]->resume();
-
-        // The task no longer applies to us
-        task = nullptr;
-      }
+      // Otherwise, remove it out of the dependency queue
+      task->getPendingOperations().pop_front();
     }
 
     // If still no found was found set it as a failure to get useful job

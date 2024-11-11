@@ -173,18 +173,18 @@ int main(int argc, char *argv[])
             taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc.get()));
 
             auto packTask = new Task("Pack", i, j, k, 0, g->packFc.get());
-            packTask->addDependency(Task::encodeTaskName("Compute", i, j, k, 0));
+            taskr.addDependency(packTask, Task::encodeTaskName("Compute", i, j, k, 0));
             taskr.addTask(packTask);
 
             auto sendTask = new Task("Send", i, j, k, 0, g->sendFc.get());
-            sendTask->addDependency(Task::encodeTaskName("Pack", i, j, k, 0));
+            taskr.addDependency(sendTask, Task::encodeTaskName("Pack", i, j, k, 0));
             taskr.addTask(sendTask);
 
             auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc.get());
             taskr.addTask(recvTask);
 
             auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc.get());
-            unpackTask->addDependency(Grid::encodeTaskName("Receive", i, j, k, 0));
+            taskr.addDependency(unpackTask, Grid::encodeTaskName("Receive", i, j, k, 0));
             taskr.addTask(unpackTask);
           }
 
