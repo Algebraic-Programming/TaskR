@@ -489,6 +489,9 @@ class Runtime
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
+    // Removing entry from output dependency map
+    _outputDependencies.erase(taskrTask->getLabel());
+
     // Decreasing active task counter
     _activeTaskCount--;
   }
