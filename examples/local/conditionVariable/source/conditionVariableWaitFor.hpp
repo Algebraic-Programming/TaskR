@@ -15,6 +15,9 @@ void conditionVariableWaitFor(taskr::Runtime &taskr)
   // Task-aware conditional variable
   taskr::ConditionVariable cv;
 
+  // Time for timeout checking (Microseconds)
+  constexpr size_t timeoutTimeUs = 100 * 1000;
+
   // Creating task functions
   auto waitFc = taskr::Function([&](taskr::Task *task) {
 
@@ -31,13 +34,17 @@ void conditionVariableWaitFor(taskr::Runtime &taskr)
     value = 1;
     
     // Waiting for a timeout
-    printf("Thread 1: I wait for a timeout (Waiting for 10ms) \n");
+    printf("Thread 1: I wait for a timeout (Waiting for %lums) \n", timeoutTimeUs);
     {
       mutex.lock(task);
-      bool wasNotified = cv.waitFor(task, mutex, 10);
+      auto startTime = std::chrono::high_resolution_clock::now();
+      bool wasNotified = cv.waitFor(task, mutex, timeoutTimeUs);
+      auto currentTime = std::chrono::high_resolution_clock::now();
+      auto elapsedTime = (size_t)std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count();
       mutex.unlock(task);
-      if (wasNotified == true) { fprintf(stderr, "Error: I have returned do to a nofitication!\n"); exit(1); }
-      printf("Thread 1: I've exited by timeout (as expected)\n");
+      if (wasNotified == true) { fprintf(stderr, "Error: I have returned do to a notification!\n"); exit(1); }
+      if (elapsedTime < timeoutTimeUs) { fprintf(stderr, "Error: I have earlier than expected!\n"); exit(1); }
+      printf("Thread 1: I've exited by timeout (as expected in %luus >= %luus)\n", elapsedTime, timeoutTimeUs);
     }
 
   });
