@@ -3,6 +3,7 @@
 #include "conditionVariableWait.hpp"
 #include "conditionVariableWaitFor.hpp"
 #include "conditionVariableWaitCondition.hpp"
+#include "conditionVariableWaitForCondition.hpp"
 
 int main(int argc, char **argv)
 {

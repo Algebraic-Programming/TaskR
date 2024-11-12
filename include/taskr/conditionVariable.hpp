@@ -93,43 +93,64 @@ class ConditionVariable
     if (conditionMutex.ownsLock(currentTask) == false) HICR_THROW_LOGIC("Condition variable: trying to use a mutex that doesn't belong to this task");
 
     // Checking on the condition
-    conditionMutex.lock(currentTask);
-    bool keepWaiting = conditionPredicate() == false;
-    conditionMutex.unlock(currentTask);
+    bool predicateSatisfied = conditionPredicate();
 
     // If predicate is satisfied, return immediately
-    if (keepWaiting == false) return true;
+    if (predicateSatisfied == true) return true;
 
     // Flag indicating the task has been notified
+    bool isTimeout = false;
     bool notificationFlag = false; 
 
     // Taking current time
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    // Insert oneself in the waiting task list
-    _mutex.lock(currentTask);
-    _waitingTasksAsync.push(&notificationFlag);
-    _mutex.unlock(currentTask);
-
-    // If the condition is not satisfied, suspend until we're notified and the condition is satisfied
-    while (keepWaiting == true)
+    // While the condition predicate hasn't been met
+    while (predicateSatisfied == false && isTimeout == false)
     {
+       // Insert oneself in the waiting task list
+      _mutex.lock(currentTask);
+      notificationFlag = false;
+      _waitingTasksAsync.push(&notificationFlag);
+      _mutex.unlock(currentTask);
+
+      // Adding pending operation
+      currentTask->addPendingOperation([&]()
+      {
+        // Checking for timeout
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
+        if (elapsedTime > std::chrono::duration<size_t, std::micro>(timeout))
+        {
+          // Setting notification flag to prevent a notification to arrive after this timeout
+          isTimeout = true;
+
+          // Returning true (task is ready to continue)
+          return true;
+        }
+
+        // Checking notification
+        if (notificationFlag == true) return true;
+
+        // Otherwise not ready to continue yet
+        return false;
+      });
+
+      // Releasing cv lock
+      conditionMutex.unlock(currentTask);
+
       // Suspending task now
       currentTask->suspend();
 
-      // After being notified, check on timeout
-      auto currentTime = std::chrono::high_resolution_clock::now();
-      auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
-      if (elapsedTime > std::chrono::duration<size_t, std::micro>(timeout)) return false;
-
-      // After being notified, check on the condition again
+      // Retaking cv lock
       conditionMutex.lock(currentTask);
-      keepWaiting = conditionPredicate() == false;
-      conditionMutex.unlock(currentTask);
+
+      // After being notified, check on the condition again. Only if not by timeout
+      if (isTimeout == false) predicateSatisfied = conditionPredicate();
     }
 
     // Return true if the exit was due to satisfied condition predicate
-    return true;
+    return predicateSatisfied;
   }
 
   /**
