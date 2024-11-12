@@ -2,21 +2,18 @@
 #include <cassert>
 #include <thread>
 #include <chrono>
-#include <taskr/runtime.hpp>
+#include <taskr/taskr.hpp>
 
-using namespace std::chrono_literals;
-#define _INITIAL_VALUE 7ul
-
-void conditionVariable(taskr::Runtime &taskr)
+void conditionVariableWaitCondition(taskr::Runtime &taskr)
 {
   // Contention value
   size_t value = 0;
 
   // Mutex for the condition variable
-  HiCR::tasking::Mutex mutex;
+  taskr::Mutex mutex;
 
   // Task-aware conditional variable
-  HiCR::tasking::ConditionVariable cv;
+  taskr::ConditionVariable cv;
 
   // Creating task functions
   auto thread1Fc = taskr::Function([&](taskr::Task *task) {
@@ -32,14 +29,18 @@ void conditionVariable(taskr::Runtime &taskr)
 
     // Waiting for the other thread's update now
     printf("Thread 1: I wait for the value to turn 2\n");
+    mutex.lock(task);
     cv.wait(task, mutex, [&]() { return value == 2; });
+    mutex.unlock(task);
     printf("Thread 1: The condition (value == 2) is satisfied now\n");
   });
 
   auto thread2Fc = taskr::Function([&](taskr::Task *task) {
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
+    mutex.lock(task);
     cv.wait(task, mutex, [&]() { return value == 1; });
+    mutex.unlock(task);
     printf("Thread 2: The condition (value == 1) is satisfied now\n");
 
     // Now updating the value ourselves

@@ -1,6 +1,8 @@
 #include <hwloc.h>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include "conditionVariable.hpp"
+#include "conditionVariableWait.hpp"
+#include "conditionVariableWaitFor.hpp"
+#include "conditionVariableWaitCondition.hpp"
 
 int main(int argc, char **argv)
 {
@@ -28,8 +30,8 @@ int main(int argc, char **argv)
   // Instantiating TaskR
   taskr::Runtime taskr(computeResources);
 
-  // Running ABCtasks example
-  conditionVariable(taskr);
+  // Running test
+  __TEST_FUNCTION_(taskr);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

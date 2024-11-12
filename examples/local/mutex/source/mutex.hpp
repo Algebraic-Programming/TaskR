@@ -13,7 +13,7 @@ void mutex(taskr::Runtime *taskr)
   size_t value = 0;
 
   // Task-aware mutex
-  HiCR::tasking::Mutex m;
+  taskr::Mutex m;
 
   // Creating task function
   auto taskfc = taskr::Function([&](taskr::Task *task) {

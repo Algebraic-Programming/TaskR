@@ -399,7 +399,7 @@ class Runtime
 
       // Running pending operation checker
       const auto result = pendingOperation();
-
+     
       // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
       if (result == false) [[likely]] { resumeTask(task); task = nullptr; break;  }
 
@@ -527,11 +527,14 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
-    // If not defined, resume task (by default)
-    if (this->_taskCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonReadyTaskQueue->push(taskrTask);
-
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
+
+    // Removing task's dependency on itself
+    auto remainingDependencies = taskrTask->removeDependency() - 1;
+
+    // If there are no remaining dependencies, adding task to ready task list
+    if (remainingDependencies == 0) resumeTask(taskrTask);
   }
 
   /**
