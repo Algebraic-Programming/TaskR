@@ -158,6 +158,7 @@ class ConditionVariable
    * \note The suspension of the task will not block the running thread.
    * 
    * \param[in] currentTask A pointer to the currently running task
+   * \param[in] conditionMutex The mutual exclusion mechanism to use to prevent two tasks from evaluating the condition predicate simultaneously
    * \param[in] timeout The amount of microseconds provided as timeout 
    * \return True, if the task is returning before timeout; false, if otherwise.
   */
@@ -225,6 +226,7 @@ class ConditionVariable
    * \note The suspension of the task will not block the running thread.
    * 
    * \param[in] currentTask A pointer to the currently running task
+   * \param[in] conditionMutex The mutual exclusion mechanism to use to prevent two tasks from evaluating the condition predicate simultaneously
   */
   void wait(taskr::Task *currentTask, taskr::Mutex &conditionMutex)
   {

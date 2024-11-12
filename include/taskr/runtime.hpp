@@ -183,9 +183,18 @@ class Runtime
     }
   }
 
-  __INLINE__ void addDependency(taskr::Task *task, const label_t dependency)
+  /**
+   * Adds a dependency on a given label for the specified task
+   *
+   * \param[in] task Task which to add a dependency
+   * \param[in] dependency The label representing the dependency
+   */
+  __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
   {
+    // Increasing the atomic dependency counter in the task
     task->addDependency();
+
+    // Register it also as an output dependency for notification later
     _outputDependencies[dependency].insert(task);
   }
 

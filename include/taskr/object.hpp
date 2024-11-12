@@ -53,21 +53,19 @@ class Object
   __INLINE__ label_t getLabel() const { return _label; }
 
   /**
-   * Adds one output dependency on the current object
+   * Atomically adds one to the output dependency counter for the current object
    * 
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
    * 
-   * @param[in] dependency The label of the object that depends on this object
    * @return The value before the operation was performed
    */
   __INLINE__ size_t addDependency() { return _dependencyCount.fetch_add(1); }
 
   /**
-   * Adds one output dependency on the current object
+   * Atomically subtracts one from output dependency counter for the current object
    * 
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
    * 
-   * @param[in] dependency The label of the object that depends on this object
    * @return The value before the operation was performed
    */
   __INLINE__ size_t removeDependency() { return _dependencyCount.fetch_sub(1); }
