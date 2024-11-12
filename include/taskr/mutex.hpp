@@ -149,4 +149,4 @@ class Mutex
   std::queue<taskr::Task *> _queue;
 };
 
-} // namespace HiCR::tasking
+} // namespace taskr

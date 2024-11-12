@@ -29,7 +29,11 @@ void conditionVariableWait(taskr::Runtime &taskr)
   auto notifyFc = taskr::Function([&](taskr::Task *task) {
     // Notifying the other task
     printf("Thread 2: Notifying anybody interested\n");
-    while (value != 1) { cv.notifyOne(task); task->suspend(); }
+    while (value != 1)
+    {
+      cv.notifyOne(task);
+      task->suspend();
+    }
   });
 
   taskr::Task task1(0, &waitFc);

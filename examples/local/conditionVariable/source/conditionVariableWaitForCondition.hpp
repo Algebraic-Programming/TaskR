@@ -31,15 +31,24 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
 
     // Notifiying the other thread
     printf("Thread 1: Now I notify anybody waiting\n");
-    while (value != 2) { cv.notifyOne(task); task->suspend(); }
+    while (value != 2)
+    {
+      cv.notifyOne(task);
+      task->suspend();
+    }
 
     // Waiting for the other thread's update now
     {
       printf("Thread 1: I wait (forever) for the value to turn 2\n");
       mutex.lock(task);
-      bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 2; }, forever);
+      bool wasNotified = cv.waitFor(
+        task, mutex, [&]() { return value == 2; }, forever);
       mutex.unlock(task);
-      if (wasNotified == false) { fprintf(stderr, "Error: I have returned do to a timeout!\n"); exit(1); }
+      if (wasNotified == false)
+      {
+        fprintf(stderr, "Error: I have returned do to a timeout!\n");
+        exit(1);
+      }
       printf("Thread 1: The condition (value == 2) is satisfied now\n");
     }
 
@@ -47,13 +56,22 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
     {
       printf("Thread 1: I wait (with timeout) for the value to turn 3 (won't happen)\n");
       mutex.lock(task);
-      auto startTime = std::chrono::high_resolution_clock::now();
-      bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 3; }, timeoutTimeUs);
+      auto startTime   = std::chrono::high_resolution_clock::now();
+      bool wasNotified = cv.waitFor(
+        task, mutex, [&]() { return value == 3; }, timeoutTimeUs);
       auto currentTime = std::chrono::high_resolution_clock::now();
       auto elapsedTime = (size_t)std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count();
       mutex.unlock(task);
-      if (wasNotified == true) { fprintf(stderr, "Error: I have returned do to a notification!\n"); exit(1); }
-      if (elapsedTime < timeoutTimeUs) { fprintf(stderr, "Error: I have returned earlier than expected!\n"); exit(1); }
+      if (wasNotified == true)
+      {
+        fprintf(stderr, "Error: I have returned do to a notification!\n");
+        exit(1);
+      }
+      if (elapsedTime < timeoutTimeUs)
+      {
+        fprintf(stderr, "Error: I have returned earlier than expected!\n");
+        exit(1);
+      }
       printf("Thread 1: I've exited by timeout (as expected in %luus >= %luus)\n", elapsedTime, timeoutTimeUs);
     }
 
@@ -61,16 +79,20 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
     mutex.lock(task);
     value = 3;
     mutex.unlock(task);
-
   });
 
   auto thread2Fc = taskr::Function([&](taskr::Task *task) {
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
     mutex.lock(task);
-    bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 1; }, forever);
+    bool wasNotified = cv.waitFor(
+      task, mutex, [&]() { return value == 1; }, forever);
     mutex.unlock(task);
-    if (wasNotified == false) { fprintf(stderr, "Error: I have returned do to a timeout!\n"); exit(1); }
+    if (wasNotified == false)
+    {
+      fprintf(stderr, "Error: I have returned do to a timeout!\n");
+      exit(1);
+    }
     printf("Thread 2: The condition (value == 1) is satisfied now\n");
 
     // Now updating the value ourselves
@@ -81,7 +103,11 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
 
     // Notifying the other thread
     printf("Thread 2: Notifying constantly until the value is 3\n");
-    while (value != 3) { cv.notifyOne(task); task->suspend(); }
+    while (value != 3)
+    {
+      cv.notifyOne(task);
+      task->suspend();
+    }
   });
 
   taskr::Task task1(0, &thread1Fc);

@@ -32,7 +32,7 @@ class Object
    * The definition of a pending operation. It needs to return a boolean indicating whether the operation has ended.
    */
   typedef std::function<bool()> pendingOperation_t;
-  
+
   Object()  = delete;
   ~Object() = default;
 
@@ -62,7 +62,7 @@ class Object
    */
   __INLINE__ size_t addDependency() { return _dependencyCount.fetch_add(1); }
 
-    /**
+  /**
    * Adds one output dependency on the current object
    * 
    * This dependency represents an object (local or remote) that cannot be ready until this object finishes
@@ -78,8 +78,8 @@ class Object
     * @return A reference to the queue containing the task's pending dependencies
     */
   __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
-  
-    /**
+
+  /**
    * Adds one pending operation on the current object
    *
    * @param[in] pendingOperation A function that checks whether the pending operation has completed or not
@@ -92,7 +92,7 @@ class Object
     * @return A reference to the queue containing the task's pending operations
     */
   __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
-  
+
   protected:
 
   /**

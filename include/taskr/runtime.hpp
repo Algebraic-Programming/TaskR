@@ -71,8 +71,8 @@ class Runtime
     : _computeResources(computeResources)
   {
     // Creating internal objects
-    _commonReadyTaskQueue   = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
+    _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
+    _serviceQueue         = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
@@ -142,7 +142,7 @@ class Runtime
    *
    * \param[in] task Task to add.
    */
-  __INLINE__ void addTask(taskr::Task * const task)
+  __INLINE__ void addTask(taskr::Task *const task)
   {
     // Increasing active task counter
     _activeTaskCount++;
@@ -159,7 +159,7 @@ class Runtime
    *
    * \param[in] task Task to resume.
    */
-  __INLINE__ void resumeTask(taskr::Task * const task)
+  __INLINE__ void resumeTask(taskr::Task *const task)
   {
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
@@ -183,10 +183,10 @@ class Runtime
     }
   }
 
-  __INLINE__ void addDependency(taskr::Task* task, const label_t dependency)
+  __INLINE__ void addDependency(taskr::Task *task, const label_t dependency)
   {
-     task->addDependency();
-     _outputDependencies[dependency].insert(task);
+    task->addDependency();
+    _outputDependencies[dependency].insert(task);
   }
 
   /**
@@ -320,14 +320,14 @@ class Runtime
    */
   __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
   {
-     for (auto& task : _outputDependencies[object])
-     {
+    for (auto &task : _outputDependencies[object])
+    {
       // Removing task's dependency
       auto remainingDependencies = task->removeDependency() - 1;
 
       // If the task has no remaining dependencies, continue executing it
       if (remainingDependencies == 0) resumeTask(task);
-     }
+    }
   }
 
   private:
@@ -392,20 +392,26 @@ class Runtime
     if (task == nullptr) task = _commonReadyTaskQueue->pop();
 
     // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
-    if (task != nullptr) while (task->getPendingOperations().empty() == false)
-    {
-      // Checking whether the operation has finished
-      const auto pendingOperation = task->getPendingOperations().front();
+    if (task != nullptr)
+      while (task->getPendingOperations().empty() == false)
+      {
+        // Checking whether the operation has finished
+        const auto pendingOperation = task->getPendingOperations().front();
 
-      // Running pending operation checker
-      const auto result = pendingOperation();
-     
-      // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
-      if (result == false) [[likely]] { resumeTask(task); task = nullptr; break;  }
+        // Running pending operation checker
+        const auto result = pendingOperation();
 
-      // Otherwise, remove it out of the dependency queue
-      task->getPendingOperations().pop_front();
-    }
+        // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
+        if (result == false) [[likely]]
+        {
+          resumeTask(task);
+          task = nullptr;
+          break;
+        }
+
+        // Otherwise, remove it out of the dependency queue
+        task->getPendingOperations().pop_front();
+      }
 
     // If still no found was found set it as a failure to get useful job
     if (task == nullptr)
@@ -425,7 +431,7 @@ class Runtime
 
     // Check for termination
     if (task == nullptr) checkTermination(worker);
-    
+
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
 
@@ -433,7 +439,7 @@ class Runtime
     return task;
   }
 
-  __INLINE__ bool checkTermination(taskr::Worker * const worker)
+  __INLINE__ bool checkTermination(taskr::Worker *const worker)
   {
     // If all tasks finished, then terminate execution immediately
     if (_activeTaskCount == 0)
@@ -449,7 +455,7 @@ class Runtime
     return false;
   }
 
-  __INLINE__ bool checkResumeWorker(taskr::Worker * const worker)
+  __INLINE__ bool checkResumeWorker(taskr::Worker *const worker)
   {
     // There are not enough polling workers
     if (_activeTaskWorkerCount <= _minimumActiveTaskWorkers) return true;
@@ -470,7 +476,7 @@ class Runtime
   /**
    * Function to check whether the running thread needs to suspend
    */
-  __INLINE__ void checkTaskWorkerSuspension(taskr::Worker * const worker)
+  __INLINE__ void checkTaskWorkerSuspension(taskr::Worker *const worker)
   {
     // Check for inactivity time (to put the worker to sleep)
     if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
@@ -480,7 +486,7 @@ class Runtime
             worker->suspend();
   }
 
-  __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task * const task)
+  __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
@@ -489,7 +495,7 @@ class Runtime
     _taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
   }
 
-  __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task * const task)
+  __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
@@ -507,7 +513,7 @@ class Runtime
     _activeTaskCount--;
   }
 
-  __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task * const task)
+  __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
@@ -522,7 +528,7 @@ class Runtime
     if (remainingDependencies == 0) resumeTask(taskrTask);
   }
 
-  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task * const task)
+  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
@@ -612,7 +618,7 @@ class Runtime
   /**
    * Map for output dependencies
    */
-  HiCR::concurrent::HashMap<taskr::label_t,HiCR::concurrent::HashSet<taskr::Task*>> _outputDependencies;
+  HiCR::concurrent::HashMap<taskr::label_t, HiCR::concurrent::HashSet<taskr::Task *>> _outputDependencies;
 
   /**
    * The compute resources to use to run workers with

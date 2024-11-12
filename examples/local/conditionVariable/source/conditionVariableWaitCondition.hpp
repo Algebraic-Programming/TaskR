@@ -25,7 +25,11 @@ void conditionVariableWaitCondition(taskr::Runtime &taskr)
 
     // Notifiying the other thread
     printf("Thread 1: Now I notify anybody waiting\n");
-    while (value != 1) { cv.notifyOne(task); task->suspend(); }
+    while (value != 1)
+    {
+      cv.notifyOne(task);
+      task->suspend();
+    }
 
     // Waiting for the other thread's update now
     printf("Thread 1: I wait for the value to turn 2\n");

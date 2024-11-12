@@ -46,7 +46,7 @@ class ConditionVariable
   {
     // Asserting I am the owner of the condition mutx
     if (conditionMutex.ownsLock(currentTask) == false) HICR_THROW_LOGIC("Condition variable: trying to use a mutex that doesn't belong to this task");
-    
+
     // Checking on the condition
     bool keepWaiting = conditionPredicate() == false;
 
@@ -55,7 +55,7 @@ class ConditionVariable
     {
       // Insert oneself in the waiting task list
       _mutex.lock(currentTask);
-       currentTask->addDependency();
+      currentTask->addDependency();
       _waitingTasksSync.push(currentTask);
       _mutex.unlock(currentTask);
 
@@ -99,8 +99,8 @@ class ConditionVariable
     if (predicateSatisfied == true) return true;
 
     // Flag indicating the task has been notified
-    bool isTimeout = false;
-    bool notificationFlag = false; 
+    bool isTimeout        = false;
+    bool notificationFlag = false;
 
     // Taking current time
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -108,15 +108,14 @@ class ConditionVariable
     // While the condition predicate hasn't been met
     while (predicateSatisfied == false && isTimeout == false)
     {
-       // Insert oneself in the waiting task list
+      // Insert oneself in the waiting task list
       _mutex.lock(currentTask);
       notificationFlag = false;
       _waitingTasksAsync.push(&notificationFlag);
       _mutex.unlock(currentTask);
 
       // Adding pending operation
-      currentTask->addPendingOperation([&]()
-      {
+      currentTask->addPendingOperation([&]() {
         // Checking for timeout
         auto currentTime = std::chrono::high_resolution_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
@@ -166,10 +165,10 @@ class ConditionVariable
   {
     // Asserting I am the owner of the condition mutx
     if (conditionMutex.ownsLock(currentTask) == false) HICR_THROW_LOGIC("Condition variable: trying to use a mutex that doesn't belong to this task");
-     
+
     // Flag indicating the task has been notified
     bool returnsDueToNotification = false;
-    bool notificationFlag = false; 
+    bool notificationFlag         = false;
 
     // Insert oneself in the asynchronous waiting task list
     _mutex.lock(currentTask);
@@ -180,14 +179,13 @@ class ConditionVariable
     auto startTime = std::chrono::high_resolution_clock::now();
 
     // Adding pending operation
-    currentTask->addPendingOperation([&]()
-    {
+    currentTask->addPendingOperation([&]() {
       // Checking notification
       if (notificationFlag == true)
       {
         // Specify we are returning due to a notification
-         returnsDueToNotification = true;
-         
+        returnsDueToNotification = true;
+
         // Returning true (task is ready to continue)
         return true;
       }
@@ -197,11 +195,11 @@ class ConditionVariable
       auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
       if (elapsedTime > std::chrono::duration<size_t, std::micro>(timeout))
       {
-         // Setting notification flag to prevent a notification to arrive after this timeout
-         notificationFlag = true;
+        // Setting notification flag to prevent a notification to arrive after this timeout
+        notificationFlag = true;
 
-         // Returning true (task is ready to continue)
-         return true;
+        // Returning true (task is ready to continue)
+        return true;
       }
 
       // Otherwise not ready to continue yet
@@ -237,7 +235,7 @@ class ConditionVariable
     _mutex.unlock(currentTask);
 
     // Releasing cv lock
-    conditionMutex.unlock(currentTask); 
+    conditionMutex.unlock(currentTask);
 
     // Suspending task now
     currentTask->suspend();
@@ -276,7 +274,7 @@ class ConditionVariable
       if (*notificationFlag == false)
       {
         *notificationFlag = true;
-        isNotified = true;
+        isNotified        = true;
       }
     }
 
@@ -301,10 +299,10 @@ class ConditionVariable
     };
 
     // Notifying also asynchronous flags
-    while ( _waitingTasksAsync.empty() == false)
+    while (_waitingTasksAsync.empty() == false)
     {
-      auto* notificationFlag = _waitingTasksAsync.front();
-      *notificationFlag = true;
+      auto *notificationFlag = _waitingTasksAsync.front();
+      *notificationFlag      = true;
       _waitingTasksAsync.pop();
     }
 
@@ -338,4 +336,4 @@ class ConditionVariable
   std::queue<notificationFlag_t *> _waitingTasksAsync;
 };
 
-} // namespace taskr::tasking
+} // namespace taskr
