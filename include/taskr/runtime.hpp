@@ -80,6 +80,7 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
 
     // Assigning configuration defaults
+    _rememberFinishedObjects         = false; // This flag indicates whether the finished objects will be remembered, in case new dependencies on them are created after they finished
     _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
     _taskWorkerSuspendIntervalTimeMs = 1;     // Worker will sleep for 1ms when suspended
     _minimumActiveTaskWorkers        = 1;     // Guarantee that there is at least one active task worker
@@ -87,6 +88,7 @@ class Runtime
     _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
 
     // Parsing configuration
+    if (config.contains("Remember Finished Objects")) _rememberFinishedObjects = hicr::json::getBoolean(config, "Remember Finished Objects");
     if (config.contains("Task Worker Inactivity Time (Ms)")) _taskWorkerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Worker Inactivity Time (Ms)");
     if (config.contains("Task Suspend Interval Time (Ms)")) _taskWorkerSuspendIntervalTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Suspend Interval Time (Ms)");
     if (config.contains("Minimum Active Task Workers")) _minimumActiveTaskWorkers = hicr::json::getNumber<size_t>(config, "Minimum Active Task Workers");
@@ -191,6 +193,9 @@ class Runtime
    */
   __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
   {
+    // If remembering terminated objects, check if this dependency hasn't finished already
+    if (_rememberFinishedObjects) if (_finishedObjects.contains(dependency) == true) return;
+
     // Register it also as an output dependency for notification later
     reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
     _outputDependencies[dependency].insert(task);
@@ -327,6 +332,10 @@ class Runtime
    */
   __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
   {
+    // If configured, add finished object to the set of finished objects
+    if (_rememberFinishedObjects) _finishedObjects.insert(object);
+
+    // Now for each task that dependends on this object, reduce their dependencies by one
     for (auto &task : _outputDependencies[object])
     {
       // Removing task's dependency
@@ -631,7 +640,18 @@ class Runtime
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::service_t>> _serviceQueue;
 
+  /**
+   * This parallel set stores the id of all finished objects
+  */
+  HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
+
+
   //////// Configuration Elements
+
+  /**
+   * Flag to set whether to remember finished objects
+   */
+  bool _rememberFinishedObjects;
 
   /**
    * Time (ms) before a worker thread suspends after not finding any ready tasks

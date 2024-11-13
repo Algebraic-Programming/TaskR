@@ -164,20 +164,13 @@ class Grid
   void calculateLocalResidual(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
   void sync();
 
-
-  SubGrid& getSubGrid(const uint64_t lx, const uint64_t ly, const uint64_t lz)
-  {
-    auto    localId = localSubGridMapping[lz][ly][lx];
-    return subgrids[localId];
-  }
-
   static inline void tryPush(taskr::Task *currentTask, HiCR::channel::fixedSize::SPSC::Producer *channel, std::shared_ptr<HiCR::L0::LocalMemorySlot> slot)
   {
     // If the channel is full, suspend task until it frees up
     if (channel->isFull())
     {
       // Adding pending operation: channel being freed up
-      currentTask->addPendingOperation([&]() {  printf("Checking Channel\n"); return channel->isFull() == false; });
+      currentTask->addPendingOperation([&]() { return channel->isFull() == false; });
 
       // Suspending until the operation is finished
       currentTask->suspend();
@@ -193,7 +186,7 @@ class Grid
     if (channel->isEmpty())
     {
       // Adding pending operation: channel being freed up
-      currentTask->addPendingOperation([&]() { printf("Checking Channel\n"); return channel->isEmpty() == false; });
+      currentTask->addPendingOperation([&]() { return channel->isEmpty() == false; });
 
       // Suspending until the operation is finished
       currentTask->suspend();

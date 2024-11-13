@@ -89,7 +89,9 @@ int main(int argc, char *argv[])
   printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Creating taskr object
-  taskr::Runtime taskr(computeResources);
+  nlohmann::json taskrConfig;
+  taskrConfig["Remember Finished Objects"] = true;
+  taskr::Runtime taskr(computeResources, taskrConfig);
 
   // Setting onTaskFinish callback to free up its memory when it's done
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
@@ -140,8 +142,7 @@ int main(int argc, char *argv[])
     [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
   // Defining execution unit to run by all the instances
-  instanceManager->addRPCTarget("processGrid", [&]()
-  {
+  instanceManager->addRPCTarget("processGrid", [&]() {
     // printf("Instance %lu: Executing...\n", myInstanceId);
 
     // Creating tasks to reset the grid
@@ -162,59 +163,38 @@ int main(int argc, char *argv[])
     // Waiting for Taskr to finish
     taskr.await();
 
-
-    // Creating entire dependency graph in advance
-    if (nIters > 0) // Only compute if at least one iteration is required
-    for (ssize_t it = 0; it < nIters; it++)
+    // Creating initial set tasks to solve the first iteration
+    if (nIters > 0) // Only compute if at least one iteartion is required
       for (ssize_t i = 0; i < lt.x; i++)
         for (ssize_t j = 0; j < lt.y; j++)
           for (ssize_t k = 0; k < lt.z; k++)
           {
-            auto computeTask = new Task("Compute", i, j, k, it, g->computeFc.get());
-            // if (it > 0) if (g->getSubGrid(i, j, k).X0.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it-1));
-            // if (it > 0) if (g->getSubGrid(i, j, k).X1.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it-1));
-            // if (it > 0) if (g->getSubGrid(i, j, k).Y0.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it-1));
-            // if (it > 0) if (g->getSubGrid(i, j, k).Y1.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it-1));
-            // if (it > 0) if (g->getSubGrid(i, j, k).Z0.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it-1));
-            // if (it > 0) if (g->getSubGrid(i, j, k).Z1.type == LOCAL) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it-1));
-            if (it > 0) taskr.addDependency(computeTask, Task::encodeTaskName("Compute", i, j, k, it-1));
-            // if (it > 0) taskr.addDependency(computeTask, Task::encodeTaskName("Pack", i, j, k, it-1));
-            // if (it > 0) taskr.addDependency(computeTask, Task::encodeTaskName("Unpack", i, j, k, it-1));
-            taskr.addTask(computeTask);
+            taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc.get()));
 
-            // auto packTask = new Task("Pack", i, j, k, it, g->packFc.get());
-            // taskr.addDependency(packTask, Task::encodeTaskName("Compute", i, j, k, it));
-            // if (it > 0) taskr.addDependency(packTask, Task::encodeTaskName("Send", i, j, k, it-1));
-            // taskr.addTask(packTask);
+            auto packTask = new Task("Pack", i, j, k, 0, g->packFc.get());
+            taskr.addDependency(packTask, Task::encodeTaskName("Compute", i, j, k, 0));
+            taskr.addTask(packTask);
 
-            // auto sendTask = new Task("Send", i, j, k, it, g->sendFc.get());
-            // taskr.addDependency(sendTask, Task::encodeTaskName("Pack", i, j, k, it));
-            // taskr.addTask(sendTask);
+            auto sendTask = new Task("Send", i, j, k, 0, g->sendFc.get());
+            taskr.addDependency(sendTask, Task::encodeTaskName("Pack", i, j, k, 0));
+            taskr.addTask(sendTask);
 
-            // auto recvTask = new Task("Receive", i, j, k, it, g->receiveFc.get());
-            // if (it > 0) taskr.addDependency(recvTask, Grid::encodeTaskName("Unpack", i, j, k, it-1));
-            // taskr.addTask(recvTask);
+            auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc.get());
+            taskr.addTask(recvTask);
 
-            // auto unpackTask = new Task("Unpack", i, j, k, it, g->unpackFc.get());
-            // taskr.addDependency(unpackTask, Task::encodeTaskName("Compute", i, j, k, it));
-            // taskr.addDependency(unpackTask, Grid::encodeTaskName("Receive", i, j, k, it));
-            // taskr.addTask(unpackTask);
+            auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc.get());
+            taskr.addDependency(unpackTask, Grid::encodeTaskName("Receive", i, j, k, 0));
+            taskr.addTask(unpackTask);
           }
 
     // Setting start time as now
     auto t0 = std::chrono::high_resolution_clock::now();
-
-
-    printf("Running\n");
 
     // Running Taskr
     taskr.run();
 
     // Waiting for Taskr to finish
     taskr.await();
-
-    
-    printf("Running Finished\n");
 
     ////// Calculating residual
 
