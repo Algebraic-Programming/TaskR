@@ -658,7 +658,6 @@ void Grid::reset(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly,
 
 void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
-  printf("Computing %u\n", it);
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -713,19 +712,10 @@ void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
   if (subGrid.Y1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 1, lz + 0, it));
   if (subGrid.Z0.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 0, lz - 1, it));
   if (subGrid.Z1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 0, lz + 1, it));
-
-  // Adding communication dependency for the next iteration
-  printf("COmpute adding dependency on (%lu)", Task::encodeTaskName("Unpack", lx, ly, lz, it)); fflush(stdout);
-  _taskr->addDependency(newTask, Task::encodeTaskName("Unpack", lx, ly, lz, it));
-
-  // Adding task for the next iteration
-  _taskr->addTask(newTask);
 }
 
 void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
-   printf("Receive %u\n", it);
-
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -737,22 +727,10 @@ void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
   if (subGrid.Y1.type == REMOTE) { subGrid.Y1UnpackBuffer = tryPeek(currentTask, subGrid.Y1RecvChannel.get(), bufferSizeY); }
   if (subGrid.Z0.type == REMOTE) { subGrid.Z0UnpackBuffer = tryPeek(currentTask, subGrid.Z0RecvChannel.get(), bufferSizeZ); }
   if (subGrid.Z1.type == REMOTE) { subGrid.Z1UnpackBuffer = tryPeek(currentTask, subGrid.Z1RecvChannel.get(), bufferSizeZ); }
-
-  // If we reached the iteration before the end, no more communication is needed
-  if (it == nIters - 1) return;
-
-  // Creating new task for the next iteration
-  auto newTask = new Task("Receive", lx, ly, lz, it + 1, receiveFc.get());
-  _taskr->addDependency(newTask, Task::encodeTaskName("Unpack", lx, ly, lz, it));
-
-  // Creating task for the next iteration only if we haven't reached the end
-  _taskr->addTask(newTask);
 }
 
 void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
-  printf("Unpack %u\n", it);
-
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -814,26 +792,10 @@ void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly
         for (int x = 0; x < ls.x; x++) localU[fs.x * fs.y * (subGrid.lEnd.z + d) + fs.x * (subGrid.lStart.y + y) + (subGrid.lStart.x + x)] = subGrid.Z1UnpackBuffer[bufferIdx++];
     subGrid.Z1RecvChannel->pop();
   }
-
-  // If we reached the iteration before the end, no more communication is needed
-  if (it == nIters - 1) return;
-
-  // Creating new task for the next iteration
-  auto newTask = new Task("Unpack", lx, ly, lz, it + 1, unpackFc.get());
-
-  // Adding compute dependency for the next iteration
-  _taskr->addDependency(newTask, Task::encodeTaskName("Receive", lx, ly, lz, it + 1));
-  _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx, ly, lz, it));
-
-  // Creating task for the next iteration only if we haven't reached the end
-  printf("Unpack (%lu) finished", currentTask->getLabel()); fflush(stdout);
-  _taskr->addTask(newTask);
 }
 
 void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
-   printf("Pack %u\n", it);
-
   auto    localId = localSubGridMapping[lz][ly][lx];
   auto   &subGrid = subgrids[localId];
   double *localUn = it % 2 == 0 ? Un : U;
@@ -893,25 +855,10 @@ void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, 
       for (int y = 0; y < ls.y; y++)
         for (int x = 0; x < ls.x; x++) bufferPtr[bufferIdx++] = localUn[fs.x * fs.y * (subGrid.lEnd.z - gDepth + d) + fs.x * (subGrid.lStart.y + y) + (subGrid.lStart.x + x)];
   }
-
-  // If we reached the iteration before the end, no more communication is needed
-  if (it == nIters - 1) return;
-
-  // Creating new task for the next iteration
-  auto newTask = new Task("Pack", lx, ly, lz, it + 1, packFc.get());
-
-  // Adding compute dependency for the next iteration
-  _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx, ly, lz, it + 1));
-  _taskr->addDependency(newTask, Task::encodeTaskName("Send", lx, ly, lz, it));
-
-  // Creating task for the next iteration only if we haven't reached the end
-  _taskr->addTask(newTask);
 }
 
 void Grid::send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
-  printf("Send %u\n", it);
-
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -923,18 +870,6 @@ void Grid::send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, 
   if (subGrid.Y1.type == REMOTE) tryPush(currentTask, subGrid.Y1SendChannel.get(), subGrid.Y1PackMemorySlot);
   if (subGrid.Z0.type == REMOTE) tryPush(currentTask, subGrid.Z0SendChannel.get(), subGrid.Z0PackMemorySlot);
   if (subGrid.Z1.type == REMOTE) tryPush(currentTask, subGrid.Z1SendChannel.get(), subGrid.Z1PackMemorySlot);
-
-  // If we reached the iteration before the end, no more communication is needed
-  if (it == nIters - 1) return;
-
-  // Creating new task for the next iteration
-  auto newTask = new Task("Send", lx, ly, lz, it + 1, sendFc.get());
-
-  // Adding compute dependency for the next iteration
-  _taskr->addDependency(newTask, encodeTaskName("Pack", lx, ly, lz, it + 1));
-
-  // Creating task for the next iteration only if we haven't reached the end
-  _taskr->addTask(newTask);
 }
 
 void Grid::calculateLocalResidual(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)

@@ -507,15 +507,18 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
+    // Getting task label
+    const auto taskLabel = taskrTask->getLabel();
+
     // Setting task as finished object
-    setFinishedObject(taskrTask->getLabel());
+    setFinishedObject(taskLabel);
 
     // If defined, trigger user-defined event
-    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+    // this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
     // Removing entry from input/output dependency map
-    _inputDependencies.erase(taskrTask->getLabel());
-    _outputDependencies.erase(taskrTask->getLabel());
+    _inputDependencies.erase(taskLabel);
+    _outputDependencies.erase(taskLabel);
 
     // Decreasing active task counter
     _activeTaskCount--;
