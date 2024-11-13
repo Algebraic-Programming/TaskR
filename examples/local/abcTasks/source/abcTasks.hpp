@@ -32,9 +32,9 @@ void abcTasks(taskr::Runtime &taskr)
       auto taskC = new taskr::Task(repetitionLabel + i * 3 + 2, &taskCfc);
 
       // Creating dependencies
-      if (i > 0) taskA->addDependency(repetitionLabel + i * 3 - 1);
-      taskB->addDependency(repetitionLabel + i * 3 + 0);
-      taskC->addDependency(repetitionLabel + i * 3 + 1);
+      if (i > 0) taskr.addDependency(taskA, repetitionLabel + i * 3 - 1);
+      taskr.addDependency(taskB, repetitionLabel + i * 3 + 0);
+      taskr.addDependency(taskC, repetitionLabel + i * 3 + 1);
 
       // Adding to taskr
       taskr.addTask(taskA);

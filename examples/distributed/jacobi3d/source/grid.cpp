@@ -706,15 +706,15 @@ void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
   auto newTask = new Task("Compute", lx, ly, lz, it + 1, computeFc.get());
 
   // Adding compute dependencies for the next iteration
-  if (subGrid.X0.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx - 1, ly + 0, lz + 0, it));
-  if (subGrid.X1.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx + 1, ly + 0, lz + 0, it));
-  if (subGrid.Y0.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx + 0, ly - 1, lz + 0, it));
-  if (subGrid.Y1.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx + 0, ly + 1, lz + 0, it));
-  if (subGrid.Z0.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx + 0, ly + 0, lz - 1, it));
-  if (subGrid.Z1.type == LOCAL) newTask->addDependency(Task::encodeTaskName("Compute", lx + 0, ly + 0, lz + 1, it));
+  if (subGrid.X0.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx - 1, ly + 0, lz + 0, it));
+  if (subGrid.X1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 1, ly + 0, lz + 0, it));
+  if (subGrid.Y0.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly - 1, lz + 0, it));
+  if (subGrid.Y1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 1, lz + 0, it));
+  if (subGrid.Z0.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 0, lz - 1, it));
+  if (subGrid.Z1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 0, lz + 1, it));
 
   // Adding communication dependency for the next iteration
-  newTask->addDependency(Task::encodeTaskName("Unpack", lx, ly, lz, it));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Unpack", lx, ly, lz, it));
 
   // Adding task for the next iteration
   _taskr->addTask(newTask);
@@ -739,7 +739,7 @@ void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
 
   // Creating new task for the next iteration
   auto newTask = new Task("Receive", lx, ly, lz, it + 1, receiveFc.get());
-  newTask->addDependency(Task::encodeTaskName("Unpack", lx, ly, lz, it));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Unpack", lx, ly, lz, it));
 
   // Creating task for the next iteration only if we haven't reached the end
   _taskr->addTask(newTask);
@@ -816,8 +816,8 @@ void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly
   auto newTask = new Task("Unpack", lx, ly, lz, it + 1, unpackFc.get());
 
   // Adding compute dependency for the next iteration
-  newTask->addDependency(Task::encodeTaskName("Receive", lx, ly, lz, it + 1));
-  newTask->addDependency(Task::encodeTaskName("Compute", lx, ly, lz, it));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Receive", lx, ly, lz, it + 1));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx, ly, lz, it));
 
   // Creating task for the next iteration only if we haven't reached the end
   _taskr->addTask(newTask);
@@ -892,8 +892,8 @@ void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, 
   auto newTask = new Task("Pack", lx, ly, lz, it + 1, packFc.get());
 
   // Adding compute dependency for the next iteration
-  newTask->addDependency(Task::encodeTaskName("Compute", lx, ly, lz, it + 1));
-  newTask->addDependency(Task::encodeTaskName("Send", lx, ly, lz, it));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx, ly, lz, it + 1));
+  _taskr->addDependency(newTask, Task::encodeTaskName("Send", lx, ly, lz, it));
 
   // Creating task for the next iteration only if we haven't reached the end
   _taskr->addTask(newTask);
@@ -920,7 +920,7 @@ void Grid::send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, 
   auto newTask = new Task("Send", lx, ly, lz, it + 1, sendFc.get());
 
   // Adding compute dependency for the next iteration
-  newTask->addDependency(encodeTaskName("Pack", lx, ly, lz, it + 1));
+  _taskr->addDependency(newTask, encodeTaskName("Pack", lx, ly, lz, it + 1));
 
   // Creating task for the next iteration only if we haven't reached the end
   _taskr->addTask(newTask);

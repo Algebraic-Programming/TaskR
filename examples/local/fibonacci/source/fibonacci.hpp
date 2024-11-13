@@ -21,8 +21,8 @@ uint64_t fibonacci(taskr::Task *currentTask, const uint64_t x)
   taskr::Task subTask2(_taskCounter++, &fibFc2);
 
   // Adding dependencies with the newly created tasks
-  currentTask->addDependency(subTask1.getLabel());
-  currentTask->addDependency(subTask2.getLabel());
+  _taskr->addDependency(currentTask, subTask1.getLabel());
+  _taskr->addDependency(currentTask, subTask2.getLabel());
 
   // Adding new tasks to TaskR
   _taskr->addTask(&subTask1);
@@ -39,9 +39,6 @@ uint64_t fibonacciDriver(const uint64_t initialValue, taskr::Runtime &taskr)
   // Setting global variables
   _taskr       = &taskr;
   _taskCounter = 0;
-
-  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  _taskr->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { _taskr->resumeTask(task); });
 
   // Storage for result
   uint64_t result = 0;

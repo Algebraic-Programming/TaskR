@@ -30,7 +30,7 @@ extern std::atomic<uint64_t>                                       *_taskCounter
 __INLINE__ void addTaskDependency(taskr::Task *task, const uint32_t row, const uint32_t column)
 {
   auto dependencies = _dependencyGrid[row][column];
-  for (const auto &d : dependencies) { task->addDependency(d); }
+  for (const auto &d : dependencies) { _taskr->addDependency(task, d); }
 }
 
 /**

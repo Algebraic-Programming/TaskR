@@ -71,23 +71,24 @@ class Runtime
     : _computeResources(computeResources)
   {
     // Creating internal objects
-    _commonWaitingTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _serviceQueue           = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
+    _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
+    _serviceQueue         = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
-    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Assigning configuration defaults
-    _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
-    _taskWorkerSuspendIntervalTimeMs = 1;     // Worker will sleep for 1ms when suspended
-    _minimumActiveTaskWorkers        = 1;     // Guarantee that there is at least one active task worker
-    _serviceWorkerCount              = 0;     // No service workers (Typical setting for HPC applications)
+    _rememberFinishedObjects    = false;  // This flag indicates whether the finished objects will be remembered, in case new dependencies on them are created after they finished
+    _taskWorkerInactivityTimeMs = 10;     // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
+    _taskWorkerSuspendIntervalTimeMs = 1; // Worker will sleep for 1ms when suspended
+    _minimumActiveTaskWorkers        = 1; // Guarantee that there is at least one active task worker
+    _serviceWorkerCount              = 0; // No service workers (Typical setting for HPC applications)
     _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
 
     // Parsing configuration
+    if (config.contains("Remember Finished Objects")) _rememberFinishedObjects = hicr::json::getBoolean(config, "Remember Finished Objects");
     if (config.contains("Task Worker Inactivity Time (Ms)")) _taskWorkerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Worker Inactivity Time (Ms)");
     if (config.contains("Task Suspend Interval Time (Ms)")) _taskWorkerSuspendIntervalTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Suspend Interval Time (Ms)");
     if (config.contains("Minimum Active Task Workers")) _minimumActiveTaskWorkers = hicr::json::getNumber<size_t>(config, "Minimum Active Task Workers");
@@ -142,7 +143,7 @@ class Runtime
    *
    * \param[in] task Task to add.
    */
-  __INLINE__ void addTask(taskr::Task *task)
+  __INLINE__ void addTask(taskr::Task *const task)
   {
     // Increasing active task counter
     _activeTaskCount++;
@@ -151,7 +152,8 @@ class Runtime
     task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
-    resumeTask(task);
+    auto dependencyCount = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->load();
+    if (dependencyCount == 0) resumeTask(task);
   }
 
   /**
@@ -159,10 +161,45 @@ class Runtime
    *
    * \param[in] task Task to resume.
    */
-  __INLINE__ void resumeTask(taskr::Task *task)
+  __INLINE__ void resumeTask(taskr::Task *const task)
   {
-    // Push it into the common waiting task queue (its dependencies will be checked later)
-    _commonWaitingTaskQueue->push(task);
+    // Getting task's affinity
+    const auto taskAffinity = task->getWorkerAffinity();
+
+    // Sanity Check
+    if (taskAffinity >= (ssize_t)_taskWorkers.size())
+      HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
+
+    // If affinity set,
+    if (taskAffinity >= 0)
+    {
+      // Push it into the worker's own task queue
+      _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
+
+      // Just in case it was asleep, awaken worker
+      _taskWorkers[taskAffinity]->resume();
+    }
+    else // add to the common ready task queue
+    {
+      _commonReadyTaskQueue->push(task);
+    }
+  }
+
+  /**
+   * Adds a dependency on a given label for the specified task
+   *
+   * \param[in] task Task which to add a dependency
+   * \param[in] dependency The label representing the dependency
+   */
+  __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
+  {
+    // If remembering terminated objects, check if this dependency hasn't finished already
+    if (_rememberFinishedObjects)
+      if (_finishedObjects.contains(dependency) == true) return;
+
+    // Register it also as an output dependency for notification later
+    reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
+    _outputDependencies[dependency].insert(task);
   }
 
   /**
@@ -294,7 +331,21 @@ class Runtime
    * 
    * @param[in] object Label of the object to report as finished
    */
-  __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object) { _finishedObjects.insert(object); }
+  __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
+  {
+    // If configured, add finished object to the set of finished objects
+    if (_rememberFinishedObjects) _finishedObjects.insert(object);
+
+    // Now for each task that dependends on this object, reduce their dependencies by one
+    for (auto &task : _outputDependencies[object])
+    {
+      // Removing task's dependency
+      auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_sub(1) - 1;
+
+      // If the task has no remaining dependencies, continue executing it
+      if (remainingDependencies == 0) resumeTask(task);
+    }
+  }
 
   private:
 
@@ -352,10 +403,32 @@ class Runtime
     }
 
     // Getting next task to execute from the worker's own queue
-    auto task = this->checkOneWaitingTask();
+    auto task = worker->getReadyTaskQueue()->pop();
 
-    // If no task found, try to get one from the common waiting task queue
-    if (task == nullptr) task = worker->getReadyTaskQueue()->pop();
+    // If no task found, check the comment ready task queue
+    if (task == nullptr) task = _commonReadyTaskQueue->pop();
+
+    // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
+    if (task != nullptr)
+      while (task->getPendingOperations().empty() == false)
+      {
+        // Checking whether the operation has finished
+        const auto pendingOperation = task->getPendingOperations().front();
+
+        // Running pending operation checker
+        const auto result = pendingOperation();
+
+        // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
+        if (result == false) [[likely]]
+        {
+          resumeTask(task);
+          task = nullptr;
+          break;
+        }
+
+        // Otherwise, remove it out of the dependency queue
+        task->getPendingOperations().pop_front();
+      }
 
     // If still no found was found set it as a failure to get useful job
     if (task == nullptr)
@@ -370,6 +443,9 @@ class Runtime
     // If task was found, set it as a success (to prevent the worker from going to sleep)
     if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
+    // Making the task dependent in its own execution to prevent it from re-running later
+    if (task != nullptr) reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
+
     // Check for termination
     if (task == nullptr) checkTermination(worker);
 
@@ -380,7 +456,7 @@ class Runtime
     return task;
   }
 
-  __INLINE__ bool checkTermination(taskr::Worker *worker)
+  __INLINE__ bool checkTermination(taskr::Worker *const worker)
   {
     // If all tasks finished, then terminate execution immediately
     if (_activeTaskCount == 0)
@@ -396,7 +472,7 @@ class Runtime
     return false;
   }
 
-  __INLINE__ bool checkResumeWorker(taskr::Worker *worker)
+  __INLINE__ bool checkResumeWorker(taskr::Worker *const worker)
   {
     // There are not enough polling workers
     if (_activeTaskWorkerCount <= _minimumActiveTaskWorkers) return true;
@@ -417,7 +493,7 @@ class Runtime
   /**
    * Function to check whether the running thread needs to suspend
    */
-  __INLINE__ void checkTaskWorkerSuspension(taskr::Worker *worker)
+  __INLINE__ void checkTaskWorkerSuspension(taskr::Worker *const worker)
   {
     // Check for inactivity time (to put the worker to sleep)
     if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
@@ -427,92 +503,7 @@ class Runtime
             worker->suspend();
   }
 
-  /**
-   * This function represents the main loop of a worker that is looking for work to do.
-   * It first checks whether the maximum number of worker is exceeded. If that's the case, it enters suspension and returns upon restart.
-   * Otherwise, it finds a task in the waiting queue and checks its dependencies. If the task is ready to go, it runs it.
-   * If no tasks are ready to go, it returns a nullptr, which encodes -No Task-.
-   *
-   * \return A pointer to a HiCR task to execute. nullptr if there are no pending tasks.
-   */
-  __INLINE__ taskr::Task *checkOneWaitingTask()
-  {
-    // Poping task from the common waiting task queue
-    auto task = _commonWaitingTaskQueue->pop();
-
-    // If still no task was found (queue was empty), then return immediately
-    if (task == nullptr) return nullptr;
-
-    // Checking for task's pending dependencies
-    while (task->getDependencies().empty() == false)
-    {
-      // Checking whether the dependency is already finished
-      const auto dependency = task->getDependencies().front();
-
-      // If it is not finished:
-      if (_finishedObjects.contains(dependency) == false) [[likely]]
-      {
-        // Push the task back into back of the queue
-        _commonWaitingTaskQueue->push(task);
-
-        // Return immediately: task was not ready
-        return nullptr;
-      }
-
-      // Otherwise, remove it out of the dependency queue
-      task->getDependencies().pop_front();
-    }
-
-    // The task's dependencies may be satisfied, but now we got to check whether it has any pending operations
-    while (task->getPendingOperations().empty() == false)
-    {
-      // Checking whether the operation has finished
-      const auto pendingOperation = task->getPendingOperations().front();
-
-      // Running pending operation checker
-      const auto result = pendingOperation();
-
-      // If not satisfied:
-      if (result == false)
-      {
-        // Push the task back into back of the queue
-        _commonWaitingTaskQueue->push(task);
-
-        // Return immediately: task was not ready
-        return nullptr;
-      }
-
-      // Otherwise, remove it out of the dependency queue
-      task->getPendingOperations().pop_front();
-    }
-
-    // The task is ready to execute, check if it's been reserved for
-
-    // Getting task's affinity
-    const auto taskAffinity = task->getWorkerAffinity();
-
-    // Sanity Check
-    if (taskAffinity >= (ssize_t)_taskWorkers.size())
-      HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
-
-    // If affinity set,
-    if (taskAffinity >= 0)
-    {
-      // Push it into the worker's own task queue
-      _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
-
-      // Just in case it was asleep, awaken worker
-      _taskWorkers[taskAffinity]->resume();
-
-      // The task no longer applies to us
-      task = nullptr;
-    }
-
-    // Returning task (nullptr if nothing was found)
-    return task;
-  }
-
-  __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *task)
+  __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
@@ -521,40 +512,41 @@ class Runtime
     _taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
   }
 
-  __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *task)
+  __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
+    // Getting task label
+    const auto taskLabel = taskrTask->getLabel();
+
     // Setting task as finished object
-    setFinishedObject(taskrTask->getLabel());
+    setFinishedObject(taskLabel);
 
     // If defined, trigger user-defined event
-    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+    // this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+
+    // Removing entry from input/output dependency map
+    _inputDependencies.erase(taskLabel);
+    _outputDependencies.erase(taskLabel);
 
     // Decreasing active task counter
     _activeTaskCount--;
   }
 
-  __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *task)
+  __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *const task)
   {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
-  }
 
-  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *task)
-  {
-    // Getting TaskR task pointer
-    auto taskrTask = (taskr::Task *)task;
+    // Removing task's dependency on itself
+    auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[taskrTask->getLabel()])->fetch_sub(1) - 1;
 
-    // If not defined, resume task (by default)
-    if (this->_taskCallbackMap.isCallbackSet(HiCR::tasking::Task::callback_t::onTaskSync) == false) _commonWaitingTaskQueue->push(taskrTask);
-
-    // If defined, trigger user-defined event
-    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
+    // If there are no remaining dependencies, adding task to ready task list
+    if (remainingDependencies == 0) resumeTask(taskrTask);
   }
 
   /**
@@ -625,9 +617,19 @@ class Runtime
   std::atomic<size_t> _activeTaskCount = 0;
 
   /**
-   * Common lock-free queue for waiting tasks.
+   * Common lock-free queue for ready tasks.
    */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonWaitingTaskQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
+
+  /**
+   * Map for input dependencies
+   */
+  HiCR::concurrent::HashMap<taskr::label_t, ssize_t> _inputDependencies;
+
+  /**
+   * Map for output dependencies
+   */
+  HiCR::concurrent::HashMap<taskr::label_t, HiCR::concurrent::HashSet<taskr::Task *>> _outputDependencies;
 
   /**
    * The compute resources to use to run workers with
@@ -635,16 +637,21 @@ class Runtime
   HiCR::L0::Device::computeResourceList_t _computeResources;
 
   /**
-   * This parallel set stores the id of all finished objects
-   */
-  HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
-
-  /**
    * Common lock-free queue for services.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::service_t>> _serviceQueue;
 
+  /**
+   * This parallel set stores the id of all finished objects
+  */
+  HiCR::concurrent::HashSet<HiCR::tasking::uniqueId_t> _finishedObjects;
+
   //////// Configuration Elements
+
+  /**
+   * Flag to set whether to remember finished objects
+   */
+  bool _rememberFinishedObjects;
 
   /**
    * Time (ms) before a worker thread suspends after not finding any ready tasks

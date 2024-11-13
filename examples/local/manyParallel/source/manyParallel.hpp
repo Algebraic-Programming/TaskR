@@ -20,7 +20,7 @@ void manyParallel(taskr::Runtime &taskr, const size_t branchCount, const size_t 
       auto task = new taskr::Task(b * taskCount + i, &taskfc);
 
       // Creating dependencies
-      if (i > 0) task->addDependency(b * taskCount + i - 1);
+      if (i > 0) taskr.addDependency(task, b * taskCount + i - 1);
 
       // Adding to taskr
       taskr.addTask(task);

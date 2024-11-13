@@ -53,22 +53,6 @@ class Object
   __INLINE__ label_t getLabel() const { return _label; }
 
   /**
-   * Adds one output dependency on the current object
-   * 
-   * This dependency represents an object (local or remote) that cannot be ready until this object finishes
-   * 
-   * @param[in] dependency The label of the object that depends on this object
-   */
-  __INLINE__ void addDependency(const label_t dependency) { _dependencies.push_back(dependency); }
-
-  /**
-    * Gets a reference to the task's pending dependencies
-    * 
-    * @return A reference to the queue containing the task's pending dependencies
-    */
-  __INLINE__ std::list<label_t> &getDependencies() { return _dependencies; }
-
-  /**
    * Adds one pending operation on the current object
    *
    * @param[in] pendingOperation A function that checks whether the pending operation has completed or not
@@ -92,11 +76,11 @@ class Object
   /**
    * This holds all the objects this object depends on
    */
-  std::list<label_t> _dependencies;
+  std::atomic<size_t> _dependencyCount{0};
 
   /**
-   * This holds all pending operations the object needs to wait on
-   */
+  * This holds all pending operations the object needs to wait on
+  */
   std::list<pendingOperation_t> _pendingOperations;
 
 }; // class Task

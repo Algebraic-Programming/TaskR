@@ -47,9 +47,6 @@ int main(int argc, char **argv)
   // Setting onTaskFinish callback to free up task memory as soon as it's done
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
-  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-
   //// Instantiating distributed execution machinery
 
   // Storage for the distributed engine's communication manager
@@ -152,7 +149,7 @@ int main(int argc, char **argv)
     auto recvTask = new taskr::Task(1, myInstanceId == rootInstanceId ? &rootRecvFunction : &workerRecvFunction);
 
     // Workers: we don't send pong until receiving the root's ping
-    if (myInstanceId != rootInstanceId) sendTask->addDependency(recvTask->getLabel());
+    if (myInstanceId != rootInstanceId) taskr.addDependency(sendTask, recvTask->getLabel());
 
     // Adding tasks
     taskr.addTask(sendTask);

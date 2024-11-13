@@ -32,9 +32,9 @@ void job2(taskr::Runtime &taskr)
   }
 
   // Now creating the dependency graph
-  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 2]->addDependency(tasks[i * 3 + 1]->getLabel());
-  for (size_t i = 0; i < ITERATIONS; i++) tasks[i * 3 + 1]->addDependency(tasks[i * 3 + 0]->getLabel());
-  for (size_t i = 1; i < ITERATIONS; i++) tasks[i * 3 + 0]->addDependency(tasks[i * 3 - 1]->getLabel());
+  for (size_t i = 0; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 2], tasks[i * 3 + 1]->getLabel());
+  for (size_t i = 0; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 1], tasks[i * 3 + 0]->getLabel());
+  for (size_t i = 1; i < ITERATIONS; i++) taskr.addDependency(tasks[i * 3 + 0], tasks[i * 3 - 1]->getLabel());
 
   // Adding tasks to TaskR
   for (const auto task : tasks) taskr.addTask(task);

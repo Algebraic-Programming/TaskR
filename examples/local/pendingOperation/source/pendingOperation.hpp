@@ -39,9 +39,6 @@ void heavyTask(taskr::Task *currentTask)
 
 void pendingOperation(taskr::Runtime &taskr)
 {
-  // Auto-adding task when it suspends. It won't be re-executed until pending operations finish
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-
   // Setting onTaskFinish callback to free up task's memory after it finishes
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
