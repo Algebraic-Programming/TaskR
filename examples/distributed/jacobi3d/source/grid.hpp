@@ -170,7 +170,7 @@ class Grid
     if (channel->isFull())
     {
       // Adding pending operation: channel being freed up
-      currentTask->addPendingOperation([&]() { return channel->isFull() == false; });
+      currentTask->addPendingOperation([&]() {  printf("Checking Channel\n"); return channel->isFull() == false; });
 
       // Suspending until the operation is finished
       currentTask->suspend();
@@ -186,7 +186,7 @@ class Grid
     if (channel->isEmpty())
     {
       // Adding pending operation: channel being freed up
-      currentTask->addPendingOperation([&]() { return channel->isEmpty() == false; });
+      currentTask->addPendingOperation([&]() { printf("Checking Channel\n"); return channel->isEmpty() == false; });
 
       // Suspending until the operation is finished
       currentTask->suspend();

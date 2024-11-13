@@ -46,9 +46,9 @@ class Mutex
   */
   __INLINE__ bool trylock(taskr::Task *task)
   {
-    _mutex.lock();
+    _internalMutex.lock();
     bool success = lockNotBlockingImpl(task);
-    _mutex.unlock();
+    _internalMutex.unlock();
     return success;
   }
 
@@ -72,17 +72,16 @@ class Mutex
   {
     if (ownsLock(task) == false) HICR_THROW_LOGIC("Trying to unlock a mutex that doesn't belong to this task");
 
-    _mutex.lock();
+    _internalMutex.lock();
 
     _ownerTask = nullptr;
     if (_queue.empty() == false)
     {
       _ownerTask = _queue.front();
       _queue.pop();
-      _ownerTask->sendSyncSignal();
     }
 
-    _mutex.unlock();
+    _internalMutex.unlock();
   }
 
   private:
@@ -94,21 +93,21 @@ class Mutex
   */
   __INLINE__ void lockBlockingImpl(taskr::Task *task)
   {
-    _mutex.lock();
+    _internalMutex.lock();
 
     bool isLockFree = lockNotBlockingImpl(task);
 
     // If not successful, then insert task in the pending queue and suspend it
     if (isLockFree == false)
     {
+      // Adding a new pending operation for the task to prevent from re-executing task until the lock is obtained
+      task->addPendingOperation([&](){ return _ownerTask == task; });
+
       // Adding itself to the queue
       _queue.push(task);
 
-      // Adding a new dependency for the task to prevent from re-executing task until the lock is obtained
-      task->addDependency();
-
       // Releasing lock
-      _mutex.unlock();
+      _internalMutex.unlock();
 
       // Suspending task now
       task->suspend();
@@ -117,7 +116,7 @@ class Mutex
       return;
     }
 
-    _mutex.unlock();
+    _internalMutex.unlock();
   }
 
   /**
@@ -136,7 +135,7 @@ class Mutex
   /**
    * Internal mutex for protecting the internal state and the task queue
   */
-  std::mutex _mutex;
+  std::mutex _internalMutex;
 
   /**
    * Internal state
@@ -146,7 +145,7 @@ class Mutex
   /**
    * Pending task queue
   */
-  std::queue<taskr::Task *> _queue;
+  std::queue<taskr::Task*> _queue;
 };
 
 } // namespace taskr

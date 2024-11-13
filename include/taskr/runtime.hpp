@@ -78,7 +78,6 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
-    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Assigning configuration defaults
     _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
@@ -151,7 +150,8 @@ class Runtime
     task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
-    if (task->getDependencyCount() == 0) resumeTask(task);
+    auto dependencyCount = reinterpret_cast<std::atomic<ssize_t>*>(&_inputDependencies[task->getLabel()])->load();
+    if (dependencyCount == 0) resumeTask(task);
   }
 
   /**
@@ -191,10 +191,8 @@ class Runtime
    */
   __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
   {
-    // Increasing the atomic dependency counter in the task
-    task->addDependency();
-
     // Register it also as an output dependency for notification later
+    reinterpret_cast<std::atomic<ssize_t>*>(&_inputDependencies[task->getLabel()])->fetch_add(1);
     _outputDependencies[dependency].insert(task);
   }
 
@@ -332,7 +330,7 @@ class Runtime
     for (auto &task : _outputDependencies[object])
     {
       // Removing task's dependency
-      auto remainingDependencies = task->removeDependency() - 1;
+      auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t>*>(&_inputDependencies[task->getLabel()])->fetch_sub(1) - 1;
 
       // If the task has no remaining dependencies, continue executing it
       if (remainingDependencies == 0) resumeTask(task);
@@ -436,7 +434,7 @@ class Runtime
     if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Making the task dependent in its own execution to prevent it from re-running later
-    if (task != nullptr) task->addDependency();
+    if (task != nullptr) reinterpret_cast<std::atomic<ssize_t>*>(&_inputDependencies[task->getLabel()])->fetch_add(1);
 
     // Check for termination
     if (task == nullptr) checkTermination(worker);
@@ -531,22 +529,7 @@ class Runtime
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
 
     // Removing task's dependency on itself
-    auto remainingDependencies = taskrTask->removeDependency() - 1;
-
-    // If there are no remaining dependencies, adding task to ready task list
-    if (remainingDependencies == 0) resumeTask(taskrTask);
-  }
-
-  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *const task)
-  {
-    // Getting TaskR task pointer
-    auto taskrTask = (taskr::Task *)task;
-
-    // If defined, trigger user-defined event
-    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
-
-    // Removing task's dependency on itself
-    auto remainingDependencies = taskrTask->removeDependency() - 1;
+    auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t>*>(&_inputDependencies[taskrTask->getLabel()])->fetch_sub(1) - 1;
 
     // If there are no remaining dependencies, adding task to ready task list
     if (remainingDependencies == 0) resumeTask(taskrTask);
@@ -623,6 +606,11 @@ class Runtime
    * Common lock-free queue for ready tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
+
+  /**
+   * Map for input dependencies
+   */
+  HiCR::concurrent::HashMap<taskr::label_t, ssize_t> _inputDependencies;
 
   /**
    * Map for output dependencies

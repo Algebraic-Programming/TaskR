@@ -94,9 +94,6 @@ int main(int argc, char *argv[])
   // Setting onTaskFinish callback to free up its memory when it's done
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
-  // Auto-adding task upon suspend, to allow it to run as soon as it dependencies have been satisfied
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&](taskr::Task *task) { taskr.resumeTask(task); });
-
   //// Setting up application configuration
 
   // Setting default values
@@ -146,6 +143,8 @@ int main(int argc, char *argv[])
   instanceManager->addRPCTarget("processGrid", [&]() {
     // printf("Instance %lu: Executing...\n", myInstanceId);
 
+    printf("Resetting\n");
+    
     // Creating tasks to reset the grid
     for (ssize_t i = 0; i < lt.x; i++)
       for (ssize_t j = 0; j < lt.y; j++)
@@ -163,6 +162,9 @@ int main(int argc, char *argv[])
 
     // Waiting for Taskr to finish
     taskr.await();
+
+
+   printf("Resetting Finished\n");
 
     // Creating initial set tasks to solve the first iteration
     if (nIters > 0) // Only compute if at least one iteartion is required
@@ -191,11 +193,17 @@ int main(int argc, char *argv[])
     // Setting start time as now
     auto t0 = std::chrono::high_resolution_clock::now();
 
+
+    printf("Running\n");
+
     // Running Taskr
     taskr.run();
 
     // Waiting for Taskr to finish
     taskr.await();
+
+    
+    printf("Running Finished\n");
 
     ////// Calculating residual
 

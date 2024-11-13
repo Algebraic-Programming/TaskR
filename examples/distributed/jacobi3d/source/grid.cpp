@@ -658,6 +658,7 @@ void Grid::reset(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly,
 
 void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
+  printf("Computing %u\n", it);
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -714,6 +715,7 @@ void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
   if (subGrid.Z1.type == LOCAL) _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx + 0, ly + 0, lz + 1, it));
 
   // Adding communication dependency for the next iteration
+  printf("COmpute adding dependency on (%lu)", Task::encodeTaskName("Unpack", lx, ly, lz, it)); fflush(stdout);
   _taskr->addDependency(newTask, Task::encodeTaskName("Unpack", lx, ly, lz, it));
 
   // Adding task for the next iteration
@@ -722,6 +724,8 @@ void Grid::compute(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
 
 void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
+   printf("Receive %u\n", it);
+
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -747,6 +751,8 @@ void Grid::receive(taskr::Task *currentTask, const uint64_t lx, const uint64_t l
 
 void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
+  printf("Unpack %u\n", it);
+
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 
@@ -820,11 +826,14 @@ void Grid::unpack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly
   _taskr->addDependency(newTask, Task::encodeTaskName("Compute", lx, ly, lz, it));
 
   // Creating task for the next iteration only if we haven't reached the end
+  printf("Unpack (%lu) finished", currentTask->getLabel()); fflush(stdout);
   _taskr->addTask(newTask);
 }
 
 void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
+   printf("Pack %u\n", it);
+
   auto    localId = localSubGridMapping[lz][ly][lx];
   auto   &subGrid = subgrids[localId];
   double *localUn = it % 2 == 0 ? Un : U;
@@ -901,6 +910,8 @@ void Grid::pack(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, 
 
 void Grid::send(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it)
 {
+  printf("Send %u\n", it);
+
   auto  localId = localSubGridMapping[lz][ly][lx];
   auto &subGrid = subgrids[localId];
 

@@ -53,31 +53,6 @@ class Object
   __INLINE__ label_t getLabel() const { return _label; }
 
   /**
-   * Atomically adds one to the output dependency counter for the current object
-   * 
-   * This dependency represents an object (local or remote) that cannot be ready until this object finishes
-   * 
-   * @return The value before the operation was performed
-   */
-  __INLINE__ size_t addDependency() { return _dependencyCount.fetch_add(1); }
-
-  /**
-   * Atomically subtracts one from output dependency counter for the current object
-   * 
-   * This dependency represents an object (local or remote) that cannot be ready until this object finishes
-   * 
-   * @return The value before the operation was performed
-   */
-  __INLINE__ size_t removeDependency() { return _dependencyCount.fetch_sub(1); }
-
-  /**
-    * Gets a reference to the task's pending dependencies
-    * 
-    * @return A reference to the queue containing the task's pending dependencies
-    */
-  __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
-
-  /**
    * Adds one pending operation on the current object
    *
    * @param[in] pendingOperation A function that checks whether the pending operation has completed or not

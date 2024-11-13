@@ -55,7 +55,7 @@ class ConditionVariable
     {
       // Insert oneself in the waiting task list
       _mutex.lock(currentTask);
-      currentTask->addDependency();
+      // currentTask->addDependency();
       _waitingTasksSync.push(currentTask);
       _mutex.unlock(currentTask);
 
@@ -232,7 +232,7 @@ class ConditionVariable
   {
     // Insert oneself in the waiting task list
     _mutex.lock(currentTask);
-    currentTask->addDependency();
+    // currentTask->addDependency();
     _waitingTasksSync.push(currentTask);
     _mutex.unlock(currentTask);
 
@@ -260,7 +260,7 @@ class ConditionVariable
 
     if (_waitingTasksSync.empty() == false)
     {
-      _waitingTasksSync.front()->sendSyncSignal();
+      //_waitingTasksSync.front()->sendSyncSignal();
       _waitingTasksSync.pop();
       isNotified = true;
     };
@@ -296,7 +296,7 @@ class ConditionVariable
     // If there are tasks waiting to be notified, do that now and take them out of the queue
     while (_waitingTasksSync.empty() == false)
     {
-      _waitingTasksSync.front()->sendSyncSignal();
+      //_waitingTasksSync.front()->sendSyncSignal();
       _waitingTasksSync.pop();
     };
 
