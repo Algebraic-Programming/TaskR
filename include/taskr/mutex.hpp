@@ -101,7 +101,7 @@ class Mutex
     if (isLockFree == false)
     {
       // Adding a new pending operation for the task to prevent from re-executing task until the lock is obtained
-      task->addPendingOperation([&](){ return _ownerTask == task; });
+      task->addPendingOperation([&]() { return _ownerTask == task; });
 
       // Adding itself to the queue
       _queue.push(task);
@@ -145,7 +145,7 @@ class Mutex
   /**
    * Pending task queue
   */
-  std::queue<taskr::Task*> _queue;
+  std::queue<taskr::Task *> _queue;
 };
 
 } // namespace taskr

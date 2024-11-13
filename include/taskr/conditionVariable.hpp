@@ -32,6 +32,35 @@ class ConditionVariable
   ~ConditionVariable() = default;
 
   /**
+   * Suspends the tasks unconditionally, and resumes after notification
+   * 
+   * \note The suspension of the task will not block the running thread.
+   * 
+   * \param[in] currentTask A pointer to the currently running task
+   * \param[in] conditionMutex The mutual exclusion mechanism to use to prevent two tasks from evaluating the condition predicate simultaneously
+  */
+  void wait(taskr::Task *currentTask, taskr::Mutex &conditionMutex)
+  {
+    // Insert oneself in the waiting task list
+    _mutex.lock(currentTask);
+    bool notificationFlag = false;
+    _waitingTasks.push(&notificationFlag);
+    _mutex.unlock(currentTask);
+
+    // Adding pending operation
+    currentTask->addPendingOperation([&]() { return notificationFlag; });
+
+    // Releasing cv lock
+    conditionMutex.unlock(currentTask);
+
+    // Suspending task now
+    currentTask->suspend();
+
+    // Retaking lock
+    conditionMutex.lock(currentTask);
+  }
+
+  /**
    * (1) Checks whether the given condition predicate evaluates to true.
    *  - If it does, then returns immediately.
    *  - If it does not, adds the task to the notification list and suspends it.
@@ -55,9 +84,12 @@ class ConditionVariable
     {
       // Insert oneself in the waiting task list
       _mutex.lock(currentTask);
-      // currentTask->addDependency();
-      _waitingTasksSync.push(currentTask);
+      bool notificationFlag = false;
+      _waitingTasks.push(&notificationFlag);
       _mutex.unlock(currentTask);
+
+      // Adding pending operation
+      currentTask->addPendingOperation([&]() { return notificationFlag; });
 
       // Releasing cv lock
       conditionMutex.unlock(currentTask);
@@ -111,7 +143,7 @@ class ConditionVariable
       // Insert oneself in the waiting task list
       _mutex.lock(currentTask);
       notificationFlag = false;
-      _waitingTasksAsync.push(&notificationFlag);
+      _waitingTasks.push(&notificationFlag);
       _mutex.unlock(currentTask);
 
       // Adding pending operation
@@ -173,7 +205,7 @@ class ConditionVariable
 
     // Insert oneself in the asynchronous waiting task list
     _mutex.lock(currentTask);
-    _waitingTasksAsync.push(&notificationFlag);
+    _waitingTasks.push(&notificationFlag);
     _mutex.unlock(currentTask);
 
     // Taking current time
@@ -221,32 +253,6 @@ class ConditionVariable
   }
 
   /**
-   * Suspends the tasks unconditionally, and resumes after notification
-   * 
-   * \note The suspension of the task will not block the running thread.
-   * 
-   * \param[in] currentTask A pointer to the currently running task
-   * \param[in] conditionMutex The mutual exclusion mechanism to use to prevent two tasks from evaluating the condition predicate simultaneously
-  */
-  void wait(taskr::Task *currentTask, taskr::Mutex &conditionMutex)
-  {
-    // Insert oneself in the waiting task list
-    _mutex.lock(currentTask);
-    // currentTask->addDependency();
-    _waitingTasksSync.push(currentTask);
-    _mutex.unlock(currentTask);
-
-    // Releasing cv lock
-    conditionMutex.unlock(currentTask);
-
-    // Suspending task now
-    currentTask->suspend();
-
-    // Retaking lock
-    conditionMutex.lock(currentTask);
-  }
-
-  /**
    * Enables (notifies) one of the waiting tasks to check for the condition again.
    * 
    * \param[in] currentTask A pointer to the currently running task
@@ -256,29 +262,12 @@ class ConditionVariable
     _mutex.lock(currentTask);
 
     // If there is a task waiting to be notified, do that now and take it out of the queue
-    bool isNotified = false;
-
-    if (_waitingTasksSync.empty() == false)
+    if (_waitingTasks.empty() == false)
     {
-      //_waitingTasksSync.front()->sendSyncSignal();
-      _waitingTasksSync.pop();
-      isNotified = true;
+      auto notificationFlag = _waitingTasks.front();
+      _waitingTasks.pop();
+      *notificationFlag = true;
     };
-
-    // If no tasks notified so far, try the asyncrhonous notification objects
-    // When a task has already timed out, its notification flag will be true. In such a case, we skip to the next one
-    while (isNotified == false && _waitingTasksAsync.empty() == false)
-    {
-      auto notificationFlag = _waitingTasksAsync.front();
-      _waitingTasksAsync.pop();
-
-      // Check if the task has timed out
-      if (*notificationFlag == false)
-      {
-        *notificationFlag = true;
-        isNotified        = true;
-      }
-    }
 
     // Releasing queue lock
     _mutex.unlock(currentTask);
@@ -294,18 +283,11 @@ class ConditionVariable
     _mutex.lock(currentTask);
 
     // If there are tasks waiting to be notified, do that now and take them out of the queue
-    while (_waitingTasksSync.empty() == false)
+    while (_waitingTasks.empty() == false)
     {
-      //_waitingTasksSync.front()->sendSyncSignal();
-      _waitingTasksSync.pop();
-    };
-
-    // Notifying also asynchronous flags
-    while (_waitingTasksAsync.empty() == false)
-    {
-      auto *notificationFlag = _waitingTasksAsync.front();
+      auto *notificationFlag = _waitingTasks.front();
       *notificationFlag      = true;
-      _waitingTasksAsync.pop();
+      _waitingTasks.pop();
     }
 
     _mutex.unlock(currentTask);
@@ -316,7 +298,7 @@ class ConditionVariable
    * 
    * @return The number of tasks already waiting for a notification
   */
-  [[nodiscard]] size_t getWaitingTaskCount() const { return _waitingTasksSync.size() + _waitingTasksAsync.size(); }
+  [[nodiscard]] size_t getWaitingTaskCount() const { return _waitingTasks.size(); }
 
   private:
 
@@ -330,12 +312,7 @@ class ConditionVariable
   /**
    * A set of waiting tasks for synchronous notification. No ordering is enforced here.
   */
-  std::queue<taskr::Task *> _waitingTasksSync;
-
-  /**
-   * A set of waiting tasks boolean flags for asynchronous notification. No ordering is enforced here.
-  */
-  std::queue<notificationFlag_t *> _waitingTasksAsync;
+  std::queue<bool *> _waitingTasks;
 };
 
 } // namespace taskr
