@@ -134,8 +134,10 @@ void choleskyDriver(const uint32_t                                           mat
                     const std::shared_ptr<HiCR::L0::MemorySpace>            &memorySpace,
                     const std::string                                       &matrixPath)
 {
-  // Instantiate taskr
-  taskr::Runtime taskr(computeResources);
+  // Creating taskr object
+  nlohmann::json taskrConfig;
+  taskrConfig["Remember Finished Objects"] = true;
+  taskr::Runtime taskr(computeResources, taskrConfig);
 
   // Setting onTaskFinish callback to free up task memory when it finishes
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });

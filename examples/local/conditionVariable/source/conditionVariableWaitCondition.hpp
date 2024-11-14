@@ -20,7 +20,7 @@ void conditionVariableWaitCondition(taskr::Runtime &taskr)
     // Using lock to update the value
     mutex.lock(task);
     printf("Thread 1: I go first and set value to 1\n");
-    value += 1;
+    value++;
     mutex.unlock(task);
 
     // Notifiying the other thread
@@ -50,7 +50,7 @@ void conditionVariableWaitCondition(taskr::Runtime &taskr)
     // Now updating the value ourselves
     printf("Thread 2: Now I update the value to 2\n");
     mutex.lock(task);
-    value += 1;
+    value++;
     mutex.unlock(task);
 
     // Notifying the other thread
