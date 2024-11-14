@@ -15,6 +15,7 @@
 #include <atomic>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
 #include <hicr/core/L0/device.hpp>
@@ -193,13 +194,28 @@ class Runtime
    */
   __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
   {
-    // If remembering terminated objects, check if this dependency hasn't finished already
+    // Flag to check if the dependency has already been terminated
+    bool dependencyHasTerminated = false;
+
+    // If remembering terminated objects
     if (_rememberFinishedObjects)
-      if (_finishedObjects.contains(dependency) == true) return;
+    {
+      // Make sure to lock out the output dependency management and finished object set
+      _rememberFinishedObjectMutex.lock();
+
+      // Check if this dependency hasn't finished already
+      dependencyHasTerminated = _finishedObjects.contains(dependency);
+    }
 
     // Register it also as an output dependency for notification later
-    reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
-    _outputDependencies[dependency].insert(task);
+    if (dependencyHasTerminated == false)
+    {
+      reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
+      _outputDependencies[dependency].insert(task);
+    }
+
+    // Releasing lock
+    if (_rememberFinishedObjects) _rememberFinishedObjectMutex.unlock();
   }
 
   /**
@@ -333,8 +349,15 @@ class Runtime
    */
   __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
   {
-    // If configured, add finished object to the set of finished objects
-    if (_rememberFinishedObjects) _finishedObjects.insert(object);
+    // If remembering finished objects
+    if (_rememberFinishedObjects)
+    {
+      // Make sure to lock out the output dependency management and finished object set
+      _rememberFinishedObjectMutex.lock();
+
+      // Add finished object to the set of finished objects
+      _finishedObjects.insert(object);
+    }
 
     // Now for each task that dependends on this object, reduce their dependencies by one
     for (auto &task : _outputDependencies[object])
@@ -345,6 +368,9 @@ class Runtime
       // If the task has no remaining dependencies, continue executing it
       if (remainingDependencies == 0) resumeTask(task);
     }
+
+    // Releasing lock
+    if (_rememberFinishedObjects) _rememberFinishedObjectMutex.unlock();
   }
 
   private:
@@ -652,6 +678,11 @@ class Runtime
    * Flag to set whether to remember finished objects
    */
   bool _rememberFinishedObjects;
+
+  /**
+   * Necessary mutex to protect output dependencies when remembering finished objects
+   */
+  std::mutex _rememberFinishedObjectMutex;
 
   /**
    * Time (ms) before a worker thread suspends after not finding any ready tasks
