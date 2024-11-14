@@ -200,7 +200,7 @@ class Runtime
     // If remembering terminated objects
     if (_rememberFinishedObjects)
     {
-       // Make sure to lock out the output dependency management and finished object set
+      // Make sure to lock out the output dependency management and finished object set
       _rememberFinishedObjectMutex.lock();
 
       // Check if this dependency hasn't finished already
@@ -215,7 +215,7 @@ class Runtime
     }
 
     // Releasing lock
-    if (_rememberFinishedObjects)  _rememberFinishedObjectMutex.unlock();
+    if (_rememberFinishedObjects) _rememberFinishedObjectMutex.unlock();
   }
 
   /**
@@ -349,15 +349,15 @@ class Runtime
    */
   __INLINE__ void setFinishedObject(const HiCR::tasking::uniqueId_t object)
   {
-    // If remembering finished objects 
+    // If remembering finished objects
     if (_rememberFinishedObjects)
     {
       // Make sure to lock out the output dependency management and finished object set
       _rememberFinishedObjectMutex.lock();
 
-       // Add finished object to the set of finished objects
+      // Add finished object to the set of finished objects
       _finishedObjects.insert(object);
-    } 
+    }
 
     // Now for each task that dependends on this object, reduce their dependencies by one
     for (auto &task : _outputDependencies[object])
@@ -370,7 +370,7 @@ class Runtime
     }
 
     // Releasing lock
-    if (_rememberFinishedObjects)  _rememberFinishedObjectMutex.unlock();
+    if (_rememberFinishedObjects) _rememberFinishedObjectMutex.unlock();
   }
 
   private:
