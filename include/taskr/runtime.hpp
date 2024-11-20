@@ -363,14 +363,14 @@ class Runtime
     // Now for each task that dependends on this object, reduce their dependencies by one
     auto outputDependencyIterator = _outputDependencies.find(object);
     if (outputDependencyIterator != _outputDependencies.end())
-    for (auto &task : outputDependencyIterator->second)
-    {
-      // Removing task's dependency
-      auto remainingDependencies = _inputDependencies[task->getLabel()].decrease();
+      for (auto &task : outputDependencyIterator->second)
+      {
+        // Removing task's dependency
+        auto remainingDependencies = _inputDependencies[task->getLabel()].decrease();
 
-      // If the task has no remaining dependencies, continue executing it
-      if (remainingDependencies == 0) resumeTask(task);
-    }
+        // If the task has no remaining dependencies, continue executing it
+        if (remainingDependencies == 0) resumeTask(task);
+      }
 
     // Releasing lock
     if (_rememberFinishedObjects) _rememberFinishedObjectMutex.unlock();
