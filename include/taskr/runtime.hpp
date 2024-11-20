@@ -22,6 +22,7 @@
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
+#include <hicr/core/concurrent/atomic.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/core/concurrent/hashMap.hpp>
 #include <hicr/core/concurrent/hashSet.hpp>
@@ -153,7 +154,7 @@ class Runtime
     task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
-    auto dependencyCount = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->load();
+    auto dependencyCount = _inputDependencies[task->getLabel()].getValue();
     if (dependencyCount == 0) resumeTask(task);
   }
 
@@ -210,7 +211,7 @@ class Runtime
     // Register it also as an output dependency for notification later
     if (dependencyHasTerminated == false)
     {
-      reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
+      _inputDependencies[task->getLabel()].increase();
       _outputDependencies[dependency].insert(task);
     }
 
@@ -360,10 +361,12 @@ class Runtime
     }
 
     // Now for each task that dependends on this object, reduce their dependencies by one
-    for (auto &task : _outputDependencies[object])
+    auto outputDependencyIterator = _outputDependencies.find(object);
+    if (outputDependencyIterator != _outputDependencies.end())
+    for (auto &task : outputDependencyIterator->second)
     {
       // Removing task's dependency
-      auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_sub(1) - 1;
+      auto remainingDependencies = _inputDependencies[task->getLabel()].decrease();
 
       // If the task has no remaining dependencies, continue executing it
       if (remainingDependencies == 0) resumeTask(task);
@@ -470,7 +473,7 @@ class Runtime
     if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Making the task dependent in its own execution to prevent it from re-running later
-    if (task != nullptr) reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[task->getLabel()])->fetch_add(1);
+    if (task != nullptr) _inputDependencies[task->getLabel()].increase();
 
     // Check for termination
     if (task == nullptr) checkTermination(worker);
@@ -550,7 +553,7 @@ class Runtime
     setFinishedObject(taskLabel);
 
     // If defined, trigger user-defined event
-    // this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
+    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
 
     // Removing entry from input/output dependency map
     _inputDependencies.erase(taskLabel);
@@ -569,7 +572,7 @@ class Runtime
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
 
     // Removing task's dependency on itself
-    auto remainingDependencies = reinterpret_cast<std::atomic<ssize_t> *>(&_inputDependencies[taskrTask->getLabel()])->fetch_sub(1) - 1;
+    auto remainingDependencies = _inputDependencies[taskrTask->getLabel()].decrease();
 
     // If there are no remaining dependencies, adding task to ready task list
     if (remainingDependencies == 0) resumeTask(taskrTask);
@@ -650,7 +653,7 @@ class Runtime
   /**
    * Map for input dependencies
    */
-  HiCR::concurrent::HashMap<taskr::label_t, ssize_t> _inputDependencies;
+  HiCR::concurrent::HashMap<taskr::label_t, HiCR::concurrent::Atomic<ssize_t>> _inputDependencies;
 
   /**
    * Map for output dependencies
