@@ -22,9 +22,18 @@ namespace taskr
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    */
+__INLINE__ Task::Task(Function *fc, const workerId_t workerAffinity)
+  :  HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
+    _workerAffinity(workerAffinity)
+{}
+
+/**
+   * Constructor for the TaskR task class. It requires a user-defined function to execute
+   * The task is considered finished when the function runs to completion.
+   */
 __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t workerAffinity)
-  : taskr::Object(label),
-    HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
+  : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
+    _label(label),
     _workerAffinity(workerAffinity)
 {}
 
