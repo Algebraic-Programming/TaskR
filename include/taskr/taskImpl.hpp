@@ -23,7 +23,7 @@ namespace taskr
    * The task is considered finished when the function runs to completion.
    */
 __INLINE__ Task::Task(Function *fc, const workerId_t workerAffinity)
-  :  HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
+  : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
     _workerAffinity(workerAffinity)
 {}
 

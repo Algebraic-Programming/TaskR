@@ -41,7 +41,6 @@ class Task : public HiCR::tasking::Task
   */
   typedef std::function<bool()> pendingOperation_t;
 
-
   Task()  = delete;
   ~Task() = default;
 
@@ -85,7 +84,7 @@ class Task : public HiCR::tasking::Task
    */
   __INLINE__ label_t getLabel() const { return _label; }
 
-    /**
+  /**
    * Function to set the task's label
    * 
    * @param[in] label The label to set
@@ -105,7 +104,7 @@ class Task : public HiCR::tasking::Task
     * @return A reference to the queue containing the task's pending operations
     */
   __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
-  
+
   private:
 
   /**
