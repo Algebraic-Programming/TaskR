@@ -168,7 +168,7 @@ class Task : public HiCR::tasking::Task
   workerId_t _workerAffinity;
 
   /**
-  * This holds all pending operations the task needs to wait on
+  * This holds all pending operations the task needs to wait on. These operations are polled constantly by the runtime system
   */
   std::list<pendingOperation_t> _pendingOperations;
 
@@ -177,6 +177,9 @@ class Task : public HiCR::tasking::Task
    */
   std::atomic<size_t> _dependencyCount{0};
 
+  /**
+   * A collection of tasks that depend on this one. They will be notified by the runtime system when this task finishes
+   */
   std::vector<taskr::Task *> _outputDependencies;
 
 }; // class Task
