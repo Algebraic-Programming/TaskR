@@ -41,8 +41,8 @@ class Task : public HiCR::tasking::Task
   */
   typedef std::function<bool()> pendingOperation_t;
 
-  Task()  = delete;
-  ~Task() = default;
+  Task()          = delete;
+  virtual ~Task() = default;
 
   /**
    * Constructor for the TaskR task class. It requires a user-defined function to execute
