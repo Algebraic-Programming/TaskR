@@ -42,6 +42,6 @@ void mutex(taskr::Runtime *taskr)
   taskr->finalize();
 
   // Value should be equal to concurrent task count
-  printf("Value %lu / Expected %lu\n", value, _CONCURRENT_TASKS * _ITERATIONS_) ;
+  printf("Value %lu / Expected %lu\n", value, _CONCURRENT_TASKS * _ITERATIONS_);
   assert(value == _CONCURRENT_TASKS * _ITERATIONS_);
 }

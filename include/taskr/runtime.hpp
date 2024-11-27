@@ -21,10 +21,7 @@
 #include <hicr/backends/host/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
-#include <hicr/core/concurrent/atomic.hpp>
 #include <hicr/core/concurrent/queue.hpp>
-#include <hicr/core/concurrent/hashMap.hpp>
-#include <hicr/core/concurrent/hashSet.hpp>
 #include "task.hpp"
 #include "taskImpl.hpp"
 #include "worker.hpp"
@@ -81,10 +78,10 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
 
     // Assigning configuration defaults
-    _taskWorkerInactivityTimeMs = 10;     // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
-    _taskWorkerSuspendIntervalTimeMs = 1; // Worker will sleep for 1ms when suspended
-    _minimumActiveTaskWorkers        = 1; // Guarantee that there is at least one active task worker
-    _serviceWorkerCount              = 0; // No service workers (Typical setting for HPC applications)
+    _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
+    _taskWorkerSuspendIntervalTimeMs = 1;     // Worker will sleep for 1ms when suspended
+    _minimumActiveTaskWorkers        = 1;     // Guarantee that there is at least one active task worker
+    _serviceWorkerCount              = 0;     // No service workers (Typical setting for HPC applications)
     _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
 
     // Parsing configuration
@@ -182,18 +179,6 @@ class Runtime
     {
       _commonReadyTaskQueue->push(task);
     }
-  }
-
-  /**
-   * Adds a dependency on a given label for the specified task
-   *
-   * \param[in] task Task which to add a dependency
-   * \param[in] dependency The label representing the dependency
-   */
-  __INLINE__ void addDependency(taskr::Task *const task, const label_t dependency)
-  {
-      task->incrementDependencyCount();
-      _outputDependencies[dependency].insert(task);
   }
 
   /**
@@ -325,19 +310,17 @@ class Runtime
    * 
    * @param[in] task Label of the task to report as finished
    */
-  __INLINE__ void setFinishedTask(const HiCR::tasking::uniqueId_t task)
+  __INLINE__ void setFinishedTask(taskr::Task *const task)
   {
     // Now for each task that dependends on this task, reduce their dependencies by one
-    auto outputDependencyIterator = _outputDependencies.find(task);
-    if (outputDependencyIterator != _outputDependencies.end())
-      for (auto &task : outputDependencyIterator->second)
-      {
-        // Removing task's dependency
-        auto remainingDependencies = task->decrementDependencyCount();
+    for (auto &dependentTask : task->getOutputDependencies())
+    {
+      // Removing task's dependency
+      auto remainingDependencies = dependentTask->decrementDependencyCount();
 
-        // If the task has no remaining dependencies, continue executing it
-        if (remainingDependencies == 0) resumeTask(task);
-      }
+      // If the task has no remaining dependencies, continue executing it
+      if (remainingDependencies == 0) resumeTask(dependentTask);
+    }
   }
 
   private:
@@ -510,17 +493,11 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
-    // Getting task label
-    const auto taskLabel = taskrTask->getLabel();
-
     // Setting task as finished task
-    setFinishedTask(taskLabel);
+    setFinishedTask(taskrTask);
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskFinish);
-
-    // Removing entry from input/output dependency map
-    _outputDependencies.erase(taskLabel);
 
     // Decreasing active task counter
     _activeTaskCount--;
@@ -612,11 +589,6 @@ class Runtime
    * Common lock-free queue for ready tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
-
-  /**
-   * Map for output dependencies
-   */
-  HiCR::concurrent::HashMap<taskr::label_t, HiCR::concurrent::HashSet<taskr::Task *>> _outputDependencies;
 
   /**
    * The compute resources to use to run workers with

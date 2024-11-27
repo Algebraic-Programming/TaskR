@@ -149,7 +149,7 @@ int main(int argc, char **argv)
     auto recvTask = new taskr::Task(1, myInstanceId == rootInstanceId ? &rootRecvFunction : &workerRecvFunction);
 
     // Workers: we don't send pong until receiving the root's ping
-    if (myInstanceId != rootInstanceId) taskr.addDependency(sendTask, recvTask->getLabel());
+    if (myInstanceId != rootInstanceId) sendTask->addDependency(recvTask);
 
     // Adding tasks
     taskr.addTask(sendTask);
