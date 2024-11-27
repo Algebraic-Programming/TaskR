@@ -105,6 +105,10 @@ class Task : public HiCR::tasking::Task
     */
   __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
 
+  __INLINE__ size_t incrementDependencyCount() { return _dependencyCount.fetch_add(1) + 1; }
+  __INLINE__ size_t decrementDependencyCount() { return _dependencyCount.fetch_sub(1) - 1; }
+  __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
+
   private:
 
   /**
@@ -125,7 +129,7 @@ class Task : public HiCR::tasking::Task
   std::list<pendingOperation_t> _pendingOperations;
 
   /**
-   * This holds all the tasks this task depends on
+   * This holds a counter for the tasks this task depends on
    */
   std::atomic<size_t> _dependencyCount{0};
 
