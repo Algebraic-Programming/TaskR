@@ -75,29 +75,37 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(i + 1, &workFunction);
-    taskr.addDependency(waitTask1, workTask->getLabel());
+    waitTask1->addDependency(workTask);
     taskr.addTask(workTask);
   }
+
+  // Creating another wait task
+  auto waitTask2 = new taskr::Task(2 * workTaskCount + 1, &waitFunction);
 
   // Then creating another batch of work tasks that depends on the wait task
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(workTaskCount + i + 1, &workFunction);
-    taskr.addDependency(workTask, waitTask1->getLabel());
+
+    // This work task waits on the first wait task
+    workTask->addDependency(waitTask1);
+
+    // The second wait task depends on this work task
+    waitTask2->addDependency(workTask);
+
+    // Adding work task
     taskr.addTask(workTask);
   }
-
-  // Then creating another wait task
-  auto waitTask2 = new taskr::Task(2 * workTaskCount + 1, &waitFunction);
-
-  // The wait task depends on the second set of work tasks
-  for (size_t i = 0; i < workTaskCount; i++) taskr.addDependency(waitTask2, workTaskCount + i + 1);
 
   // Last set of work tasks
   for (size_t i = 0; i < workTaskCount; i++)
   {
     auto workTask = new taskr::Task(2 * workTaskCount + i + 2, &workFunction);
-    taskr.addDependency(workTask, waitTask2->getLabel());
+
+    // This work task depends on the second wait task
+    workTask->addDependency(waitTask2);
+
+    // Adding work task
     taskr.addTask(workTask);
   }
 

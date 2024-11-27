@@ -13,6 +13,8 @@
 #pragma once
 
 #include <list>
+#include <hicr/core/concurrent/hashSet.hpp>
+#include <hicr/core/concurrent/queue.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/task.hpp>
 #include "common.hpp"
@@ -105,6 +107,52 @@ class Task : public HiCR::tasking::Task
     */
   __INLINE__ std::list<pendingOperation_t> &getPendingOperations() { return _pendingOperations; }
 
+  /**
+   * Adds a task dependency to this task
+   *
+   * \param[in] dependedTask Task which this task depends on
+   */
+  __INLINE__ void addDependency(taskr::Task *const dependedTask)
+  {
+    incrementDependencyCount();
+    dependedTask->addOutputDependency(this);
+  }
+
+  /**
+   * Retrieves in-dependency counter for this task. The task can only executed if this value is zero
+   *
+   * @return The number of in-dependencies for this task
+   */
+  __INLINE__ size_t getDependencyCount() { return _dependencyCount.load(); }
+
+  /**
+   * Increases the in-dependency counter for this task by one
+   *
+   * @return The number of in-dependencies for this task after the increment
+   */
+  __INLINE__ size_t incrementDependencyCount() { return _dependencyCount.fetch_add(1) + 1; }
+
+  /**
+   * Decreases the in-dependency counter for this task by one
+   *
+   * @return The number of in-dependencies for this task after the decrement
+   */
+  __INLINE__ size_t decrementDependencyCount() { return _dependencyCount.fetch_sub(1) - 1; }
+
+  /**
+   * Adds an output dependency to the task
+   *
+   * @param[in] task The task that depends on this one
+   */
+  __INLINE__ void addOutputDependency(Task *task) { _outputDependencies.push_back(task); }
+
+  /**
+   * Gets a collection of pointers to tasks that depend on this one (output dependencies)
+   *
+   * @return A collection of output dependencies
+   */
+  __INLINE__ auto &getOutputDependencies() { return _outputDependencies; }
+
   private:
 
   /**
@@ -120,14 +168,19 @@ class Task : public HiCR::tasking::Task
   workerId_t _workerAffinity;
 
   /**
-  * This holds all pending operations the task needs to wait on
+  * This holds all pending operations the task needs to wait on. These operations are polled constantly by the runtime system
   */
   std::list<pendingOperation_t> _pendingOperations;
 
   /**
-   * This holds all the tasks this task depends on
+   * This holds a counter for the tasks this task depends on
    */
   std::atomic<size_t> _dependencyCount{0};
+
+  /**
+   * A collection of tasks that depend on this one. They will be notified by the runtime system when this task finishes
+   */
+  std::vector<taskr::Task *> _outputDependencies;
 
 }; // class Task
 

@@ -13,6 +13,9 @@ void manyParallel(taskr::Runtime &taskr, const size_t branchCount, const size_t 
   // Initializing taskr
   taskr.initialize();
 
+  // Store a pointer to the previous task to generate a long chain
+  taskr::Task *prevTask = nullptr;
+
   // Each run consists of several iterations of ABC
   for (size_t b = 0; b < branchCount; b++)
     for (size_t i = 0; i < taskCount; i++)
@@ -20,10 +23,13 @@ void manyParallel(taskr::Runtime &taskr, const size_t branchCount, const size_t 
       auto task = new taskr::Task(b * taskCount + i, &taskfc);
 
       // Creating dependencies
-      if (i > 0) taskr.addDependency(task, b * taskCount + i - 1);
+      if (i > 0) task->addDependency(prevTask);
 
       // Adding to taskr
       taskr.addTask(task);
+
+      // Setting as new previous task
+      prevTask = task;
     }
 
   // Running taskr for the current repetition

@@ -2,7 +2,8 @@
 #include <cassert>
 #include <taskr/taskr.hpp>
 
-#define _CONCURRENT_TASKS 1000ul
+#define _CONCURRENT_TASKS 32ul
+#define _ITERATIONS_ 1000ul
 
 void mutex(taskr::Runtime *taskr)
 {
@@ -17,9 +18,12 @@ void mutex(taskr::Runtime *taskr)
 
   // Creating task function
   auto taskfc = taskr::Function([&](taskr::Task *task) {
-    m.lock(task);
-    value++;
-    m.unlock(task);
+    for (size_t i = 0; i < _ITERATIONS_; i++)
+    {
+      m.lock(task);
+      value++;
+      m.unlock(task);
+    }
   });
 
   // Running concurrent tasks
@@ -38,6 +42,6 @@ void mutex(taskr::Runtime *taskr)
   taskr->finalize();
 
   // Value should be equal to concurrent task count
-  printf("Value %lu / Expected %lu\n", value, _CONCURRENT_TASKS);
-  assert(value == _CONCURRENT_TASKS);
+  printf("Value %lu / Expected %lu\n", value, _CONCURRENT_TASKS * _ITERATIONS_);
+  assert(value == _CONCURRENT_TASKS * _ITERATIONS_);
 }

@@ -24,22 +24,28 @@ void abcTasks(taskr::Runtime &taskr)
     // Calculating the base task id for this repetition
     auto repetitionLabel = r * ITERATIONS * 3;
 
+    // Our connection with the previous iteration is the last task C, null in the first iteration
+    taskr::Task *prevTaskC = nullptr;
+
     // Each run consists of several iterations of ABC
     for (size_t i = 0; i < ITERATIONS; i++)
     {
-      auto taskB = new taskr::Task(repetitionLabel + i * 3 + 1, &taskBfc);
       auto taskA = new taskr::Task(repetitionLabel + i * 3 + 0, &taskAfc);
+      auto taskB = new taskr::Task(repetitionLabel + i * 3 + 1, &taskBfc);
       auto taskC = new taskr::Task(repetitionLabel + i * 3 + 2, &taskCfc);
 
       // Creating dependencies
-      if (i > 0) taskr.addDependency(taskA, repetitionLabel + i * 3 - 1);
-      taskr.addDependency(taskB, repetitionLabel + i * 3 + 0);
-      taskr.addDependency(taskC, repetitionLabel + i * 3 + 1);
+      if (i > 0) taskA->addDependency(prevTaskC);
+      taskB->addDependency(taskA);
+      taskC->addDependency(taskB);
 
       // Adding to taskr
       taskr.addTask(taskA);
       taskr.addTask(taskB);
       taskr.addTask(taskC);
+
+      // Refreshing previous task C pointer
+      prevTaskC = taskC;
     }
 
     // Running taskr for the current repetition
