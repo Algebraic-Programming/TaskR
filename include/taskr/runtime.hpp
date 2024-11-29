@@ -323,6 +323,13 @@ class Runtime
     }
   }
 
+  /**
+   * Adds a service to be executed regularly by service workers
+   * 
+   * @param[in] service The service (function) to add
+   */
+  __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
+
   private:
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
