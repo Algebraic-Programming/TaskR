@@ -25,6 +25,9 @@ int main(int argc, char **argv)
   // Creating taskr
   taskr::Runtime taskr(computeResources);
 
+  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation (required by mutex) is finished
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
+
   // Running ABCtasks example
   mutex(&taskr);
 

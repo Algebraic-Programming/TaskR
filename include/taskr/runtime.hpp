@@ -148,8 +148,7 @@ class Runtime
     task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
-    auto dependencyCount = task->getDependencyCount();
-    if (dependencyCount == 0) resumeTask(task);
+    resumeTask(task);
   }
 
   /**
@@ -159,6 +158,10 @@ class Runtime
    */
   __INLINE__ void resumeTask(taskr::Task *const task)
   {
+    // Checking that the task is ready to be resumed at this point
+    auto dependencyCount = task->getDependencyCount();
+    if (dependencyCount > 0) return;
+
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
 
