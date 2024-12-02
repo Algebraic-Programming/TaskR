@@ -22,6 +22,9 @@
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
+
+#include <detectr.hpp>
+
 #include "task.hpp"
 #include "taskImpl.hpp"
 #include "worker.hpp"
@@ -68,6 +71,12 @@ class Runtime
   Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
     : _computeResources(computeResources)
   {
+    // DetectR start tracing
+    INSTRUMENTATION_START();
+
+    // allow tasking level instrumentation
+    INSTRUMENTATION_REQUIRE_TASKR();
+
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
     _serviceQueue         = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
@@ -93,7 +102,14 @@ class Runtime
   }
 
   // Destructor
-  ~Runtime() = default;
+  ~Runtime()
+  {
+    // DetectR save global number of executed tasks
+    INSTRUMENTATION_SET_NTASKS(_totalTaskCount.load());
+
+    // DetectR stop tracing
+    INSTRUMENTATION_END();
+  }
 
   /**
    * Function that returns the compute manager originally provided to Taskr 
@@ -143,6 +159,9 @@ class Runtime
   {
     // Increasing active task counter
     _activeTaskCount++;
+
+    // Increasing the total number of tasks
+    _totalTaskCount++;
 
     // Making sure the task has its callback map correctly assigned
     task->setCallbackMap(&_hicrTaskCallbackMap);
@@ -585,6 +604,11 @@ class Runtime
    * Counter for the current number of active tasks. Execution finishes when this counter reaches zero
    */
   std::atomic<size_t> _activeTaskCount = 0;
+
+  /**
+   * Counter total number of tasks
+   */
+  std::atomic<size_t> _totalTaskCount = 0;
 
   /**
    * Common lock-free queue for ready tasks.

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <detectr.hpp>
+
 #include "task.hpp"
 #include "function.hpp"
 
@@ -35,7 +37,24 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
   : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
     _label(label),
     _workerAffinity(workerAffinity)
-{}
+{
+  // DetectR
+
+  // initialize thread if not yet done
+  INSTRUMENTATION_THREAD_INIT();
+
+  INSTRUMENTATION_TASK_EXEC(_label);
+
+}
+
+/**
+ * Destructor
+ */
+__INLINE__ Task::~Task()
+{
+  // DetectR end task
+  INSTRUMENTATION_TASK_END(_label);
+}
 
 /**
  * Returns the task/worker affinity
