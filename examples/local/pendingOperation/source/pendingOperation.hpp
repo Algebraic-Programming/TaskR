@@ -42,6 +42,9 @@ void pendingOperation(taskr::Runtime &taskr)
   // Setting onTaskFinish callback to free up task's memory after it finishes
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
+  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
+
   // Creating the execution units (functions that the tasks will run)
   auto taskfc = taskr::Function([](taskr::Task *task) { heavyTask(task); });
 

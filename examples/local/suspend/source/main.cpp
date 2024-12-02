@@ -1,12 +1,19 @@
 #include <hwloc.h>
 #include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include "conditionVariableWait.hpp"
-#include "conditionVariableWaitFor.hpp"
-#include "conditionVariableWaitCondition.hpp"
-#include "conditionVariableWaitForCondition.hpp"
+#include "suspend.hpp"
 
 int main(int argc, char **argv)
 {
+  if (argc != 3)
+  {
+    fprintf(stderr, "Wrong Usage. Syntax: ./suspend NBRANCHES NTASKS\n");
+    exit(1);
+  }
+
+  // Getting arguments, if provided
+  const size_t taskCount   = std::atoi(argv[1]);
+  const size_t branchCount = std::atoi(argv[2]);
+
   // Creating HWloc topology object
   hwloc_topology_t topology;
 
@@ -25,17 +32,11 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
-
-  // Instantiating TaskR
+  // Creating taskr
   taskr::Runtime taskr(computeResources);
 
-  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation (required by condition variable) is finished
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
-
-  // Running test
-  __TEST_FUNCTION_(taskr);
+  // Running suspend example
+  suspend(taskr, branchCount, taskCount);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);
