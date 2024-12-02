@@ -48,7 +48,22 @@ TaskRBuildCppArgs = [
 TaskRBuildIncludes = include_directories([
    'include'
   ])
-  
+
+####### Build Instrumentation part of TaskR
+
+if meson.is_subproject() == false
+
+  buildInstrumentations = get_option('buildInstrumentations')
+  if buildInstrumentations
+    InstrumentationProject = subproject('detectr', required: true)
+    InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+    taskrDependencies += InstrumentationBuildDep
+
+  endif
+endif
+
+####### Collect the dependencies
+
 TaskRBuildDep = declare_dependency(
     compile_args: TaskRBuildCppArgs,
     include_directories: TaskRBuildIncludes,
