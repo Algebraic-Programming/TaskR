@@ -148,8 +148,7 @@ class Runtime
     task->setCallbackMap(&_hicrTaskCallbackMap);
 
     // Add task to the common waiting queue
-    auto dependencyCount = task->getDependencyCount();
-    if (dependencyCount == 0) resumeTask(task);
+    resumeTask(task);
   }
 
   /**
@@ -159,6 +158,10 @@ class Runtime
    */
   __INLINE__ void resumeTask(taskr::Task *const task)
   {
+    // Checking that the task is ready to be resumed at this point
+    auto dependencyCount = task->getDependencyCount();
+    if (dependencyCount > 0) return;
+
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
 
@@ -426,9 +429,6 @@ class Runtime
     // If task was found, set it as a success (to prevent the worker from going to sleep)
     if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
-    // Making the task dependent in its own execution to prevent it from re-running later
-    if (task != nullptr) task->incrementDependencyCount();
-
     // Check for termination
     if (task == nullptr) checkTermination(worker);
 
@@ -517,12 +517,6 @@ class Runtime
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
-
-    // Removing task's dependency on itself
-    auto remainingDependencies = taskrTask->decrementDependencyCount();
-
-    // If there are no remaining dependencies, adding task to ready task list
-    if (remainingDependencies == 0) resumeTask(taskrTask);
   }
 
   /**
