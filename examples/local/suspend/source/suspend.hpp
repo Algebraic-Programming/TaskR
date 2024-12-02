@@ -11,9 +11,11 @@ void suspend(taskr::Runtime &taskr, const size_t branchCount, const size_t taskC
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
-  
+
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = taskr::Function([](taskr::Task *task) { for (size_t i = 0; i < NSUSPENDS; i++) task->suspend(); });
+  auto taskfc = taskr::Function([](taskr::Task *task) {
+    for (size_t i = 0; i < NSUSPENDS; i++) task->suspend();
+  });
 
   // Initializing taskr
   taskr.initialize();
