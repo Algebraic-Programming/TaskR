@@ -36,6 +36,7 @@ class Worker : public HiCR::tasking::Worker
   /**
    * Constructor for the TaskR worker class.
    * 
+   * \param[in] workerId The worker's own id
    * \param[in] computeManager A backend's compute manager, meant to initialize and run the task's execution states.
    * \param[in] pullFunction A callback for the worker to get a new task to execute
    */
@@ -105,6 +106,8 @@ class Worker : public HiCR::tasking::Worker
 
   /**
     * Function to get worker's id
+    * 
+    * @return The worker's own identifier
    */
   __INLINE__ workerId_t getWorkerId() const { return _workerId; }
 
