@@ -38,13 +38,8 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
     _label(label),
     _workerAffinity(workerAffinity)
 {
-  // DetectR
-
-  // initialize thread if not yet done
-  INSTRUMENTATION_THREAD_INIT();
-
+  // DetectR init task
   INSTRUMENTATION_TASK_EXEC(_label);
-
 }
 
 /**

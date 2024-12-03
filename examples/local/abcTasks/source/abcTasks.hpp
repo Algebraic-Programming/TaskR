@@ -2,8 +2,8 @@
 #include <hicr/core/L0/device.hpp>
 #include <taskr/taskr.hpp>
 
-#define REPETITIONS 2 // 5
-#define ITERATIONS 3 // 100
+#define REPETITIONS 5
+#define ITERATIONS 100
 
 void abcTasks(taskr::Runtime &taskr)
 {
