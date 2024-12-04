@@ -51,18 +51,4 @@ __INLINE__ Task::~Task()
   INSTRUMENTATION_TASK_END(_label);
 }
 
-/**
- * Returns the task/worker affinity
- * 
- * @return The worker affinity currently set for this task
- */
-__INLINE__ workerId_t Task::getWorkerAffinity() const { return _workerAffinity; }
-
-/**
- * Sets the task's worker affinity. 
- * 
- * @param[in] workerAffinity The worker affinity to set
- */
-__INLINE__ void Task::setWorkerAffinity(const workerId_t workerAffinity) { _workerAffinity = workerAffinity; }
-
 } // namespace taskr

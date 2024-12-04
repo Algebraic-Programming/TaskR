@@ -224,7 +224,8 @@ class Runtime
     for (size_t computeResourceId = 0; computeResourceId < _serviceWorkerCount; computeResourceId++)
     {
       // Creating new service worker
-      auto serviceWorker = new taskr::Worker(&_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
+      auto serviceWorker =
+        std::make_shared<taskr::Worker>(serviceWorkerId, &_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       serviceWorker->setCallbackMap(&_serviceWorkerCallbackMap);
@@ -244,7 +245,7 @@ class Runtime
     for (size_t computeResourceId = _serviceWorkerCount; computeResourceId < _computeResources.size(); computeResourceId++)
     {
       // Creating new task worker
-      auto taskWorker = new taskr::Worker(&_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
+      auto taskWorker = std::make_shared<taskr::Worker>(taskWorkerId, &_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       taskWorker->setCallbackMap(&_taskWorkerCallbackMap);
@@ -318,8 +319,7 @@ class Runtime
     if (_state == state_t::running) HICR_THROW_LOGIC("Trying to finalize TaskR, but it is currently running. You need to run 'await' first to make sure it has stopped.");
 
     // Clearing created workers
-    for (auto &w : _serviceWorkers) delete w;
-    for (auto &w : _taskWorkers) delete w;
+    _serviceWorkers.clear();
     _taskWorkers.clear();
 
     // Setting state back to uninitialized
@@ -360,7 +360,7 @@ class Runtime
     auto worker = _serviceWorkers[serviceWorkerId];
 
     // Checking for termination
-    auto terminated = checkTermination(worker);
+    auto terminated = checkTermination(worker.get());
 
     // If terminated, return a null task immediately
     if (terminated == true) return nullptr;
@@ -442,14 +442,14 @@ class Runtime
       worker->setFailedToRetrieveTask();
 
       // Check whether the conditions are met to put the worker to sleep due to inactivity
-      checkTaskWorkerSuspension(worker);
+      checkTaskWorkerSuspension(worker.get());
     }
 
     // If task was found, set it as a success (to prevent the worker from going to sleep)
     if (task != nullptr) worker->resetRetrieveTaskSuccessFlag();
 
     // Check for termination
-    if (task == nullptr) checkTermination(worker);
+    if (task == nullptr) checkTermination(worker.get());
 
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
@@ -581,12 +581,12 @@ class Runtime
   /**
    * Set of workers assigned to execute tasks
    */
-  std::vector<taskr::Worker *> _taskWorkers;
+  std::vector<std::shared_ptr<taskr::Worker>> _taskWorkers;
 
   /**
    * Set of workers assigned to execute services
    */
-  std::vector<taskr::Worker *> _serviceWorkers;
+  std::vector<std::shared_ptr<taskr::Worker>> _serviceWorkers;
 
   /**
    * Number of polling workers

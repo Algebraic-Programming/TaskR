@@ -36,11 +36,13 @@ class Worker : public HiCR::tasking::Worker
   /**
    * Constructor for the TaskR worker class.
    * 
+   * \param[in] workerId The worker's own id
    * \param[in] computeManager A backend's compute manager, meant to initialize and run the task's execution states.
    * \param[in] pullFunction A callback for the worker to get a new task to execute
    */
-  __INLINE__ Worker(HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
+  __INLINE__ Worker(const workerId_t workerId, HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
     : HiCR::tasking::Worker(computeManager, pullFunction),
+      _workerId(workerId),
       _readyTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
   {}
 
@@ -102,7 +104,19 @@ class Worker : public HiCR::tasking::Worker
    */
   __INLINE__ void setCheckResumeFunction(std::function<bool(taskr::Worker *)> fc) { _checkResumeFunction = fc; };
 
+  /**
+    * Function to get worker's id
+    * 
+    * @return The worker's own identifier
+   */
+  __INLINE__ workerId_t getWorkerId() const { return _workerId; }
+
   private:
+
+  /**
+   * Worker's own id
+  */
+  const workerId_t _workerId;
 
   /**
    * Function to check whether the worker can resume after being suspended
