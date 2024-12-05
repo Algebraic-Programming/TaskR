@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
   taskrConfig["Remember Finished Objects"] = true;
   taskr::Runtime taskr(computeResources, taskrConfig);
 
-  // Setting onTaskFinish callback to free up its memory when it's done
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
+  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
 
   //// Setting up application configuration
 
@@ -141,6 +141,9 @@ int main(int argc, char *argv[])
   g->localResidualFc = std::make_unique<taskr::Function>(
     [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
+  // Task map
+  std::map<taskr::label_t, std::shared_ptr<taskr::Task>> _taskMap;
+
   // Defining execution unit to run by all the instances
   instanceManager->addRPCTarget("processGrid", [&]() {
     // printf("Instance %lu: Executing...\n", myInstanceId);
@@ -163,28 +166,66 @@ int main(int argc, char *argv[])
     // Waiting for Taskr to finish
     taskr.await();
 
-    // Creating initial set tasks to solve the first iteration
-    if (nIters > 0) // Only compute if at least one iteartion is required
+    // Creating and adding tasks (graph nodes)
+    for (ssize_t it = 0; it < nIters; it++)
       for (ssize_t i = 0; i < lt.x; i++)
         for (ssize_t j = 0; j < lt.y; j++)
           for (ssize_t k = 0; k < lt.z; k++)
           {
-            taskr.addTask(new Task("Compute", i, j, k, 0, g->computeFc.get()));
+            auto  localId = g->localSubGridMapping[k][j][i];
+            auto &subGrid = g->subgrids[localId];
 
-            auto packTask = new Task("Pack", i, j, k, 0, g->packFc.get());
-            taskr.addDependency(packTask, Task::encodeTaskName("Compute", i, j, k, 0));
-            taskr.addTask(packTask);
+            auto computeTask = std::make_shared<Task>("Compute", i, j, k, it, g->computeFc.get());
+            auto packTask    = std::make_shared<Task>("Pack", i, j, k, it, g->packFc.get());
+            auto sendTask    = std::make_shared<Task>("Send", i, j, k, it, g->sendFc.get());
+            auto recvTask    = std::make_shared<Task>("Receive", i, j, k, it, g->receiveFc.get());
+            auto unpackTask  = std::make_shared<Task>("Unpack", i, j, k, it, g->unpackFc.get());
 
-            auto sendTask = new Task("Send", i, j, k, 0, g->sendFc.get());
-            taskr.addDependency(sendTask, Task::encodeTaskName("Pack", i, j, k, 0));
-            taskr.addTask(sendTask);
+            _taskMap[computeTask->getLabel()] = computeTask;
+            _taskMap[packTask->getLabel()]    = packTask;
+            _taskMap[sendTask->getLabel()]    = sendTask;
+            _taskMap[recvTask->getLabel()]    = recvTask;
+            _taskMap[unpackTask->getLabel()]  = unpackTask;
 
-            auto recvTask = new Task("Receive", i, j, k, 0, g->receiveFc.get());
-            taskr.addTask(recvTask);
+            // Creating and adding local compute task dependencies
+            if (it > 0)
+              if (subGrid.X0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it - 1)].get());
+            if (it > 0)
+              if (subGrid.X1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it - 1)].get());
+            if (it > 0)
+              if (subGrid.Y0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it - 1)].get());
+            if (it > 0)
+              if (subGrid.Y1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it - 1)].get());
+            if (it > 0)
+              if (subGrid.Z0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it - 1)].get());
+            if (it > 0)
+              if (subGrid.Z1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it - 1)].get());
+            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 0, it - 1)].get());
 
-            auto unpackTask = new Task("Unpack", i, j, k, 0, g->unpackFc.get());
-            taskr.addDependency(unpackTask, Grid::encodeTaskName("Receive", i, j, k, 0));
-            taskr.addTask(unpackTask);
+            // Adding communication-related dependencies
+            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it - 1)].get());
+            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+
+            // Creating and adding receive task dependencies, from iteration 1 onwards
+            if (it > 0) recvTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+
+            // Creating and adding unpack task dependencies
+            unpackTask->addDependency(_taskMap[Task::encodeTaskName("Receive", i, j, k, it)].get());
+            unpackTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
+
+            // Creating and adding send task dependencies, from iteration 1 onwards
+            packTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
+            if (it > 0) packTask->addDependency(_taskMap[Task::encodeTaskName("Send", i, j, k, it - 1)].get());
+
+            // Creating and adding send task dependencies, from iteration 1 onwards
+            sendTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it)].get());
+
+            // Adding tasks to taskr
+            taskr.addTask(computeTask.get());
+            if (it < nIters - 1) taskr.addTask(packTask.get());
+            if (it < nIters - 1) taskr.addTask(sendTask.get());
+            if (it < nIters - 1) taskr.addTask(recvTask.get());
+            if (it < nIters - 1) taskr.addTask(unpackTask.get());
           }
 
     // Setting start time as now
