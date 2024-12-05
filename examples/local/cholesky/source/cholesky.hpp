@@ -16,9 +16,9 @@
 /**
  * Representation of the input matrix where output dependency are written and input dependency are read
 */
-extern std::vector<std::vector<std::unordered_set<taskr::Task*>>> _dependencyGrid;
-extern taskr::Runtime                                              *_taskr;
-extern std::atomic<uint64_t>                                       *_taskCounter;
+extern std::vector<std::vector<std::unordered_set<taskr::Task *>>> _dependencyGrid;
+extern taskr::Runtime                                             *_taskr;
+extern std::atomic<uint64_t>                                      *_taskCounter;
 
 /**
  * Reads input dependency from the dependency grid and adds it to the task's dependencies
@@ -158,7 +158,7 @@ void choleskyDriver(const uint32_t                                           mat
 
   // Initialize dependency grid (blocks * blocks)
   _dependencyGrid =
-    std::vector<std::vector<std::unordered_set<taskr::Task*>>>(blocks, std::vector<std::unordered_set<taskr::Task*>>(blocks, std::unordered_set<taskr::Task*>()));
+    std::vector<std::vector<std::unordered_set<taskr::Task *>>>(blocks, std::vector<std::unordered_set<taskr::Task *>>(blocks, std::unordered_set<taskr::Task *>()));
 
   // Allocate matrix
   auto matrix = memoryManager->allocateLocalMemorySlot(memorySpace, matrixSize);
