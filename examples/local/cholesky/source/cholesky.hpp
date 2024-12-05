@@ -16,7 +16,7 @@
 /**
  * Representation of the input matrix where output dependency are written and input dependency are read
 */
-extern std::vector<std::vector<std::unordered_set<taskr::label_t>>> _dependencyGrid;
+extern std::vector<std::vector<std::unordered_set<taskr::Task*>>> _dependencyGrid;
 extern taskr::Runtime                                              *_taskr;
 extern std::atomic<uint64_t>                                       *_taskCounter;
 
@@ -30,7 +30,7 @@ extern std::atomic<uint64_t>                                       *_taskCounter
 __INLINE__ void addTaskDependency(taskr::Task *task, const uint32_t row, const uint32_t column)
 {
   auto dependencies = _dependencyGrid[row][column];
-  for (const auto &d : dependencies) { _taskr->addDependency(task, d); }
+  for (const auto d : dependencies) { task->addDependency(d); }
 }
 
 /**
@@ -40,7 +40,7 @@ __INLINE__ void addTaskDependency(taskr::Task *task, const uint32_t row, const u
  * @param[in] row row of depency grid 
  * @param[in] column column of dependency grid
 */
-__INLINE__ void updateDependencyGrid(taskr::Task *task, const uint32_t row, const uint32_t column) { _dependencyGrid[row][column].emplace(task->getLabel()); }
+__INLINE__ void updateDependencyGrid(taskr::Task *task, const uint32_t row, const uint32_t column) { _dependencyGrid[row][column].emplace(task); }
 
 __INLINE__ void potrf(double *A, const uint32_t blockSize, const uint32_t matrixDimensionSize)
 {
@@ -158,7 +158,7 @@ void choleskyDriver(const uint32_t                                           mat
 
   // Initialize dependency grid (blocks * blocks)
   _dependencyGrid =
-    std::vector<std::vector<std::unordered_set<taskr::label_t>>>(blocks, std::vector<std::unordered_set<taskr::label_t>>(blocks, std::unordered_set<taskr::label_t>()));
+    std::vector<std::vector<std::unordered_set<taskr::Task*>>>(blocks, std::vector<std::unordered_set<taskr::Task*>>(blocks, std::unordered_set<taskr::Task*>()));
 
   // Allocate matrix
   auto matrix = memoryManager->allocateLocalMemorySlot(memorySpace, matrixSize);

@@ -13,7 +13,7 @@
 taskr::Runtime                                              *_taskr;
 HiCR::backend::host::L1::ComputeManager                     *_computeManager;
 std::atomic<uint64_t>                                       *_taskCounter;
-std::vector<std::vector<std::unordered_set<taskr::label_t>>> _dependencyGrid;
+std::vector<std::vector<std::unordered_set<taskr::Task*>>> _dependencyGrid;
 
 int main(int argc, char **argv)
 {
