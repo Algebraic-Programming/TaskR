@@ -13,4 +13,4 @@ TaskRDistributedCppFlag = '-D_TASKR_DISTRIBUTED_ENGINE_NONE'
 endif
 
 subdir('pingPong')
-#subdir('jacobi3d')
+subdir('jacobi3d')
