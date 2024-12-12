@@ -38,17 +38,8 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
     _label(label),
     _workerAffinity(workerAffinity)
 {
-  // DetectR init task
-  INSTRUMENTATION_TASK_EXEC(_label);
-}
-
-/**
- * Destructor
- */
-__INLINE__ Task::~Task()
-{
-  // DetectR end task
-  INSTRUMENTATION_TASK_END(_label);
+  // DetectR init task (could be maybe done inside the runtime.hpp)
+  INSTRUMENTATION_TASK_INIT();
 }
 
 } // namespace taskr

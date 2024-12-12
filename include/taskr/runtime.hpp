@@ -29,6 +29,24 @@
 #include "taskImpl.hpp"
 #include "worker.hpp"
 
+// global idx holder for the markers (will maybe be moved into the classes in the future)
+struct TaskIndices {
+  size_t not_added;
+  size_t added;
+  size_t ready;
+  size_t executing;
+  size_t suspended;
+  size_t finished;
+};
+TaskIndices task_idx;
+
+struct ThreadIndices {
+  size_t executing;
+  size_t not_exec;
+  size_t sleeping;
+};
+ThreadIndices thread_idx;
+
 namespace taskr
 {
 
@@ -71,11 +89,23 @@ class Runtime
   Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
     : _computeResources(computeResources)
   {
-    // DetectR start tracing
+    // DetectR start tracing and create the task markers
     INSTRUMENTATION_START();
 
-    // allow tasking level instrumentation
-    INSTRUMENTATION_REQUIRE_TASKR();
+    INSTRUMENTATION_TASK_MARK_TYPE(0);
+
+    task_idx.not_added = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not added");
+    task_idx.added     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_LIGHT_GRAY, "added");
+    task_idx.ready     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_LIGHT_YELLOW, "ready");
+    task_idx.executing = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GREEN, "executing");
+    task_idx.suspended = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "suspended");
+    task_idx.finished  = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BROWN, "finished");
+
+    INSTRUMENTATION_MARKER_INIT(0);
+
+    thread_idx.executing = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GREEN, "executing a task");          
+    thread_idx.not_exec  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_NAVY, "not executing a task");  // should be black (TODO ask Rodrigo)
+    thread_idx.sleeping  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GRAY, "sleeping");
 
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -104,9 +134,6 @@ class Runtime
   // Destructor
   ~Runtime()
   {
-    // DetectR save global number of executed tasks
-    INSTRUMENTATION_SET_NTASKS(_totalTaskCount.load());
-
     // DetectR stop tracing
     INSTRUMENTATION_END();
   }
@@ -157,11 +184,10 @@ class Runtime
    */
   __INLINE__ void addTask(taskr::Task *const task)
   {
+    INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.added);
+
     // Increasing active task counter
     _activeTaskCount++;
-
-    // Increasing the total number of tasks
-    _totalTaskCount++;
 
     // Making sure the task has its callback map correctly assigned
     task->setCallbackMap(&_hicrTaskCallbackMap);
@@ -179,7 +205,11 @@ class Runtime
   {
     // Checking that the task is ready to be resumed at this point
     auto dependencyCount = task->getDependencyCount();
-    if (dependencyCount > 0) return;
+    if (dependencyCount > 0) 
+    {
+      INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.not_added);
+      return;
+    }
 
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
@@ -188,9 +218,12 @@ class Runtime
     if (taskAffinity >= (ssize_t)_taskWorkers.size())
       HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
 
+    INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.ready);
+
     // If affinity set,
     if (taskAffinity >= 0)
     {
+
       // Push it into the worker's own task queue
       _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
 
@@ -334,6 +367,8 @@ class Runtime
    */
   __INLINE__ void setFinishedTask(taskr::Task *const task)
   {
+    // INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.finished);
+
     // Now for each task that dependends on this task, reduce their dependencies by one
     for (auto &dependentTask : task->getOutputDependencies())
     {
@@ -426,6 +461,7 @@ class Runtime
         // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
         if (result == false) [[likely]]
         {
+          
           resumeTask(task);
           task = nullptr;
           break;
@@ -455,6 +491,9 @@ class Runtime
     _activeTaskWorkerCount--;
 
     // Returning task pointer regardless if found or not
+
+    // if(task != nullptr) INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.executing);
+
     return task;
   }
 
@@ -512,6 +551,8 @@ class Runtime
 
     // If defined, trigger user-defined event
     _taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
+
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.executing);
   }
 
   __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *const task)
@@ -527,6 +568,8 @@ class Runtime
 
     // Decreasing active task counter
     _activeTaskCount--;
+
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.finished);
   }
 
   __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *const task)
@@ -536,6 +579,8 @@ class Runtime
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.suspended);
   }
 
   /**
@@ -606,11 +651,6 @@ class Runtime
   std::atomic<size_t> _activeTaskCount = 0;
 
   /**
-   * Counter total number of tasks
-   */
-  std::atomic<size_t> _totalTaskCount = 0;
-
-  /**
    * Common lock-free queue for ready tasks.
    */
   std::unique_ptr<HiCR::concurrent::Queue<taskr::Task>> _commonReadyTaskQueue;
@@ -651,6 +691,10 @@ class Runtime
    * Whether the task workers also check the service queue (adds overhead but improves real-time event handling)
    */
   bool _makeTaskWorkersRunServices;
+
+  TaskIndices task_idx;
+
+  ThreadIndices thread_idx;
 }; // class Runtime
 
 } // namespace taskr
