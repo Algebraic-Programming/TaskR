@@ -31,21 +31,19 @@
 
 // global idx holder for the markers (will maybe be moved into the classes in the future)
 struct TaskIndices {
-  size_t not_added;
-  size_t added;
+  size_t not_ready;
   size_t ready;
   size_t executing;
-  size_t suspended;
   size_t finished;
 };
-TaskIndices task_idx;
 
 struct ThreadIndices {
-  size_t executing;
-  size_t not_exec;
+  size_t exec_task;
+  size_t exec_serv;
+  size_t pulling;
   size_t sleeping;
+  size_t finished;
 };
-ThreadIndices thread_idx;
 
 namespace taskr
 {
@@ -92,20 +90,20 @@ class Runtime
     // DetectR start tracing and create the task markers
     INSTRUMENTATION_START();
 
-    INSTRUMENTATION_TASK_MARK_TYPE(0);
+    INSTRUMENTATION_TASK_MARK_TYPE(0);  
 
-    task_idx.not_added = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not added");
-    task_idx.added     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_LIGHT_GRAY, "added");
-    task_idx.ready     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_LIGHT_YELLOW, "ready");
+    task_idx.not_ready = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not ready");
+    task_idx.ready     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "ready");
     task_idx.executing = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GREEN, "executing");
-    task_idx.suspended = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "suspended");
-    task_idx.finished  = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BROWN, "finished");
+    task_idx.finished  = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BLACK, "finished");
 
     INSTRUMENTATION_MARKER_INIT(0);
 
-    thread_idx.executing = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GREEN, "executing a task");          
-    thread_idx.not_exec  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_NAVY, "not executing a task");  // should be black (TODO ask Rodrigo)
-    thread_idx.sleeping  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GRAY, "sleeping");
+    thread_idx.exec_task = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GREEN, "executing a task");
+    thread_idx.exec_serv = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_CYAN, "executing a service");          
+    thread_idx.pulling   = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_NAVY, "pulling");  
+    thread_idx.sleeping  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_LIGHT_GRAY, "sleeping");
+    thread_idx.finished  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GRAY, "finished");  // should be black (TODO ask Rodrigo)
 
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -184,7 +182,7 @@ class Runtime
    */
   __INLINE__ void addTask(taskr::Task *const task)
   {
-    INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.added);
+    INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.not_ready);
 
     // Increasing active task counter
     _activeTaskCount++;
@@ -205,11 +203,7 @@ class Runtime
   {
     // Checking that the task is ready to be resumed at this point
     auto dependencyCount = task->getDependencyCount();
-    if (dependencyCount > 0) 
-    {
-      INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.not_added);
-      return;
-    }
+    if (dependencyCount > 0) return;
 
     // Getting task's affinity
     const auto taskAffinity = task->getWorkerAffinity();
@@ -549,10 +543,10 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.executing);
+
     // If defined, trigger user-defined event
     _taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskExecute);
-
-    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.executing);
   }
 
   __INLINE__ void onTaskFinishCallback(HiCR::tasking::Task *const task)
@@ -573,14 +567,14 @@ class Runtime
   }
 
   __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *const task)
-  {
+  { 
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.not_ready);
+
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
-
-    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.suspended);
   }
 
   /**
@@ -692,8 +686,14 @@ class Runtime
    */
   bool _makeTaskWorkersRunServices;
 
+  /**
+   * DetectR task indices
+   */
   TaskIndices task_idx;
 
+  /**
+   * DetectR thread indices
+   */
   ThreadIndices thread_idx;
 }; // class Runtime
 
