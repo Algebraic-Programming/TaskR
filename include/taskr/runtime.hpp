@@ -307,6 +307,9 @@ class Runtime
     if (_state == state_t::uninitialized) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
     if (_state == state_t::running) HICR_THROW_LOGIC("Trying to run TaskR, but it is currently running");
 
+    // DetectR start thread tracing
+    INSTRUMENTATION_THREAD_INIT();
+
     // Initializing workers
     for (auto &w : _serviceWorkers) w->initialize();
     for (auto &w : _taskWorkers) w->initialize();
@@ -333,6 +336,9 @@ class Runtime
 
     // Set state back to initialized
     _state = state_t::initialized;
+
+    // DetectR end thread tracing
+    INSTRUMENTATION_THREAD_END();
   }
 
   /**
@@ -400,12 +406,16 @@ class Runtime
     // If found run it, and put it back into the queue
     if (service != nullptr)
     {
+      INSTRUMENTATION_MARKER_SET(thread_idx.exec_serv);
+
       // Running service
       (*service)();
 
       // Putting it back into the queue
       _serviceQueue->push(service);
     }
+
+    INSTRUMENTATION_MARKER_SET(thread_idx.pulling); // yes no?
 
     // Service threads run no tasks, so returning null
     return nullptr;
@@ -428,6 +438,8 @@ class Runtime
       // If found run it, and put it back into the queue
       if (service != nullptr)
       {
+        INSTRUMENTATION_MARKER_SET(thread_idx.exec_serv);
+
         // Running service
         (*service)();
 
@@ -435,6 +447,8 @@ class Runtime
         _serviceQueue->push(service);
       }
     }
+
+    INSTRUMENTATION_MARKER_SET(thread_idx.pulling);
 
     // Getting next task to execute from the worker's own queue
     auto task = worker->getReadyTaskQueue()->pop();
@@ -484,10 +498,9 @@ class Runtime
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
 
+    if (task != nullptr) INSTRUMENTATION_MARKER_SET(thread_idx.exec_task);
+
     // Returning task pointer regardless if found or not
-
-    // if(task != nullptr) INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.executing);
-
     return task;
   }
 
@@ -534,8 +547,11 @@ class Runtime
     if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
       if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
         if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
-          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) // If we are already at the minimum, do not suspend.
+          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) {// If we are already at the minimum, do not suspend.
+            INSTRUMENTATION_MARKER_SET(thread_idx.sleeping);
             worker->suspend();
+          }
+          
   }
 
   __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *const task)
