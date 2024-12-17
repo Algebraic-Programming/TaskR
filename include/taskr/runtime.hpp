@@ -103,7 +103,7 @@ class Runtime
     thread_idx.exec_serv = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_CYAN, "executing a service");          
     thread_idx.pulling   = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_NAVY, "pulling");  
     thread_idx.sleeping  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_LIGHT_GRAY, "sleeping");
-    thread_idx.finished  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_GRAY, "finished");  // should be black (TODO ask Rodrigo)
+    thread_idx.finished  = INSTRUMENTATION_MARKER_ADD(MARK_COLOR_BLACK, "finished");
 
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -338,6 +338,7 @@ class Runtime
     _state = state_t::initialized;
 
     // DetectR end thread tracing
+    INSTRUMENTATION_MARKER_SET(thread_idx.finished);
     INSTRUMENTATION_THREAD_END();
   }
 
@@ -367,8 +368,6 @@ class Runtime
    */
   __INLINE__ void setFinishedTask(taskr::Task *const task)
   {
-    // INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.finished);
-
     // Now for each task that dependends on this task, reduce their dependencies by one
     for (auto &dependentTask : task->getOutputDependencies())
     {

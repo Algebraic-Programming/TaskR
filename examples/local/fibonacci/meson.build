@@ -1,6 +1,6 @@
 testSuite = [ 'examples', 'local' ]
 
-fibonacci = executable('fibonacci', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ],  cpp_args : cpp_args)
+fibonacci = executable('fibonacci', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ])
 
 if get_option('buildTests')
 	test('fibonacci', fibonacci, args : [ '15' ], suite: testSuite )

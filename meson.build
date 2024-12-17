@@ -49,17 +49,23 @@ TaskRBuildIncludes = include_directories([
    'include'
   ])
 
-####### Build Instrumentation part of TaskR
+####### Build Instrumentation part (DetectR)
 
-if meson.is_subproject() == false
+buildInstrumentations = get_option('buildInstrumentations')
 
-  buildInstrumentations = get_option('buildInstrumentations')
-  if buildInstrumentations
-    InstrumentationProject = subproject('detectr', required: true)
-    InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
-    taskrDependencies += InstrumentationBuildDep
+if 'none' not in buildInstrumentations
+  InstrumentationProject = subproject('detectr', required: true)
+  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+  taskrDependencies += InstrumentationBuildDep
 
+  if 'task' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_TASKS', language: 'cpp')
   endif
+
+  if 'thread' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_THREADS', language: 'cpp')
+  endif
+
 endif
 
 ####### Collect the dependencies

@@ -12,8 +12,10 @@ option('buildExamples', type : 'boolean', value : false,
        description: 'Indicates whether to build example apps'
 )
 
-option('buildInstrumentations', type: 'boolean', value : false,
-       description: 'Indicates whether to build the instrumentations (DetectR).'
+option('buildInstrumentations', type: 'array', 
+       choices : ['task', 'thread', 'none'],
+       description: 'Indicates whether to build the instrumentations (DetectR). Default is "none". "task" means task level instrumentation and "thread" means thread level instrumentation',
+       value : ['none'],
 )
 
 option('compileWarningsAsErrors', type : 'boolean', value : false,
