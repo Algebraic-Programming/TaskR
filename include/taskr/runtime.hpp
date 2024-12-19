@@ -79,7 +79,7 @@ struct ThreadIndices
    * thread idx sleeping
    */
   size_t sleeping;
-  
+
   /**
    * thread idx finished
    */
