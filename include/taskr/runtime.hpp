@@ -29,7 +29,9 @@
 #include "taskImpl.hpp"
 #include "worker.hpp"
 
-// global idx holder for the markers (will maybe be moved into the classes in the future)
+/**
+ * Task indices for the DetectR task markers 
+ */
 struct TaskIndices
 {
   size_t not_ready;
@@ -38,6 +40,9 @@ struct TaskIndices
   size_t finished;
 };
 
+/**
+ * thread indices for the DetectR thread markers 
+ */
 struct ThreadIndices
 {
   size_t exec_task;
