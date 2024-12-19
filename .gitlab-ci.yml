@@ -10,7 +10,7 @@ build:
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
   - echo "Compiling OVNI..."
-  - mkdir extern/detectr/extern/ovni/build; pushd extern/detectr/extern/ovni/build; cmake .. -DCMAKE_INSTALL_PREFIX=/home/hicr/ovni; make -j24; make install; popd
+  - mkdir extern/detectr/extern/ovni/build; pushd extern/detectr/extern/ovni/build; cmake .. -DCMAKE_INSTALL_PREFIX=/home/hicr/ovni -DENABLE_ALL_TESTS=FALSE; make -j24; make install; popd
   - echo "Building TaskR..."
   - mkdir build
   - meson setup build -Dbuildtype=debug -Db_coverage=true -DbuildTests=true -DbuildExamples=true -DdistributedEngine=mpi -DcompileWarningsAsErrors=true
