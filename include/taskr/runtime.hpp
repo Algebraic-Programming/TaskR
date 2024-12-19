@@ -23,21 +23,25 @@
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 
-#include <detectr.hpp>
+#if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
+  #include <detectr.hpp>
+#endif
 
 #include "task.hpp"
 #include "taskImpl.hpp"
 #include "worker.hpp"
 
 // global idx holder for the markers (will maybe be moved into the classes in the future)
-struct TaskIndices {
+struct TaskIndices
+{
   size_t not_ready;
   size_t ready;
   size_t executing;
   size_t finished;
 };
 
-struct ThreadIndices {
+struct ThreadIndices
+{
   size_t exec_task;
   size_t exec_serv;
   size_t pulling;
@@ -90,7 +94,7 @@ class Runtime
     // DetectR start tracing and create the task markers
     INSTRUMENTATION_START();
 
-    INSTRUMENTATION_TASK_MARK_INIT(0);  
+    INSTRUMENTATION_TASK_MARK_INIT(0);
 
     task_idx.not_ready = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not ready");
     task_idx.ready     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "ready");
@@ -100,8 +104,8 @@ class Runtime
     INSTRUMENTATION_THREAD_MARK_INIT(0);
 
     thread_idx.exec_task = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_GREEN, "executing a task");
-    thread_idx.exec_serv = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_CYAN, "executing a service");          
-    thread_idx.pulling   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_NAVY, "pulling");  
+    thread_idx.exec_serv = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_CYAN, "executing a service");
+    thread_idx.pulling   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_NAVY, "pulling");
     thread_idx.sleeping  = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GRAY, "sleeping");
     thread_idx.finished  = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_BLACK, "finished");
 
@@ -119,8 +123,7 @@ class Runtime
     _taskWorkerCallbackMap.setCallback(HiCR::tasking::Worker::callback_t::onWorkerTerminate, [this](HiCR::tasking::Worker *worker) { this->onWorkerTerminateCallback(worker); });
     _serviceWorkerCallbackMap.setCallback(HiCR::tasking::Worker::callback_t::onWorkerStart, [this](HiCR::tasking::Worker *worker) { this->onWorkerStartCallback(worker); });
     _serviceWorkerCallbackMap.setCallback(HiCR::tasking::Worker::callback_t::onWorkerTerminate, [this](HiCR::tasking::Worker *worker) { this->onWorkerTerminateCallback(worker); });
-    
-    
+
     // Assigning configuration defaults
     _taskWorkerInactivityTimeMs      = 10;    // 10 ms for a task worker to suspend if it didn't find any suitable tasks to execute
     _taskWorkerSuspendIntervalTimeMs = 1;     // Worker will sleep for 1ms when suspended
@@ -224,7 +227,6 @@ class Runtime
     // If affinity set,
     if (taskAffinity >= 0)
     {
-
       // Push it into the worker's own task queue
       _taskWorkers[taskAffinity]->getReadyTaskQueue()->push(task);
 
@@ -473,7 +475,6 @@ class Runtime
         // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
         if (result == false) [[likely]]
         {
-          
           resumeTask(task);
           task = nullptr;
           break;
@@ -551,11 +552,11 @@ class Runtime
     if (_taskWorkerInactivityTimeMs >= 0)               // If this setting is, negative then no suspension is used
       if (worker->getHasFailedToRetrieveTask() == true) // If the worker has failed to retrieve a task last time
         if (worker->getTimeSinceFailedToRetrievetaskMs() > (size_t)_taskWorkerInactivityTimeMs)
-          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers) {// If we are already at the minimum, do not suspend.
+          if (_activeTaskWorkerCount > _minimumActiveTaskWorkers)
+          { // If we are already at the minimum, do not suspend.
             INSTRUMENTATION_THREAD_MARK_SET(thread_idx.sleeping);
             worker->suspend();
           }
-          
   }
 
   __INLINE__ void onTaskExecuteCallback(HiCR::tasking::Task *const task)
@@ -587,7 +588,7 @@ class Runtime
   }
 
   __INLINE__ void onTaskSuspendCallback(HiCR::tasking::Task *const task)
-  { 
+  {
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
