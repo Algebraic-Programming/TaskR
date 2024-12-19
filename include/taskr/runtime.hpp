@@ -34,9 +34,13 @@
  */
 struct TaskIndices
 {
+  // task idx not_ready
   size_t not_ready;
+  // task idx ready
   size_t ready;
+  // task idx executing
   size_t executing;
+  // task idx finished
   size_t finished;
 };
 
@@ -45,10 +49,15 @@ struct TaskIndices
  */
 struct ThreadIndices
 {
+  // thread idx exec_task
   size_t exec_task;
+  // thread idx exec_serv
   size_t exec_serv;
+  // thread idx pulling
   size_t pulling;
+  // thread idx sleeping
   size_t sleeping;
+  // thread idx finished
   size_t finished;
 };
 
