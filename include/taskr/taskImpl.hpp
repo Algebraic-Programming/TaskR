@@ -12,7 +12,9 @@
 
 #pragma once
 
-#include <detectr.hpp>
+#if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
+  #include <detectr.hpp>
+#endif
 
 #include "task.hpp"
 #include "function.hpp"
