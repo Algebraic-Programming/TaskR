@@ -23,7 +23,9 @@
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
 
-#include <detectr.hpp>
+#if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
+  #include <detectr.hpp>
+#endif
 
 #include "task.hpp"
 #include "taskImpl.hpp"

@@ -53,20 +53,22 @@ TaskRBuildIncludes = include_directories([
 
 buildInstrumentations = get_option('buildInstrumentations')
 
-InstrumentationProject = subproject('detectr', required: true)
-InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
-taskrDependencies += InstrumentationBuildDep
+if buildInstrumentations != []
+  InstrumentationProject = subproject('detectr', required: true)
+  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+  taskrDependencies += InstrumentationBuildDep
 
-if 'task' in buildInstrumentations
-  add_project_arguments('-DINSTRUMENTATION_TASKS', language: 'cpp')
+  if 'task' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_TASKS', language: 'cpp')
+  endif
+
+  if 'thread' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_THREADS', language: 'cpp')
+  endif
+
+  # uncomment this to enable debug prints of DetectR
+  # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
 endif
-
-if 'thread' in buildInstrumentations
-  add_project_arguments('-DINSTRUMENTATION_THREADS', language: 'cpp')
-endif
-
-# uncomment this to enable debug prints of DetectR
-# add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
 
 ####### Collect the dependencies
 
