@@ -31,9 +31,6 @@ uint64_t fibonacci(taskr::Task *currentTask, const uint64_t x)
   // Suspending current task
   currentTask->suspend();
 
-  // double tmp_result = 2.0;
-  // for(int i = 0; i < result1 + result2; ++i) tmp_result += sqrt(tmp_result + i);
-
   return result1 + result2;
 }
 
