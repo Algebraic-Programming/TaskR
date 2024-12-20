@@ -12,6 +12,10 @@
 
 #pragma once
 
+#if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
+  #include <detectr.hpp>
+#endif
+
 #include "task.hpp"
 #include "function.hpp"
 
@@ -35,6 +39,9 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
   : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
     _label(label),
     _workerAffinity(workerAffinity)
-{}
+{
+  // DetectR init task (could be maybe done inside the runtime.hpp)
+  INSTRUMENTATION_TASK_INIT();
+}
 
 } // namespace taskr
