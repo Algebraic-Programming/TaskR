@@ -3,5 +3,5 @@ testSuite = [ 'examples', 'local' ]
 fibonacci = executable('fibonacci', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ])
 
 if get_option('buildTests')
-	test('fibonacci', fibonacci, args : [ '15' ], suite: testSuite )
+	test('fibonacci', fibonacci, args : [ '15' ], suite: testSuite, workdir: fibonacci.path() + '.p' )
 endif

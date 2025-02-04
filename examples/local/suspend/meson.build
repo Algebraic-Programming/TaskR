@@ -3,5 +3,5 @@ testSuite = [ 'examples', 'local' ]
 suspend = executable('suspend', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ] )
 
 if get_option('buildTests')
-	test('suspend', suspend, args : [ '2', '100' ], suite: testSuite )
+	test('suspend', suspend, args : [ '2', '100' ], suite: testSuite, workdir: suspend.path() + '.p' )
 endif

@@ -13,7 +13,7 @@
 #pragma once
 
 #if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
-  #include <detectr.hpp>
+  #include <tracr.hpp>
 #endif
 
 #include "task.hpp"
@@ -40,7 +40,7 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
     _label(label),
     _workerAffinity(workerAffinity)
 {
-  // DetectR init task (could be maybe done inside the runtime.hpp)
+  // TraCR init task (Maybe could be done inside the runtime.hpp)
   INSTRUMENTATION_TASK_INIT();
 }
 
