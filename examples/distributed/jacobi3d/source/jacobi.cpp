@@ -175,17 +175,18 @@ int main(int argc, char *argv[])
             auto  localId = g->localSubGridMapping[k][j][i];
             auto &subGrid = g->subgrids[localId];
 
+            // create new specific tasks
             auto computeTask = std::make_shared<Task>("Compute", i, j, k, it, g->computeFc.get());
             auto packTask    = std::make_shared<Task>("Pack", i, j, k, it, g->packFc.get());
             auto sendTask    = std::make_shared<Task>("Send", i, j, k, it, g->sendFc.get());
             auto recvTask    = std::make_shared<Task>("Receive", i, j, k, it, g->receiveFc.get());
             auto unpackTask  = std::make_shared<Task>("Unpack", i, j, k, it, g->unpackFc.get());
 
-            _taskMap[computeTask->getLabel()] = computeTask;
-            _taskMap[packTask->getLabel()]    = packTask;
-            _taskMap[sendTask->getLabel()]    = sendTask;
-            _taskMap[recvTask->getLabel()]    = recvTask;
-            _taskMap[unpackTask->getLabel()]  = unpackTask;
+            _taskMap[Task::encodeTaskName("Compute", i, j, k, it)] = computeTask;
+            _taskMap[Task::encodeTaskName("Pack", i, j, k, it)]    = packTask;
+            _taskMap[Task::encodeTaskName("Send", i, j, k, it)]    = sendTask;
+            _taskMap[Task::encodeTaskName("Receive", i, j, k, it)] = recvTask;
+            _taskMap[Task::encodeTaskName("Unpack", i, j, k, it)]  = unpackTask;
 
             // Creating and adding local compute task dependencies
             if (it > 0)

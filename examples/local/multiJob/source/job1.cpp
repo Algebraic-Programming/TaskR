@@ -2,7 +2,7 @@
 #include <taskr/taskr.hpp>
 #include "jobs.hpp"
 
-#define JOB_ID 1
+#define JOB_ID 0
 
 void job1(taskr::Runtime &taskr)
 {

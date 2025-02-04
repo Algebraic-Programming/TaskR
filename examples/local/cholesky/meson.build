@@ -9,5 +9,5 @@ choleskyDep = declare_dependency(
 cholesky = executable('cholesky', [ 'source/main.cpp'],  include_directories: include_directories(['source']), dependencies: [ choleskyDep] )
 
 if get_option('buildTests')
-	test('cholesky', cholesky, args: [ '384', '24', '0', '0' ], suite: testSuite )
+	test('cholesky', cholesky, args: [ '384', '24', '0', '0' ], suite: testSuite, workdir: cholesky.path() + '.p' )
 endif

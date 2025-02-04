@@ -4,6 +4,13 @@
 #include "grid.hpp"
 #include "task.hpp"
 
+/**
+ * global hash map for the taskids and hashvalue
+ * first  size_t: hashvalue
+ * second size_t: taskid
+ */
+std::unordered_map<size_t, size_t> taskid_hashmap;
+
 bool Grid::initialize()
 {
   // Inverse stencil coefficient

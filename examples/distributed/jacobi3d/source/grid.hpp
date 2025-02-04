@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <taskr/taskr.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/core/L1/topologyManager.hpp>
@@ -13,6 +14,8 @@
 #define CHANNEL_DEPTH 10
 const int BLOCKZ = 96;
 const int BLOCKY = 64;
+
+extern std::unordered_map<size_t, size_t> taskid_hashmap;
 
 enum commType
 {
@@ -194,15 +197,6 @@ class Grid
 
     // Otherwise go ahead and push
     return (double_t *)channel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + channel->peek(0) * tokenSize;
-  }
-
-  static inline size_t encodeTaskName(const std::string &taskName, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint64_t iter)
-  {
-    char buffer[512];
-    sprintf(buffer, "%s_%lu_%lu_%lu_%lu", taskName.c_str(), lx, ly, lz, iter);
-    const std::hash<std::string> hasher;
-    const auto                   hashResult = hasher(buffer);
-    return hashResult;
   }
 
   inline uint64_t getLocalTaskId(const uint64_t lx, const uint64_t ly, const uint64_t lz) { return lz * ls.y * ls.x + ly * ls.x + lx; }

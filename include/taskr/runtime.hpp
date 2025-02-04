@@ -24,7 +24,7 @@
 #include <hicr/core/concurrent/queue.hpp>
 
 #if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
-  #include <detectr.hpp>
+  #include <tracr.hpp>
 #endif
 
 #include "task.hpp"
@@ -32,7 +32,7 @@
 #include "worker.hpp"
 
 /**
- * Task indices for the DetectR task markers 
+ * Task indices for the TraCR task markers 
  */
 struct TaskIndices
 {
@@ -55,10 +55,20 @@ struct TaskIndices
    * task idx finished
    */
   size_t finished;
+
+  /**
+   * task idx syncing
+   */
+  size_t sync;
+
+  /**
+   * task idx push_back_queue
+   */
+  size_t push_back_queue;
 };
 
 /**
- * thread indices for the DetectR thread markers 
+ * thread indices for the TraCR thread markers 
  */
 struct ThreadIndices
 {
@@ -135,15 +145,17 @@ class Runtime
   Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
     : _computeResources(computeResources)
   {
-    // DetectR start tracing and create the task and thread markers
+    // TraCR start tracing and create the task and thread markers
     INSTRUMENTATION_START();
 
     INSTRUMENTATION_TASK_MARK_INIT(0);
 
-    task_idx.not_ready = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not ready");
-    task_idx.ready     = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "ready");
-    task_idx.executing = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GREEN, "executing");
-    task_idx.finished  = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BLACK, "finished");
+    task_idx.not_ready       = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GRAY, "not ready");
+    task_idx.ready           = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BRIGHT_BLUE, "ready");
+    task_idx.executing       = INSTRUMENTATION_TASK_ADD(MARK_COLOR_GREEN, "executing");
+    task_idx.finished        = INSTRUMENTATION_TASK_ADD(MARK_COLOR_BLACK, "finished");
+    task_idx.sync            = INSTRUMENTATION_TASK_ADD(MARK_COLOR_LIGHT_GRAY, "syncing");
+    task_idx.push_back_queue = INSTRUMENTATION_TASK_ADD(MARK_COLOR_NAVY, "push back to queue");
 
     INSTRUMENTATION_THREAD_MARK_INIT(0);
 
@@ -162,6 +174,7 @@ class Runtime
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskFinish, [this](HiCR::tasking::Task *task) { this->onTaskFinishCallback(task); });
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](HiCR::tasking::Task *task) { this->onTaskSuspendCallback(task); });
+    _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskSync, [this](HiCR::tasking::Task *task) { this->onTaskSyncCallback(task); });
 
     // Setting ServiceWorker callback functions
     _serviceWorkerCallbackMap.setCallback(HiCR::tasking::Worker::callback_t::onWorkerStart, [this](HiCR::tasking::Worker *worker) { this->onWorkerStartCallback(worker); });
@@ -193,7 +206,7 @@ class Runtime
   // Destructor
   ~Runtime()
   {
-    // DetectR stop tracing
+    // TraCR stop tracing
     INSTRUMENTATION_END();
   }
 
@@ -243,7 +256,7 @@ class Runtime
    */
   __INLINE__ void addTask(taskr::Task *const task)
   {
-    // DetectR set trace of task not being ready
+    // TraCR set trace of task not being ready
     INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.not_ready);
 
     // Increasing active task counter
@@ -274,7 +287,7 @@ class Runtime
     if (taskAffinity >= (ssize_t)_taskWorkers.size())
       HICR_THROW_LOGIC("Invalid task affinity specified: %ld, which is larger than the largest worker id: %ld\n", taskAffinity, _taskWorkers.size() - 1);
 
-    // DetectR set trace of task being ready
+    // TraCR set trace of task being ready
     INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.ready);
 
     // If affinity set,
@@ -386,7 +399,7 @@ class Runtime
    */
   __INLINE__ void await()
   {
-    // DetectR set trace of thread being finished
+    // TraCR set trace of thread being finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // Verify taskr is correctly running
@@ -448,7 +461,7 @@ class Runtime
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
   {
-    // DetectR set trace of thread polling
+    // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
 
     // Getting worker pointer
@@ -466,7 +479,7 @@ class Runtime
     // If found run it, and put it back into the queue
     if (service != nullptr)
     {
-      // DetectR set trace of thread executing a service
+      // TraCR set trace of thread executing a service
       INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
 
       // Running service
@@ -482,7 +495,7 @@ class Runtime
 
   __INLINE__ taskr::Task *taskWorkerLoop(const workerId_t taskWorkerId)
   {
-    // DetectR set trace of thread polling
+    // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
 
     // The worker is once again active
@@ -500,7 +513,7 @@ class Runtime
       // If found run it, and put it back into the queue
       if (service != nullptr)
       {
-        // DetectR set trace of thread executing a service
+        // TraCR set trace of thread executing a service
         INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
 
         // Running service
@@ -530,6 +543,9 @@ class Runtime
         // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
         if (result == false) [[likely]]
         {
+          // TraCR set trace of task not being ready
+          INSTRUMENTATION_TASK_SET(task->getLabel(), task_idx.push_back_queue);
+
           resumeTask(task);
           task = nullptr;
           break;
@@ -558,7 +574,7 @@ class Runtime
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
 
-    // DetectR set trace of thread executing a task
+    // TraCR set trace of thread executing a task
     if (task != nullptr) INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_task);
 
     // Returning task pointer regardless if found or not
@@ -616,7 +632,7 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
-    // DetectR set trace of task being executed
+    // TraCR set trace of task being executed
     INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.executing);
 
     // If defined, trigger user-defined event
@@ -628,7 +644,7 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
-    // DetectR set trace of task finished
+    // TraCR set trace of task finished
     INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.finished);
 
     // Setting task as finished task
@@ -646,11 +662,23 @@ class Runtime
     // Getting TaskR task pointer
     auto taskrTask = (taskr::Task *)task;
 
-    // DetectR set trace of task not being ready
+    // TraCR set trace of task not being ready
     INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.not_ready);
 
     // If defined, trigger user-defined event
     this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSuspend);
+  }
+
+  __INLINE__ void onTaskSyncCallback(HiCR::tasking::Task *const task)
+  {
+    // Getting TaskR task pointer
+    auto taskrTask = (taskr::Task *)task;
+
+    // TraCR set trace of task not being ready
+    INSTRUMENTATION_TASK_SET(taskrTask->getLabel(), task_idx.sync);
+
+    // If defined, trigger user-defined event
+    this->_taskCallbackMap.trigger(taskrTask, HiCR::tasking::Task::callback_t::onTaskSync);
   }
 
   __INLINE__ void onWorkerStartCallback(HiCR::tasking::Worker *const worker)
@@ -658,7 +686,7 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-    // DetectR initialize the thread
+    // TraCR initialize the thread
     INSTRUMENTATION_THREAD_INIT();
 
     // If defined, trigger user-defined event
@@ -670,7 +698,7 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-    // DetectR set trace of thread suspended
+    // TraCR set trace of thread suspended
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.suspending);
 
     // If defined, trigger user-defined event
@@ -682,7 +710,7 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-    // DetectR set trace of thread resumed
+    // TraCR set trace of thread resumed
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.resuming);
 
     // If defined, trigger user-defined event
@@ -694,7 +722,7 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-    // DetectR end thread
+    // TraCR end thread
     INSTRUMENTATION_THREAD_END();
 
     // If defined, trigger user-defined event
@@ -816,12 +844,12 @@ class Runtime
   bool _makeTaskWorkersRunServices;
 
   /**
-   * DetectR task indices
+   * TraCR task indices
    */
   TaskIndices task_idx;
 
   /**
-   * DetectR thread indices
+   * TraCR thread indices
    */
   ThreadIndices thread_idx;
 }; // class Runtime
