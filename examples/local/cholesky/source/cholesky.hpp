@@ -2,10 +2,10 @@
 #include <chrono>
 #include <lapack.h>
 #include <cblas.h>
-#include <hicr/backends/host/L1/computeManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/core/L0/device.hpp>
 #include <hicr/core/L0/computeResource.hpp>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
+#include <hicr/backends/hwloc/L1/memoryManager.hpp>
 #include <taskr/taskr.hpp>
 
 #include "../utils.hpp"
@@ -128,8 +128,8 @@ void choleskyDriver(const uint32_t                                           mat
                     const uint32_t                                           blocks,
                     const bool                                               readFromFile,
                     const bool                                               checkResult,
-                    HiCR::backend::host::hwloc::L1::MemoryManager           *memoryManager,
-                    HiCR::backend::host::pthreads::L1::CommunicationManager *communicationManager,
+                    HiCR::backend::hwloc::L1::MemoryManager           *memoryManager,
+                    HiCR::backend::pthreads::L1::CommunicationManager *communicationManager,
                     const HiCR::L0::Device::computeResourceList_t           &computeResources,
                     const std::shared_ptr<HiCR::L0::MemorySpace>            &memorySpace,
                     const std::string                                       &matrixPath)

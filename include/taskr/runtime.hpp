@@ -18,7 +18,7 @@
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
 #include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
 #include <hicr/core/concurrent/queue.hpp>
@@ -527,7 +527,7 @@ class Runtime
   /**
    * Pointer to the compute manager to use
    */
-  HiCR::backend::host::pthreads::L1::ComputeManager _computeManager;
+  HiCR::backend::pthreads::L1::ComputeManager _computeManager;
 
   /**
    * Type definition for the task's callback map

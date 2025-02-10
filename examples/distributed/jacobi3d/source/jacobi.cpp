@@ -4,8 +4,7 @@
 #include <hicr/core/L1/communicationManager.hpp>
 #include <hicr/core/L1/instanceManager.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
-#include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
-#include <hicr/frontends/deployer/deployer.hpp>
+#include <hicr/backends/hwloc/L1/topologyManager.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   #include <hicr/backends/mpi/L1/communicationManager.hpp>
@@ -14,9 +13,9 @@
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-  #include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
-  #include <hicr/backends/host/L1/instanceManager.hpp>
-  #include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
+  #include <hicr/backends/pthreads/L1/communicationManager.hpp>
+  #include <hicr/backends/hwloc/L1/instanceManager.hpp>
+  #include <hicr/backends/hwloc/L1/memoryManager.hpp>
 #endif
 
 #include "grid.hpp"
@@ -46,13 +45,13 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-  instanceManager      = std::make_unique<HiCR::backend::host::L1::InstanceManager>();
-  communicationManager = std::make_unique<HiCR::backend::host::pthreads::L1::CommunicationManager>();
-  memoryManager        = HiCR::backend::host::hwloc::L1::MemoryManager::createDefault();
+  instanceManager      = std::make_unique<HiCR::backend::hwloc::L1::InstanceManager>();
+  communicationManager = std::make_unique<HiCR::backend::pthreads::L1::CommunicationManager>();
+  memoryManager        = HiCR::backend::hwloc::L1::MemoryManager::createDefault();
 #endif
 
   // Creating (local host) topology manager
-  const auto topologyManager = HiCR::backend::host::hwloc::L1::TopologyManager::createDefault();
+  const auto topologyManager = HiCR::backend::hwloc::L1::TopologyManager::createDefault();
 
   // Getting distributed instance information
   const auto instanceCount  = instanceManager->getInstances().size();
@@ -69,7 +68,7 @@ int main(int argc, char *argv[])
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
@@ -144,141 +143,137 @@ int main(int argc, char *argv[])
   // Task map
   std::map<taskr::label_t, std::shared_ptr<taskr::Task>> _taskMap;
 
-  // Defining execution unit to run by all the instances
-  instanceManager->addRPCTarget("processGrid", [&]() {
-    // printf("Instance %lu: Executing...\n", myInstanceId);
+  // Creating tasks to reset the grid
+  for (ssize_t i = 0; i < lt.x; i++)
+    for (ssize_t j = 0; j < lt.y; j++)
+      for (ssize_t k = 0; k < lt.z; k++)
+      {
+        auto resetTask = new Task("Reset", i, j, k, 0, g->resetFc.get());
+        taskr.addTask(resetTask);
+      }
 
-    // Creating tasks to reset the grid
+  // Initializing TaskR
+  taskr.initialize();
+
+  // Running Taskr initially
+  taskr.run();
+
+  // Waiting for Taskr to finish
+  taskr.await();
+
+  // Creating and adding tasks (graph nodes)
+  for (ssize_t it = 0; it < nIters; it++)
     for (ssize_t i = 0; i < lt.x; i++)
       for (ssize_t j = 0; j < lt.y; j++)
         for (ssize_t k = 0; k < lt.z; k++)
         {
-          auto resetTask = new Task("Reset", i, j, k, 0, g->resetFc.get());
-          taskr.addTask(resetTask);
+          auto  localId = g->localSubGridMapping[k][j][i];
+          auto &subGrid = g->subgrids[localId];
+
+          auto computeTask = std::make_shared<Task>("Compute", i, j, k, it, g->computeFc.get());
+          auto packTask    = std::make_shared<Task>("Pack", i, j, k, it, g->packFc.get());
+          auto sendTask    = std::make_shared<Task>("Send", i, j, k, it, g->sendFc.get());
+          auto recvTask    = std::make_shared<Task>("Receive", i, j, k, it, g->receiveFc.get());
+          auto unpackTask  = std::make_shared<Task>("Unpack", i, j, k, it, g->unpackFc.get());
+
+          _taskMap[computeTask->getLabel()] = computeTask;
+          _taskMap[packTask->getLabel()]    = packTask;
+          _taskMap[sendTask->getLabel()]    = sendTask;
+          _taskMap[recvTask->getLabel()]    = recvTask;
+          _taskMap[unpackTask->getLabel()]  = unpackTask;
+
+          // Creating and adding local compute task dependencies
+          if (it > 0)
+            if (subGrid.X0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.X1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Y0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Y1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Z0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Z1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it - 1)].get());
+          if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 0, it - 1)].get());
+
+          // Adding communication-related dependencies
+          if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it - 1)].get());
+          if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+
+          // Creating and adding receive task dependencies, from iteration 1 onwards
+          if (it > 0) recvTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+
+          // Creating and adding unpack task dependencies
+          unpackTask->addDependency(_taskMap[Task::encodeTaskName("Receive", i, j, k, it)].get());
+          unpackTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
+
+          // Creating and adding send task dependencies, from iteration 1 onwards
+          packTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
+          if (it > 0) packTask->addDependency(_taskMap[Task::encodeTaskName("Send", i, j, k, it - 1)].get());
+
+          // Creating and adding send task dependencies, from iteration 1 onwards
+          sendTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it)].get());
+
+          // Adding tasks to taskr
+          taskr.addTask(computeTask.get());
+          if (it < nIters - 1) taskr.addTask(packTask.get());
+          if (it < nIters - 1) taskr.addTask(sendTask.get());
+          if (it < nIters - 1) taskr.addTask(recvTask.get());
+          if (it < nIters - 1) taskr.addTask(unpackTask.get());
         }
 
-    // Initializing TaskR
-    taskr.initialize();
+  // Setting start time as now
+  auto t0 = std::chrono::high_resolution_clock::now();
 
-    // Running Taskr initially
-    taskr.run();
+  // Running Taskr
+  taskr.run();
 
-    // Waiting for Taskr to finish
-    taskr.await();
+  // Waiting for Taskr to finish
+  taskr.await();
 
-    // Creating and adding tasks (graph nodes)
-    for (ssize_t it = 0; it < nIters; it++)
-      for (ssize_t i = 0; i < lt.x; i++)
-        for (ssize_t j = 0; j < lt.y; j++)
-          for (ssize_t k = 0; k < lt.z; k++)
-          {
-            auto  localId = g->localSubGridMapping[k][j][i];
-            auto &subGrid = g->subgrids[localId];
+  ////// Calculating residual
 
-            auto computeTask = std::make_shared<Task>("Compute", i, j, k, it, g->computeFc.get());
-            auto packTask    = std::make_shared<Task>("Pack", i, j, k, it, g->packFc.get());
-            auto sendTask    = std::make_shared<Task>("Send", i, j, k, it, g->sendFc.get());
-            auto recvTask    = std::make_shared<Task>("Receive", i, j, k, it, g->receiveFc.get());
-            auto unpackTask  = std::make_shared<Task>("Unpack", i, j, k, it, g->unpackFc.get());
+  // Reset local residual to zero
+  g->resetResidual();
 
-            _taskMap[computeTask->getLabel()] = computeTask;
-            _taskMap[packTask->getLabel()]    = packTask;
-            _taskMap[sendTask->getLabel()]    = sendTask;
-            _taskMap[recvTask->getLabel()]    = recvTask;
-            _taskMap[unpackTask->getLabel()]  = unpackTask;
+  // Calculating local residual
+  for (ssize_t i = 0; i < lt.x; i++)
+    for (ssize_t j = 0; j < lt.y; j++)
+      for (ssize_t k = 0; k < lt.z; k++)
+      {
+        auto residualTask = new Task("Residual", i, j, k, nIters, g->localResidualFc.get());
+        taskr.addTask(residualTask);
+      }
 
-            // Creating and adding local compute task dependencies
-            if (it > 0)
-              if (subGrid.X0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it - 1)].get());
-            if (it > 0)
-              if (subGrid.X1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it - 1)].get());
-            if (it > 0)
-              if (subGrid.Y0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it - 1)].get());
-            if (it > 0)
-              if (subGrid.Y1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it - 1)].get());
-            if (it > 0)
-              if (subGrid.Z0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it - 1)].get());
-            if (it > 0)
-              if (subGrid.Z1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it - 1)].get());
-            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 0, it - 1)].get());
+  // Running Taskr
+  taskr.run();
 
-            // Adding communication-related dependencies
-            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it - 1)].get());
-            if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+  // Waiting for Taskr to finish
+  taskr.await();
 
-            // Creating and adding receive task dependencies, from iteration 1 onwards
-            if (it > 0) recvTask->addDependency(_taskMap[Task::encodeTaskName("Unpack", i, j, k, it - 1)].get());
+  // Finalizing TaskR
+  taskr.finalize();
 
-            // Creating and adding unpack task dependencies
-            unpackTask->addDependency(_taskMap[Task::encodeTaskName("Receive", i, j, k, it)].get());
-            unpackTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
+  // for (size_t i = 0; i < instanceCount; i++)
+  // {
+  //   if (myInstanceId == i)
+  //   {
+  //     printf("Process: %lu, Residual: %.8f\n", myInstanceId, g->_residual.load());
+  //     g->print(nIters);
+  //   }
+  //   printf("\n");
+  //   usleep(50000);
+  // }
 
-            // Creating and adding send task dependencies, from iteration 1 onwards
-            packTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i, j, k, it)].get());
-            if (it > 0) packTask->addDependency(_taskMap[Task::encodeTaskName("Send", i, j, k, it - 1)].get());
-
-            // Creating and adding send task dependencies, from iteration 1 onwards
-            sendTask->addDependency(_taskMap[Task::encodeTaskName("Pack", i, j, k, it)].get());
-
-            // Adding tasks to taskr
-            taskr.addTask(computeTask.get());
-            if (it < nIters - 1) taskr.addTask(packTask.get());
-            if (it < nIters - 1) taskr.addTask(sendTask.get());
-            if (it < nIters - 1) taskr.addTask(recvTask.get());
-            if (it < nIters - 1) taskr.addTask(unpackTask.get());
-          }
-
-    // Setting start time as now
-    auto t0 = std::chrono::high_resolution_clock::now();
-
-    // Running Taskr
-    taskr.run();
-
-    // Waiting for Taskr to finish
-    taskr.await();
-
-    ////// Calculating residual
-
-    // Reset local residual to zero
-    g->resetResidual();
-
-    // Calculating local residual
-    for (ssize_t i = 0; i < lt.x; i++)
-      for (ssize_t j = 0; j < lt.y; j++)
-        for (ssize_t k = 0; k < lt.z; k++)
-        {
-          auto residualTask = new Task("Residual", i, j, k, nIters, g->localResidualFc.get());
-          taskr.addTask(residualTask);
-        }
-
-    // Running Taskr
-    taskr.run();
-
-    // Waiting for Taskr to finish
-    taskr.await();
-
-    // Finalizing TaskR
-    taskr.finalize();
-
-    // for (size_t i = 0; i < instanceCount; i++)
-    // {
-    //   if (myInstanceId == i)
-    //   {
-    //     printf("Process: %lu, Residual: %.8f\n", myInstanceId, g->_residual.load());
-    //     g->print(nIters);
-    //   }
-    //   printf("\n");
-    //   usleep(50000);
-    // }
-
-    // If i'm not the root instance, simply send my locally calculated reisdual
-    if (isRootInstance == false)
-    {
-      *(double *)g->residualSendBuffer->getPointer() = g->_residual;
-      g->residualProducerChannel->push(g->residualSendBuffer, 1);
-      g->finalize();
-      return;
-    }
+  // If i'm not the root instance, simply send my locally calculated reisdual
+  if (isRootInstance == false)
+  {
+    *(double *)g->residualSendBuffer->getPointer() = g->_residual;
+    g->residualProducerChannel->push(g->residualSendBuffer, 1);
+  }
+  else
+  {
 
     // Otherwise gather all the residuals and print the results
     double globalRes = g->_residual;
@@ -300,21 +295,11 @@ int main(int argc, char *argv[])
     double residual = sqrt(globalRes / ((double)(N - 1) * (double)(N - 1) * (double)(N - 1)));
     double gflops   = nIters * (double)N * (double)N * (double)N * (2 + gDepth * 8) / (1.0e9);
     printf("%.4fs, %.3f GFlop/s (L2 Norm: %.10g)\n", execTime, gflops / execTime, residual);
+  }
 
-    g->finalize();
-  });
-
-  // Creating deployer instance
-  std::vector<HiCR::L1::TopologyManager *> topologyManagers = {topologyManager.get()};
-  auto                                     deployer         = HiCR::Deployer(instanceManager.get(), communicationManager.get(), memoryManager.get(), topologyManagers);
-
-  // Initializing deployer (bifurcates between root and non-root instances)
-  deployer.initialize();
-
-  // Deploy the entry point function on all instances, with no topological preference
-  std::vector<HiCR::MachineModel::request_t> requests = {HiCR::MachineModel::request_t{.entryPointName = "processGrid", .replicaCount = instanceCount}};
-  deployer.deploy(requests);
+  // Finalizing grid
+   g->finalize();
 
   // Finalizing instances
-  deployer.finalize();
+  instanceManager->finalize();
 }
