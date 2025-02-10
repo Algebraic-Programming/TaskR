@@ -130,12 +130,15 @@ int main(int argc, char *argv[])
 
   // Creating grid processing functions
   g->resetFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->reset(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k); });
-  g->computeFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->compute(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->receiveFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->receive(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->computeFc =
+    std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->compute(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->receiveFc =
+    std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->receive(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
   g->unpackFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->unpack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
   g->packFc   = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->pack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
   g->sendFc   = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->send(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->localResidualFc = std::make_unique<taskr::Function>([&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->localResidualFc = std::make_unique<taskr::Function>(
+    [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
   // Task map
   std::map<taskr::label_t, std::shared_ptr<taskr::Task>> _taskMap;
@@ -183,12 +186,18 @@ int main(int argc, char *argv[])
           _taskMap[Task::encodeTaskName("Unpack", i, j, k, it)]  = unpackTask;
 
           // Creating and adding local compute task dependencies
-          if (it > 0) if (subGrid.X0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it - 1)].get());
-          if (it > 0) if (subGrid.X1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it - 1)].get());
-          if (it > 0) if (subGrid.Y0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it - 1)].get());
-          if (it > 0) if (subGrid.Y1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it - 1)].get());
-          if (it > 0) if (subGrid.Z0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it - 1)].get());
-          if (it > 0) if (subGrid.Z1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it - 1)].get());
+          if (it > 0)
+            if (subGrid.X0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i - 1, j + 0, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.X1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 1, j + 0, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Y0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j - 1, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Y1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 1, k + 0, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Z0.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k - 1, it - 1)].get());
+          if (it > 0)
+            if (subGrid.Z1.type == LOCAL) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 1, it - 1)].get());
           if (it > 0) computeTask->addDependency(_taskMap[Task::encodeTaskName("Compute", i + 0, j + 0, k + 0, it - 1)].get());
 
           // Adding communication-related dependencies
@@ -257,7 +266,6 @@ int main(int argc, char *argv[])
   }
   else
   {
-
     // Otherwise gather all the residuals and print the results
     double globalRes = g->_residual;
 

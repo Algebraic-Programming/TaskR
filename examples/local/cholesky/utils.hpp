@@ -29,7 +29,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension);
 */
 void allocateBlockMatrix(const uint32_t                                                        blocks,
                          const uint32_t                                                        blockDimensionSize,
-                         HiCR::backend::hwloc::L1::MemoryManager                        *memoryManager,
+                         HiCR::backend::hwloc::L1::MemoryManager                              *memoryManager,
                          const std::shared_ptr<HiCR::L0::MemorySpace>                         &memorySpace,
                          std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix)
 {

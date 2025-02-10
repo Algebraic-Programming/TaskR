@@ -124,15 +124,15 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
   }
 }
 
-void choleskyDriver(const uint32_t                                           matrixDimension,
-                    const uint32_t                                           blocks,
-                    const bool                                               readFromFile,
-                    const bool                                               checkResult,
+void choleskyDriver(const uint32_t                                     matrixDimension,
+                    const uint32_t                                     blocks,
+                    const bool                                         readFromFile,
+                    const bool                                         checkResult,
                     HiCR::backend::hwloc::L1::MemoryManager           *memoryManager,
                     HiCR::backend::pthreads::L1::CommunicationManager *communicationManager,
-                    const HiCR::L0::Device::computeResourceList_t           &computeResources,
-                    const std::shared_ptr<HiCR::L0::MemorySpace>            &memorySpace,
-                    const std::string                                       &matrixPath)
+                    const HiCR::L0::Device::computeResourceList_t     &computeResources,
+                    const std::shared_ptr<HiCR::L0::MemorySpace>      &memorySpace,
+                    const std::string                                 &matrixPath)
 {
   // Creating taskr object
   nlohmann::json taskrConfig;

@@ -11,7 +11,7 @@
 
 // Global variables
 taskr::Runtime                                             *_taskr;
-HiCR::backend::pthreads::L1::ComputeManager                    *_computeManager;
+HiCR::backend::pthreads::L1::ComputeManager                *_computeManager;
 std::atomic<uint64_t>                                      *_taskCounter;
 std::vector<std::vector<std::unordered_set<taskr::Task *>>> _dependencyGrid;
 
