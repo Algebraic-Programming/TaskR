@@ -36,6 +36,19 @@ class Task final : public taskr::Task
     sprintf(buffer, "%s_%lu_%lu_%lu_%lu", taskName.c_str(), lx, ly, lz, iter);
     const std::hash<std::string> hasher;
     const auto                   hashResult = hasher(buffer);
-    return hashResult;
+
+    // find if this hash already exists in the hashmap if not: add it
+    size_t tasklabel;
+    auto   it = taskid_hashmap.find(hashResult);
+
+    if (it == taskid_hashmap.end())
+    {
+      tasklabel = taskid_hashmap.size();
+
+      taskid_hashmap[hashResult] = tasklabel;
+    }
+    else { tasklabel = it->second; }
+
+    return tasklabel;
   }
 };

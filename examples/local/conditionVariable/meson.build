@@ -6,8 +6,8 @@ conditionVariableWaitCondition = executable('conditionVariableWaitCondition', [ 
 conditionVariableWaitForCondition = executable('conditionVariableWaitForCondition', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ], cpp_args: [ '-D__TEST_FUNCTION_=conditionVariableWaitForCondition'] )
 
 if get_option('buildTests')
-	test('conditionVariableWait', conditionVariableWait, args : [ ], suite: testSuite )
-	test('conditionVariableWaitFor', conditionVariableWaitFor, args : [ ], suite: testSuite )
-	test('conditionVariableWaitCondition', conditionVariableWaitCondition, args : [ ], suite: testSuite )
-	test('conditionVariableWaitForCondition', conditionVariableWaitForCondition, args : [ ], suite: testSuite )
+	test('conditionVariableWait', conditionVariableWait, args : [ ], suite: testSuite, workdir: conditionVariableWait.path() + '.p' )
+	test('conditionVariableWaitFor', conditionVariableWaitFor, args : [ ], suite: testSuite, workdir: conditionVariableWaitFor.path() + '.p' )
+	test('conditionVariableWaitCondition', conditionVariableWaitCondition, args : [ ], suite: testSuite, workdir: conditionVariableWaitCondition.path() + '.p' )
+	test('conditionVariableWaitForCondition', conditionVariableWaitForCondition, args : [ ], suite: testSuite, workdir: conditionVariableWaitForCondition.path() + '.p' )
 endif

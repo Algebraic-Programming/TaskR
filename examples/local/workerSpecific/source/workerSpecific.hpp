@@ -13,7 +13,7 @@ void workFc(taskr::Task *currentTask)
   printf("Task %lu first run running on CPU %d\n", taskLabel, currentCPUId);
 
   // Sanity check
-  if ((int)taskLabel != currentCPUId)
+  if (int(2 * taskLabel) != currentCPUId)
   {
     fprintf(stderr, "Task label (%lu) does not coincide with the current CPU id! (%d)\n", taskLabel, currentCPUId);
     std::abort();
@@ -31,7 +31,7 @@ void workFc(taskr::Task *currentTask)
   printf("Task %lu second run running on CPU %d\n", taskLabel, currentCPUId);
 
   // Sanity check
-  if ((int)taskLabel + 1 != currentCPUId)
+  if (int(2 * taskLabel) + 1 != currentCPUId)
   {
     fprintf(stderr, "Task label (%lu) + 1 does not coincide with the current CPU id! (%d)\n", taskLabel, currentCPUId);
     std::abort();
@@ -52,9 +52,10 @@ void workerSpecific(taskr::Runtime &taskr, const size_t workerCount)
   // Initializing taskr
   taskr.initialize();
 
+  const size_t half_workerCount = (size_t)workerCount / 2;
+
   // Run only on even worker ids
-  for (size_t i = 0; i < workerCount; i++)
-    if (i % 2 == 0) taskr.addTask(new taskr::Task(i, &workTaskfc, i));
+  for (size_t i = 0; i < half_workerCount; i++) taskr.addTask(new taskr::Task(i, &workTaskfc, 2 * i));
 
   // Running taskr for the current repetition
   taskr.run();

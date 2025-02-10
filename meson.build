@@ -48,7 +48,30 @@ TaskRBuildCppArgs = [
 TaskRBuildIncludes = include_directories([
    'include'
   ])
-  
+
+####### Build Instrumentation part (TraCR)
+
+buildInstrumentations = get_option('buildInstrumentations')
+
+if buildInstrumentations != []
+  InstrumentationProject = subproject('tracr', required: true)
+  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+  taskrDependencies += InstrumentationBuildDep
+
+  if 'task' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_TASKS', language: 'cpp')
+  endif
+
+  if 'thread' in buildInstrumentations
+    add_project_arguments('-DINSTRUMENTATION_THREADS', language: 'cpp')
+  endif
+
+  # uncomment this to enable debug prints of TraCR
+  # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
+endif
+
+####### Collect the dependencies
+
 TaskRBuildDep = declare_dependency(
     compile_args: TaskRBuildCppArgs,
     include_directories: TaskRBuildIncludes,
