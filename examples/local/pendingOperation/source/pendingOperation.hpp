@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <chrono>
 #include <hicr/core/L0/device.hpp>
-#include <hicr/backends/host/L1/computeManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 void heavyTask(taskr::Task *currentTask)

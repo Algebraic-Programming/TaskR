@@ -5,7 +5,7 @@
 #include <hicr/core/exceptions.hpp>
 #include <hicr/core/L0/localMemorySlot.hpp>
 #include <hicr/core/L0/memorySpace.hpp>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
+#include <hicr/backends/hwloc/L1/memoryManager.hpp>
 
 ///////////////////////////////////// Matrix utilities
 
@@ -29,7 +29,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension);
 */
 void allocateBlockMatrix(const uint32_t                                                        blocks,
                          const uint32_t                                                        blockDimensionSize,
-                         HiCR::backend::host::hwloc::L1::MemoryManager                        *memoryManager,
+                         HiCR::backend::hwloc::L1::MemoryManager                              *memoryManager,
                          const std::shared_ptr<HiCR::L0::MemorySpace>                         &memorySpace,
                          std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix)
 {
@@ -43,7 +43,7 @@ void allocateBlockMatrix(const uint32_t                                         
  * @param[in] blockMatrix data structure holding the block matrix
  * @param[in] memoryManager memory manager
 */
-void freeBlockMatrix(std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix, HiCR::backend::host::hwloc::L1::MemoryManager *memoryManager)
+void freeBlockMatrix(std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix, HiCR::backend::hwloc::L1::MemoryManager *memoryManager)
 {
   for (auto &row : blockMatrix)
     for (auto &block : row) { memoryManager->freeLocalMemorySlot(block); }

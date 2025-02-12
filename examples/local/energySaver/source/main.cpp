@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <taskr/taskr.hpp>
 
 void workFc(const size_t iterations)
@@ -42,10 +42,10 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::host::pthreads::L1::ComputeManager computeManager;
+  HiCR::backend::pthreads::L1::ComputeManager computeManager;
 
-  // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
+  // Initializing HWLoc-based (CPU) topology manager
+  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();

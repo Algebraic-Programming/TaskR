@@ -40,8 +40,10 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
     _label(label),
     _workerAffinity(workerAffinity)
 {
-  // TraCR init task (Maybe could be done inside the runtime.hpp)
+// TraCR init task (Maybe could be done inside the runtime.hpp)
+#if defined(INSTRUMENTATION_TASKS)
   INSTRUMENTATION_TASK_INIT();
+#endif
 }
 
 } // namespace taskr

@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include "fibonacci.hpp"
 
 int main(int argc, char **argv)
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::host::hwloc::L1::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
