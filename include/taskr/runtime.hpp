@@ -139,11 +139,18 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    * 
+   * @param[in] executionStateComputeManager A backend's compute manager to initialize and run the task's execution states.
+   * @param[in] processingUnitComputeManager A backend's compute manager to initialize and run processing units
    * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(const HiCR::L0::Device::computeResourceList_t computeResources, nlohmann::json config = nlohmann::json())
-    : _computeResources(computeResources)
+  Runtime(HiCR::L1::ComputeManager *const               executionStateComputeManager,
+          HiCR::L1::ComputeManager *const               processingUnitComputeManager,
+          const HiCR::L0::Device::computeResourceList_t computeResources,
+          nlohmann::json                                config = nlohmann::json())
+    : _executionStateComputeManager(executionStateComputeManager),
+      _processingUnitComputeManager(processingUnitComputeManager),
+      _computeResources(computeResources)
   {
 // TraCR start tracing and create the task and thread markers
 #if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
@@ -215,13 +222,6 @@ class Runtime
     INSTRUMENTATION_END();
 #endif
   }
-
-  /**
-   * Function that returns the compute manager originally provided to Taskr 
-   * 
-   * @return A pointer to the compute manager
-   */
-  HiCR::L1::ComputeManager *getComputeManager() { return &_computeManager; }
 
   ///////////// Local tasking API
 
@@ -336,14 +336,14 @@ class Runtime
     for (size_t computeResourceId = 0; computeResourceId < _serviceWorkerCount; computeResourceId++)
     {
       // Creating new service worker
-      auto serviceWorker =
-        std::make_shared<taskr::Worker>(serviceWorkerId, &_computeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
+      auto serviceWorker = std::make_shared<taskr::Worker>(
+        serviceWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       serviceWorker->setCallbackMap(&_serviceWorkerCallbackMap);
 
       // Assigning resource to the thread
-      serviceWorker->addProcessingUnit(_computeManager.createProcessingUnit(_computeResources[computeResourceId]));
+      serviceWorker->addProcessingUnit(_processingUnitComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding worker to the service worker set
       _serviceWorkers.push_back(serviceWorker);
@@ -357,7 +357,8 @@ class Runtime
     for (size_t computeResourceId = _serviceWorkerCount; computeResourceId < _computeResources.size(); computeResourceId++)
     {
       // Creating new task worker
-      auto taskWorker = std::make_shared<taskr::Worker>(taskWorkerId, &_computeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
+      auto taskWorker = std::make_shared<taskr::Worker>(
+        taskWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       taskWorker->setCallbackMap(&_taskWorkerCallbackMap);
@@ -369,7 +370,7 @@ class Runtime
       taskWorker->setSuspendInterval(_taskWorkerSuspendIntervalTimeMs);
 
       // Assigning resource to the thread
-      taskWorker->addProcessingUnit(_computeManager.createProcessingUnit(_computeResources[computeResourceId]));
+      taskWorker->addProcessingUnit(_processingUnitComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding task worker to the task worker vector
       _taskWorkers.push_back(taskWorker);
@@ -775,9 +776,14 @@ class Runtime
   state_t _state = state_t::uninitialized;
 
   /**
-   * Pointer to the compute manager to use
+   * Compute manager to use to instantiate task's execution states
    */
-  HiCR::backend::pthreads::L1::ComputeManager _computeManager;
+  HiCR::L1::ComputeManager *const _executionStateComputeManager;
+
+  /**
+   * Compute manager to use to instantiate processing units
+   */
+  HiCR::L1::ComputeManager *const _processingUnitComputeManager;
 
   /**
    * Type definition for the task's callback map

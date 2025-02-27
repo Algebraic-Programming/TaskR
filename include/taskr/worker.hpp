@@ -37,11 +37,15 @@ class Worker : public HiCR::tasking::Worker
    * Constructor for the TaskR worker class.
    * 
    * \param[in] workerId The worker's own id
-   * \param[in] computeManager A backend's compute manager, meant to initialize and run the task's execution states.
+   * \param[in] executionStateComputeManager A backend's compute manager to initialize and run the task's execution states.
+   * \param[in] processingUnitComputeManager A backend's compute manager to initialize and run processing units
    * \param[in] pullFunction A callback for the worker to get a new task to execute
    */
-  __INLINE__ Worker(const workerId_t workerId, HiCR::L1::ComputeManager *computeManager, HiCR::tasking::pullFunction_t pullFunction)
-    : HiCR::tasking::Worker(computeManager, pullFunction),
+  __INLINE__ Worker(const workerId_t                workerId,
+                    HiCR::L1::ComputeManager *const executionStateComputeManager,
+                    HiCR::L1::ComputeManager *const processingUnitComputeManager,
+                    HiCR::tasking::pullFunction_t   pullFunction)
+    : HiCR::tasking::Worker(executionStateComputeManager, processingUnitComputeManager, pullFunction),
       _workerId(workerId),
       _readyTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))
   {}

@@ -4,6 +4,8 @@
 #include <chrono>
 #include <pthread.h>
 #include <hicr/backends/pthreads/L1/communicationManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/memoryManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 
@@ -51,12 +53,24 @@ int main(int argc, char **argv)
   // Adding compute resources of a single NUMA domain
   auto computeResources = (*t.getDevices().begin())->getComputeResourceList();
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::pthreads::L1::ComputeManager       computeManager;
+  // Initializing communication manager to handle data motion
   HiCR::backend::pthreads::L1::CommunicationManager communicationManager;
 
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
+  // Creating taskr object
+  nlohmann::json taskrConfig;
+  taskrConfig["Remember Finished Objects"] = true;
+
+  // Creating taskr
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
+
   // Running Cholesky factorization example
-  choleskyDriver(matrixDimension, blocks, readFromFile, checkResult, &memoryManager, &communicationManager, computeResources, memorySpace, matrixPath);
+  choleskyDriver(taskr, matrixDimension, blocks, readFromFile, checkResult, &memoryManager, &communicationManager, memorySpace, matrixPath);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

@@ -5,6 +5,8 @@
 #include <hicr/core/L1/instanceManager.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   #include <hicr/backends/mpi/L1/communicationManager.hpp>
@@ -87,10 +89,16 @@ int main(int argc, char *argv[])
   auto computeResources = numaDomain->getComputeResourceList();
   printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(computeResources, taskrConfig);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
@@ -271,8 +279,7 @@ int main(int argc, char *argv[])
 
     for (size_t i = 0; i < instanceCount - 1; i++)
     {
-      while (g->residualConsumerChannel->isEmpty())
-        ;
+      while (g->residualConsumerChannel->isEmpty());
       double *residualPtr = (double *)g->residualConsumerChannel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + g->residualConsumerChannel->peek(0);
       g->residualConsumerChannel->pop();
       globalRes += *residualPtr;

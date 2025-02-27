@@ -15,7 +15,7 @@ taskrDependencies = [ ]
 if meson.is_subproject() == false
 
   # Selecting default HiCR Backends
-  HiCRBackends = [ 'hwloc', 'pthreads' ]
+  HiCRBackends = [ 'hwloc', 'pthreads', 'boost' ]
 
   # Getting selected distributed engine
 

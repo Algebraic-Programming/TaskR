@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <hwloc.h>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include <taskr/taskr.hpp>
 
 void workFc(const size_t iterations)
@@ -41,8 +43,11 @@ int main(int argc, char **argv)
   // Reserving memory for hwloc
   hwloc_topology_init(&topology);
 
-  // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::pthreads::L1::ComputeManager computeManager;
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
 
   // Initializing HWLoc-based (CPU) topology manager
   HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
@@ -56,8 +61,8 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Initializing taskr
-  taskr::Runtime taskr(computeResources);
+  // Creating taskr
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Setting onTaskFinish callback to free up task's memory upon finishing
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });

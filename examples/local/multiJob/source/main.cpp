@@ -1,5 +1,7 @@
 #include <hwloc.h>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include "jobs.hpp"
 
 int main(int argc, char **argv)
@@ -22,8 +24,14 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
-  // Create taskr runtime
-  taskr::Runtime taskr(computeResources);
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
+  // Creating taskr
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Setting onTaskFinish callback to free up the task's memory on finish
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });

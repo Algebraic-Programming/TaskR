@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <hwloc.h>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <taskr/taskr.hpp>
 #include "source/workTask.hpp"
@@ -56,8 +57,14 @@ int main(int argc, char **argv)
       if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
     }
 
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
   // Creating taskr
-  taskr::Runtime taskr(selectedComputeResources);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, selectedComputeResources);
 
   // Creating task function
   auto taskFunction = taskr::Function([&iterations](taskr::Task *task) { work(iterations); });
