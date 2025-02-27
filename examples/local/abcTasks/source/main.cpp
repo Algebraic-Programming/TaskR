@@ -1,5 +1,7 @@
 #include <hwloc.h>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include "abcTasks.hpp"
 
 int main(int argc, char **argv)
@@ -22,8 +24,14 @@ int main(int argc, char **argv)
   // Updating the compute resource list
   auto computeResources = d->getComputeResourceList();
 
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
   // Creating taskr
-  taskr::Runtime taskr(computeResources);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Running ABCtasks example
   abcTasks(taskr);

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <hwloc.h>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/boost/L1/computeManager.hpp>
 #include "fibonacci.hpp"
 
 int main(int argc, char **argv)
@@ -30,6 +31,12 @@ int main(int argc, char **argv)
   // Compute resources to use
   HiCR::L0::Device::computeResourceList_t computeResources;
 
+  // Initializing Boost-based compute manager to instantiate suspendable coroutines
+  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+
+  // Initializing Pthreads-based compute manager to instantiate processing units
+  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+
   // Getting compute resources in this device
   auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
 
@@ -42,7 +49,7 @@ int main(int argc, char **argv)
   }
 
   // Instantiating TaskR
-  taskr::Runtime taskr(computeResources);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Running Fibonacci example
   auto result = fibonacciDriver(initialValue, taskr);
