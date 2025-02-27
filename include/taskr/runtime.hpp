@@ -139,6 +139,8 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    * 
+   * @param[in] executionStateComputeManager A backend's compute manager to initialize and run the task's execution states.
+   * @param[in] processingUnitComputeManager A backend's compute manager to initialize and run processing units
    * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
