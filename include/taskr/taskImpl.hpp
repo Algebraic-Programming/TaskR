@@ -12,10 +12,6 @@
 
 #pragma once
 
-#if defined(INSTRUMENTATION_TASKS) || defined(INSTRUMENTATION_THREADS)
-  #include <tracr.hpp>
-#endif
-
 #include "task.hpp"
 #include "function.hpp"
 
@@ -39,11 +35,6 @@ __INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t worker
   : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
     _label(label),
     _workerAffinity(workerAffinity)
-{
-// TraCR init task (Maybe could be done inside the runtime.hpp)
-#if defined(INSTRUMENTATION_TASKS)
-  INSTRUMENTATION_TASK_INIT();
-#endif
-}
+{}
 
 } // namespace taskr

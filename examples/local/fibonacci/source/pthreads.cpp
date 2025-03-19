@@ -1,14 +1,22 @@
+#include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
-#include "conditionVariableWait.hpp"
-#include "conditionVariableWaitFor.hpp"
-#include "conditionVariableWaitCondition.hpp"
-#include "conditionVariableWaitForCondition.hpp"
+#include "fibonacci.hpp"
 
 int main(int argc, char **argv)
 {
+  // Checking arguments
+  if (argc != 2)
+  {
+    fprintf(stderr, "Error: Must provide the fibonacci number to calculate.\n");
+    exit(-1);
+  }
+
+  // Reading argument
+  uint64_t initialValue = std::atoi(argv[1]);
+
   // Creating HWloc topology object
   hwloc_topology_t topology;
 
@@ -21,11 +29,8 @@ int main(int argc, char **argv)
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
-  // Getting first device found
-  auto d = *t.getDevices().begin();
-
-  // Updating the compute resource list
-  auto computeResources = d->getComputeResourceList();
+  // Compute resources to use
+  HiCR::L0::Device::computeResourceList_t computeResources;
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::L1::ComputeManager boostComputeManager;
@@ -33,14 +38,28 @@ int main(int argc, char **argv)
   // Initializing Pthreads-based compute manager to instantiate processing units
   HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
 
+  // Getting compute resources in this device
+  auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
+
+  // Adding it to the list
+  auto itr = cr.begin();
+  for (int i = 0; i < 8; i++)
+  {
+    computeResources.push_back(*itr);
+    itr++;
+  }
+
+  // Initializing Pthreads-based compute manager to run tasks in parallel
+  HiCR::backend::pthreads::L1::ComputeManager computeManager;
+
   // Instantiating TaskR
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation (required by condition variable) is finished
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
+  // Running Fibonacci example
+  auto result = fibonacciDriver(initialValue, taskr);
 
-  // Running test
-  __TEST_FUNCTION_(taskr);
+  // Printing result
+  printf("Fib(%lu) = %lu\n", initialValue, result);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

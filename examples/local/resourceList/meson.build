@@ -1,8 +1,13 @@
-testSuite = [ 'examples', 'local' ]
+testSuite = [ 'examples', 'local', 'resourceList' ]
 
-resourceList = executable('resourceList', [ 'source/main.cpp'], dependencies: [ TaskRBuildDep ])
+threading = executable('threading', [ 'source/pthreads.cpp'], dependencies: [ TaskRBuildDep ])
 
 if get_option('buildTests')
-	test('resourceList', resourceList, args : [ '4', '100', '0', '1', '2', '3' ], suite: testSuite, workdir: resourceList.path() + '.p' )
+	test('threading', threading, args : [ '4', '100', '0', '1', '2', '3' ], suite: testSuite, workdir: threading.path() + '.p' )
 endif
 
+nosv = executable('nosv', [ 'source/nosv.cpp'], dependencies: [ TaskRBuildDep ])
+
+if get_option('buildTests')
+	test('nosv', nosv, args : [ '4', '100', '0', '1', '2', '3' ], is_parallel : false, suite: testSuite, workdir: nosv.path() + '.p' )
+endif

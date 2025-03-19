@@ -15,7 +15,7 @@ taskrDependencies = [ ]
 if meson.is_subproject() == false
 
   # Selecting default HiCR Backends
-  HiCRBackends = [ 'hwloc', 'pthreads', 'boost' ]
+  HiCRBackends = [ 'hwloc', 'pthreads', 'boost', 'nosv' ]
 
   # Getting selected distributed engine
 
@@ -53,18 +53,12 @@ TaskRBuildIncludes = include_directories([
 
 buildInstrumentations = get_option('buildInstrumentations')
 
-if buildInstrumentations != []
-  InstrumentationProject = subproject('tracr', required: true)
-  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
-  taskrDependencies += InstrumentationBuildDep
+InstrumentationProject = subproject('tracr', required: true)
+InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+taskrDependencies += InstrumentationBuildDep
 
-  if 'task' in buildInstrumentations
-    add_project_arguments('-DINSTRUMENTATION_TASKS', language: 'cpp')
-  endif
-
-  if 'thread' in buildInstrumentations
-    add_project_arguments('-DINSTRUMENTATION_THREADS', language: 'cpp')
-  endif
+if buildInstrumentations
+  add_project_arguments('-DENABLE_INSTRUMENTATION', language: 'cpp')
 
   # uncomment this to enable debug prints of TraCR
   # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')

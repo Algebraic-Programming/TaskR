@@ -1,22 +1,31 @@
 #include <chrono>
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
-#include <hicr/backends/boost/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <taskr/taskr.hpp>
+
+#include <nosv.h>
+#include <hicr/backends/nosv/common.hpp>
+#include <hicr/backends/nosv/L1/computeManager.hpp>
+
 #include "source/workTask.hpp"
 
 int main(int argc, char **argv)
 {
+  // Initialize nosv
+  check(nosv_init());
+
+  // nosv task instance for the main thread
+  nosv_task_t mainTask;
+
+  // Attaching the main thread
+  check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
+
   // Creating HWloc topology object
   hwloc_topology_t topology;
 
   // Reserving memory for hwloc
   hwloc_topology_init(&topology);
-
-  // Initializing Pthread-base compute manager to run tasks in parallel
-  HiCR::backend::pthreads::L1::ComputeManager computeManager;
 
   // Initializing HWLoc-based host (CPU) topology manager
   HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
@@ -57,14 +66,11 @@ int main(int argc, char **argv)
       if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
     }
 
-  // Initializing Boost-based compute manager to instantiate suspendable coroutines
-  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
-
-  // Initializing Pthreads-based compute manager to instantiate processing units
-  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+  // Initializing nosv-based compute manager to run tasks in parallel
+  HiCR::backend::nosv::L1::ComputeManager computeManager;
 
   // Creating taskr
-  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, selectedComputeResources);
+  taskr::Runtime taskr(&computeManager, &computeManager, selectedComputeResources);
 
   // Creating task function
   auto taskFunction = taskr::Function([&iterations](taskr::Task *task) { work(iterations); });
@@ -90,6 +96,12 @@ int main(int argc, char **argv)
 
   // Freeing up memory
   hwloc_topology_destroy(topology);
+
+  // Detaching the main thread
+  check(nosv_detach(NOSV_DETACH_NONE));
+
+  // Shutdown nosv
+  check(nosv_shutdown());
 
   return 0;
 }

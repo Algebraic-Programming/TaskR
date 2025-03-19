@@ -4,10 +4,12 @@
 #include <chrono>
 #include <pthread.h>
 #include <hicr/backends/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
-#include <hicr/backends/boost/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/memoryManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+
+#include <nosv.h>
+#include <hicr/backends/nosv/common.hpp>
+#include <hicr/backends/nosv/L1/computeManager.hpp>
 
 #include "cholesky.hpp"
 
@@ -25,6 +27,15 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error: <matrix size> <blocks> <check result> <matrix path>\n");
     exit(-1);
   }
+
+  // Initialize nosv
+  check(nosv_init());
+
+  // nosv task instance for the main thread
+  nosv_task_t mainTask;
+
+  // Attaching the main threadstinktSau
+  check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
 
   // Reading argument
   uint32_t    matrixDimension = std::atoi(argv[1]);
@@ -53,27 +64,26 @@ int main(int argc, char **argv)
   // Adding compute resources of a single NUMA domain
   auto computeResources = (*t.getDevices().begin())->getComputeResourceList();
 
-  // Initializing communication manager to handle data motion
+  // Initializing Pthreads-based compute manager to run tasks in parallel
+  HiCR::backend::nosv::L1::ComputeManager           computeManager;
   HiCR::backend::pthreads::L1::CommunicationManager communicationManager;
-
-  // Initializing Boost-based compute manager to instantiate suspendable coroutines
-  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
-
-  // Initializing Pthreads-based compute manager to instantiate processing units
-  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
 
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-
-  // Creating taskr
-  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
+  taskr::Runtime taskr(&computeManager, &computeManager, computeResources, taskrConfig);
 
   // Running Cholesky factorization example
   choleskyDriver(taskr, matrixDimension, blocks, readFromFile, checkResult, &memoryManager, &communicationManager, memorySpace, matrixPath);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);
+
+  // Detaching the main thread
+  check(nosv_detach(NOSV_DETACH_NONE));
+
+  // Shutdown nosv
+  check(nosv_shutdown());
 
   return 0;
 }

@@ -1,8 +1,9 @@
 #include <hwloc.h>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
-#include "workerSpecific.hpp"
+#include "pendingOperation.hpp"
 
 int main(int argc, char **argv)
 {
@@ -18,7 +19,7 @@ int main(int argc, char **argv)
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
-  // Getting first NUMA domain found
+  // Getting first device found
   auto d = *t.getDevices().begin();
 
   // Updating the compute resource list
@@ -33,8 +34,8 @@ int main(int argc, char **argv)
   // Creating taskr
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Running worker-specific example
-  workerSpecific(taskr, computeResources.size());
+  // Running ABCtasks example
+  pendingOperation(taskr);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

@@ -1,8 +1,9 @@
 #include <hwloc.h>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
-#include "jobs.hpp"
+#include "mutex.hpp"
 
 int main(int argc, char **argv)
 {
@@ -33,24 +34,11 @@ int main(int argc, char **argv)
   // Creating taskr
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Setting onTaskFinish callback to free up the task's memory on finish
-  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
+  // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation (required by mutex) is finished
+  taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
 
-  // Adding multiple jobs to TaskR
-  job1(taskr);
-  job2(taskr);
-
-  // Initializing taskR
-  taskr.initialize();
-
-  // Running taskr
-  taskr.run();
-
-  // Waiting for taskr to finish
-  taskr.await();
-
-  // Finalizing taskR
-  taskr.finalize();
+  // Running ABCtasks example
+  mutex(&taskr);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);
