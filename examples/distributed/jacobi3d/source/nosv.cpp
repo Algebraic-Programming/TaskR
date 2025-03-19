@@ -5,8 +5,10 @@
 #include <hicr/core/L1/instanceManager.hpp>
 #include <hicr/core/L1/memoryManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
-#include <hicr/backends/boost/L1/computeManager.hpp>
+
+#include <nosv.h>
+#include <hicr/backends/nosv/common.hpp>
+#include <hicr/backends/nosv/L1/computeManager.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   #include <hicr/backends/mpi/L1/communicationManager.hpp>
@@ -23,8 +25,19 @@
 #include "grid.hpp"
 #include "task.hpp"
 
+std::unordered_map<size_t, size_t> taskIdHashmap;
+
 int main(int argc, char *argv[])
 {
+  // Initialize nosv
+  check(nosv_init());
+
+  // nosv task instance for the main thread
+  nosv_task_t mainTask;
+
+  // Attaching the main thread
+  check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
+
   //// Instantiating distributed execution machinery
 
   // Storage for the distributed engine's communication manager
@@ -47,7 +60,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-  instanceManager      = std::make_unique<HiCR::backend::L1::InstanceManager>();
+  instanceManager      = std::make_unique<HiCR::backend::hwloc::L1::InstanceManager>();
   communicationManager = std::make_unique<HiCR::backend::pthreads::L1::CommunicationManager>();
   memoryManager        = HiCR::backend::hwloc::L1::MemoryManager::createDefault();
 #endif
@@ -62,6 +75,9 @@ int main(int argc, char *argv[])
   const auto isRootInstance = myInstanceId == rootInstanceId;
 
   //// Setting up Taskr
+
+  // Initializing nosv-based compute manager to run tasks in parallel
+  HiCR::backend::nosv::L1::ComputeManager computeManager;
 
   // Creating HWloc topology object
   hwloc_topology_t topology;
@@ -89,16 +105,10 @@ int main(int argc, char *argv[])
   auto computeResources = numaDomain->getComputeResourceList();
   printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
-  // Initializing Boost-based compute manager to instantiate suspendable coroutines
-  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
-
-  // Initializing Pthreads-based compute manager to instantiate processing units
-  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
-
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
+  auto taskr                               = taskr::Runtime(&computeManager, &computeManager, computeResources, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
@@ -132,7 +142,7 @@ int main(int argc, char *argv[])
   }
 
   // Creating and initializing Grid
-  auto g       = std::make_unique<Grid>(myInstanceId, N, nIters, gDepth, pt, lt, &taskr, memoryManager.get(), topologyManager.get(), communicationManager.get());
+  auto g       = new Grid(myInstanceId, N, nIters, gDepth, pt, lt, &taskr, memoryManager.get(), topologyManager.get(), communicationManager.get());
   bool success = g->initialize();
   if (success == false) instanceManager->abort(-1);
 
@@ -298,6 +308,15 @@ int main(int argc, char *argv[])
   // Finalizing grid
   g->finalize();
 
+  // Freeing grid
+  delete g;
+
   // Finalizing instances
   instanceManager->finalize();
+
+  // Detaching the main thread
+  check(nosv_detach(NOSV_DETACH_NONE));
+
+  // Shutdown nosv
+  check(nosv_shutdown());
 }

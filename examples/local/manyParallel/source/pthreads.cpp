@@ -1,14 +1,15 @@
 #include <hwloc.h>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
-#include "suspend.hpp"
+#include "manyParallel.hpp"
 
 int main(int argc, char **argv)
 {
   if (argc != 3)
   {
-    fprintf(stderr, "Wrong Usage. Syntax: ./suspend NBRANCHES NTASKS\n");
+    fprintf(stderr, "Wrong Usage. Syntax: ./manyParallel NBRANCHES NTASKS\n");
     exit(1);
   }
 
@@ -22,7 +23,7 @@ int main(int argc, char **argv)
   // Reserving memory for hwloc
   hwloc_topology_init(&topology);
 
-  // Initializing HWLoc-based host (CPU) topology manager
+  // Initializing HWLoc-based (CPU) topology manager
   HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
@@ -43,8 +44,8 @@ int main(int argc, char **argv)
   // Creating taskr
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Running suspend example
-  suspend(taskr, branchCount, taskCount);
+  // Running manyParallel example
+  manyParallel(taskr, branchCount, taskCount);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

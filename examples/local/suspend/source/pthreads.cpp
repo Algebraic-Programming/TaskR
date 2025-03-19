@@ -1,20 +1,21 @@
-#include <cstdio>
 #include <hwloc.h>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
-#include "fibonacci.hpp"
+#include "suspend.hpp"
 
 int main(int argc, char **argv)
 {
-  // Checking arguments
-  if (argc != 2)
+  if (argc != 3)
   {
-    fprintf(stderr, "Error: Must provide the fibonacci number to calculate.\n");
-    exit(-1);
+    fprintf(stderr, "Wrong Usage. Syntax: ./suspend NBRANCHES NTASKS\n");
+    exit(1);
   }
 
-  // Reading argument
-  uint64_t initialValue = std::atoi(argv[1]);
+  // Getting arguments, if provided
+  const size_t taskCount   = std::atoi(argv[1]);
+  const size_t branchCount = std::atoi(argv[2]);
 
   // Creating HWloc topology object
   hwloc_topology_t topology;
@@ -28,8 +29,11 @@ int main(int argc, char **argv)
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
-  // Compute resources to use
-  HiCR::L0::Device::computeResourceList_t computeResources;
+  // Getting first device found
+  auto d = *t.getDevices().begin();
+
+  // Updating the compute resource list
+  auto computeResources = d->getComputeResourceList();
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::L1::ComputeManager boostComputeManager;
@@ -37,25 +41,11 @@ int main(int argc, char **argv)
   // Initializing Pthreads-based compute manager to instantiate processing units
   HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
 
-  // Getting compute resources in this device
-  auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
-
-  // Adding it to the list
-  auto itr = cr.begin();
-  for (int i = 0; i < 8; i++)
-  {
-    computeResources.push_back(*itr);
-    itr++;
-  }
-
-  // Instantiating TaskR
+  // Creating taskr
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Running Fibonacci example
-  auto result = fibonacciDriver(initialValue, taskr);
-
-  // Printing result
-  printf("Fib(%lu) = %lu\n", initialValue, result);
+  // Running suspend example
+  suspend(taskr, branchCount, taskCount);
 
   // Freeing up memory
   hwloc_topology_destroy(topology);

@@ -12,10 +12,8 @@ option('buildExamples', type : 'boolean', value : false,
        description: 'Indicates whether to build example apps'
 )
 
-option('buildInstrumentations', type: 'array', 
-       choices : ['task', 'thread'],
-       description: 'Indicates whether to build the instrumentations (TraCR). "task" means task level instrumentation and "thread" means thread level instrumentation',
-       value : [],
+option('buildInstrumentations', type : 'boolean', value : false,
+       description: 'Indicates whether to build the instrumentations (TraCR)',
 )
 
 option('compileWarningsAsErrors', type : 'boolean', value : false,

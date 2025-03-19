@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <hwloc.h>
+#include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/hwloc/L1/topologyManager.hpp>
 #include <hicr/backends/pthreads/L1/computeManager.hpp>
 #include <hicr/backends/boost/L1/computeManager.hpp>
