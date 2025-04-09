@@ -19,18 +19,18 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
-#include <hicr/backends/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
-#include <hicr/backends/boost/L1/computeManager.hpp>
-#include <hicr/backends/hwloc/L1/memoryManager.hpp>
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/pthreads/communicationManager.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
+#include <hicr/backends/boost/computeManager.hpp>
+#include <hicr/backends/hwloc/memoryManager.hpp>
+#include <hicr/backends/hwloc/topologyManager.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
 
 #include "cholesky.hpp"
 
 // Global variables
 taskr::Runtime                                             *_taskr;
-HiCR::backend::pthreads::L1::ComputeManager                *_computeManager;
+HiCR::backend::pthreads::ComputeManager                *_computeManager;
 std::atomic<uint64_t>                                      *_taskCounter;
 std::vector<std::vector<std::unordered_set<taskr::Task *>>> _dependencyGrid;
 
@@ -58,8 +58,8 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based (CPU) topology and memory manager
-  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
-  HiCR::backend::hwloc::L1::MemoryManager   memoryManager(&topology);
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::MemoryManager   memoryManager(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
@@ -71,13 +71,13 @@ int main(int argc, char **argv)
   auto computeResources = (*t.getDevices().begin())->getComputeResourceList();
 
   // Initializing communication manager to handle data motion
-  HiCR::backend::pthreads::L1::CommunicationManager communicationManager;
+  HiCR::backend::pthreads::CommunicationManager communicationManager;
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
-  HiCR::backend::boost::L1::ComputeManager boostComputeManager;
+  HiCR::backend::boost::ComputeManager boostComputeManager;
 
   // Initializing Pthreads-based compute manager to instantiate processing units
-  HiCR::backend::pthreads::L1::ComputeManager pthreadsComputeManager;
+  HiCR::backend::pthreads::ComputeManager pthreadsComputeManager;
 
   // Creating taskr object
   nlohmann::json taskrConfig;

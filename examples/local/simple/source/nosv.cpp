@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/hwloc/topologyManager.hpp>
 
 #include <nosv.h>
 #include <hicr/backends/nosv/common.hpp>
-#include <hicr/backends/nosv/L1/computeManager.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
 
 #include "simple.hpp"
 
@@ -40,13 +40,13 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
   // Compute resources to use
-  HiCR::L0::Device::computeResourceList_t computeResources;
+  HiCR::Device::computeResourceList_t computeResources;
 
   // Getting compute resources in this device
   auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
   }
 
   // Initializing the compute manager
-  HiCR::backend::nosv::L1::ComputeManager computeManager;
+  HiCR::backend::nosv::ComputeManager computeManager;
 
   // Creating taskr
   taskr::Runtime taskr(&computeManager, &computeManager, computeResources);

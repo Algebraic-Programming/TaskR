@@ -19,19 +19,19 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
-#include <hicr/backends/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/hwloc/L1/memoryManager.hpp>
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/pthreads/communicationManager.hpp>
+#include <hicr/backends/hwloc/memoryManager.hpp>
+#include <hicr/backends/hwloc/topologyManager.hpp>
 
 #include <nosv.h>
 #include <hicr/backends/nosv/common.hpp>
-#include <hicr/backends/nosv/L1/computeManager.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
 
 #include "cholesky.hpp"
 
 // Global variables
 taskr::Runtime                                             *_taskr;
-HiCR::backend::pthreads::L1::ComputeManager                *_computeManager;
+HiCR::backend::pthreads::ComputeManager                *_computeManager;
 std::atomic<uint64_t>                                      *_taskCounter;
 std::vector<std::vector<std::unordered_set<taskr::Task *>>> _dependencyGrid;
 
@@ -68,8 +68,8 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based (CPU) topology and memory manager
-  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
-  HiCR::backend::hwloc::L1::MemoryManager   memoryManager(&topology);
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::MemoryManager   memoryManager(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
@@ -81,8 +81,8 @@ int main(int argc, char **argv)
   auto computeResources = (*t.getDevices().begin())->getComputeResourceList();
 
   // Initializing Pthreads-based compute manager to run tasks in parallel
-  HiCR::backend::nosv::L1::ComputeManager           computeManager;
-  HiCR::backend::pthreads::L1::CommunicationManager communicationManager;
+  HiCR::backend::nosv::ComputeManager           computeManager;
+  HiCR::backend::pthreads::CommunicationManager communicationManager;
 
   // Creating taskr object
   nlohmann::json taskrConfig;

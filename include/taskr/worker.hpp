@@ -24,9 +24,9 @@
 #pragma once
 
 #include <chrono>
-#include <hicr/core/concurrent/queue.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/worker.hpp>
+#include "queue.hpp"
 #include "common.hpp"
 #include "task.hpp"
 #include "taskImpl.hpp"
@@ -53,8 +53,8 @@ class Worker : public HiCR::tasking::Worker
    * \param[in] pullFunction A callback for the worker to get a new task to execute
    */
   __INLINE__ Worker(const workerId_t                workerId,
-                    HiCR::L1::ComputeManager *const executionStateComputeManager,
-                    HiCR::L1::ComputeManager *const processingUnitComputeManager,
+                    HiCR::ComputeManager *const executionStateComputeManager,
+                    HiCR::ComputeManager *const processingUnitComputeManager,
                     HiCR::tasking::pullFunction_t   pullFunction)
     : HiCR::tasking::Worker(executionStateComputeManager, processingUnitComputeManager, pullFunction),
       _workerId(workerId),

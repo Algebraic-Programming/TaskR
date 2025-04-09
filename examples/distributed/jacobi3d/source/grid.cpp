@@ -148,19 +148,19 @@ bool Grid::initialize()
   auto consumerTokenBufferSizeY = HiCR::channel::fixedSize::Base::getTokenBufferSize(sizeof(double) * bufferSizeY, CHANNEL_DEPTH);
   auto consumerTokenBufferSizeZ = HiCR::channel::fixedSize::Base::getTokenBufferSize(sizeof(double) * bufferSizeZ, CHANNEL_DEPTH);
 
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagX0 = 0;
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagX1 = 1;
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagY0 = 2;
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagY1 = 3;
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagZ0 = 4;
-  const HiCR::L0::GlobalMemorySlot::tag_t channelTagZ1 = 5;
+  const HiCR::GlobalMemorySlot::tag_t channelTagX0 = 0;
+  const HiCR::GlobalMemorySlot::tag_t channelTagX1 = 1;
+  const HiCR::GlobalMemorySlot::tag_t channelTagY0 = 2;
+  const HiCR::GlobalMemorySlot::tag_t channelTagY1 = 3;
+  const HiCR::GlobalMemorySlot::tag_t channelTagZ0 = 4;
+  const HiCR::GlobalMemorySlot::tag_t channelTagZ1 = 5;
 
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX0Tags;
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX1Tags;
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagY0Tags;
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagY1Tags;
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagZ0Tags;
-  std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> channelTagZ1Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX0Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX1Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagY0Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagY1Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagZ0Tags;
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagZ1Tags;
 
   // Creating tags for the exchange of channel buffers
   for (int i = 0; i < lt.z; i++)
@@ -208,9 +208,9 @@ bool Grid::initialize()
         HiCR::channel::fixedSize::Base::initializeCoordinationBuffer(localProducerCoordinationBufferY1);
         HiCR::channel::fixedSize::Base::initializeCoordinationBuffer(localProducerCoordinationBufferZ1);
 
-        const HiCR::L0::GlobalMemorySlot::globalKey_t localTokenBufferKey        = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 0;
-        const HiCR::L0::GlobalMemorySlot::globalKey_t localCoordinationBufferKey = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 1;
-        const HiCR::L0::GlobalMemorySlot::globalKey_t localProducerBufferKey     = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 2;
+        const HiCR::GlobalMemorySlot::globalKey_t localTokenBufferKey        = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 0;
+        const HiCR::GlobalMemorySlot::globalKey_t localCoordinationBufferKey = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 1;
+        const HiCR::GlobalMemorySlot::globalKey_t localProducerBufferKey     = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 2;
 
         channelTagX0Tags.insert(channelTagX0Tags.begin(),
                                 {{localTokenBufferKey, consumerTokenBufferSlotX0},
@@ -373,17 +373,17 @@ bool Grid::initialize()
     if (t.Z1.type == REMOTE) t.Z1PackMemorySlot = _memoryManager->allocateLocalMemorySlot(firstMemorySpace, bufferSizeZ * sizeof(double));
 
     // Creating channels
-    const HiCR::L0::GlobalMemorySlot::globalKey_t localTokenBufferKey        = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
-    const HiCR::L0::GlobalMemorySlot::globalKey_t localCoordinationBufferKey = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
-    const HiCR::L0::GlobalMemorySlot::globalKey_t localProducerBufferKey     = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
+    const HiCR::GlobalMemorySlot::globalKey_t localTokenBufferKey        = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
+    const HiCR::GlobalMemorySlot::globalKey_t localCoordinationBufferKey = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
+    const HiCR::GlobalMemorySlot::globalKey_t localProducerBufferKey     = 3 * (processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
     if (t.X0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
         3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteCoordinationBufferKey);
@@ -411,9 +411,9 @@ bool Grid::initialize()
     if (t.X1.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX0, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX0, remoteCoordinationBufferKey);
@@ -441,10 +441,10 @@ bool Grid::initialize()
     if (t.Y0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
         3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteCoordinationBufferKey);
@@ -472,9 +472,9 @@ bool Grid::initialize()
     if (t.Y1.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY0, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY0, remoteCoordinationBufferKey);
@@ -502,10 +502,10 @@ bool Grid::initialize()
     if (t.Z0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
         3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteCoordinationBufferKey);
@@ -533,9 +533,9 @@ bool Grid::initialize()
     if (t.Z1.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
-      const HiCR::L0::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ0, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ0, remoteCoordinationBufferKey);
@@ -561,15 +561,15 @@ bool Grid::initialize()
     }
 
     //// Creating residual channel
-    const HiCR::L0::GlobalMemorySlot::tag_t       residualChannelTag            = 6;
-    const HiCR::L0::GlobalMemorySlot::globalKey_t residualTokenBufferKey        = 0;
-    const HiCR::L0::GlobalMemorySlot::globalKey_t residualCoordinationBufferKey = 1;
+    const HiCR::GlobalMemorySlot::tag_t       residualChannelTag            = 6;
+    const HiCR::GlobalMemorySlot::globalKey_t residualTokenBufferKey        = 0;
+    const HiCR::GlobalMemorySlot::globalKey_t residualCoordinationBufferKey = 1;
 
     auto residualConsumerCoordinationBufferSize = HiCR::channel::fixedSize::Base::getCoordinationBufferSize();
     auto residualCoordinationBufferSlot         = _memoryManager->allocateLocalMemorySlot(firstMemorySpace, residualConsumerCoordinationBufferSize);
     residualSendBuffer                          = _memoryManager->allocateLocalMemorySlot(firstMemorySpace, sizeof(double));
     HiCR::channel::fixedSize::Base::initializeCoordinationBuffer(residualCoordinationBufferSlot);
-    std::vector<HiCR::L1::CommunicationManager::globalKeyMemorySlotPair_t> residualChannelTags;
+    std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> residualChannelTags;
 
     // If this is the root rank, create consumer channel elements
     if (processId == 0)

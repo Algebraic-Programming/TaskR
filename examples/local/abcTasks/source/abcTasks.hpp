@@ -15,7 +15,7 @@
  */
 
 #include <cstdio>
-#include <hicr/core/L0/device.hpp>
+#include <hicr/core/device.hpp>
 #include <taskr/taskr.hpp>
 
 #define REPETITIONS 5

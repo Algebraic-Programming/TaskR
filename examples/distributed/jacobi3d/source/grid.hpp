@@ -20,8 +20,8 @@
 #include <memory>
 #include <unordered_map>
 #include <taskr/taskr.hpp>
-#include <hicr/core/L1/memoryManager.hpp>
-#include <hicr/core/L1/topologyManager.hpp>
+#include <hicr/core/memoryManager.hpp>
+#include <hicr/core/topologyManager.hpp>
 #include <hicr/frontends/channel/fixedSize/spsc/consumer.hpp>
 #include <hicr/frontends/channel/fixedSize/spsc/producer.hpp>
 #include <hicr/frontends/channel/fixedSize/mpsc/locking/producer.hpp>
@@ -76,12 +76,12 @@ struct SubGrid
   std::unique_ptr<HiCR::channel::fixedSize::SPSC::Producer> Z0SendChannel;
   std::unique_ptr<HiCR::channel::fixedSize::SPSC::Producer> Z1SendChannel;
 
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> X0PackMemorySlot;
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> X1PackMemorySlot;
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> Y0PackMemorySlot;
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> Y1PackMemorySlot;
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> Z0PackMemorySlot;
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> Z1PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> X0PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> X1PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> Y0PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> Y1PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> Z0PackMemorySlot;
+  std::shared_ptr<HiCR::LocalMemorySlot> Z1PackMemorySlot;
 
   double *X0UnpackBuffer;
   double *X1UnpackBuffer;
@@ -132,7 +132,7 @@ class Grid
   size_t bufferSizeZ;
 
   // Storage for L2 residual calculation
-  std::shared_ptr<HiCR::L0::LocalMemorySlot>                         residualSendBuffer;
+  std::shared_ptr<HiCR::LocalMemorySlot>                         residualSendBuffer;
   std::unique_ptr<HiCR::channel::fixedSize::MPSC::locking::Consumer> residualConsumerChannel;
   std::unique_ptr<HiCR::channel::fixedSize::MPSC::locking::Producer> residualProducerChannel;
   std::atomic<double>                                                _residual;
@@ -153,9 +153,9 @@ class Grid
        const D3                             &pt,
        const D3                             &lt,
        taskr::Runtime *const                 taskr,
-       HiCR::L1::MemoryManager *const        memoryManager,
-       HiCR::L1::TopologyManager *const      topologyManager,
-       HiCR::L1::CommunicationManager *const communicationManager)
+       HiCR::MemoryManager *const        memoryManager,
+       HiCR::TopologyManager *const      topologyManager,
+       HiCR::CommunicationManager *const communicationManager)
     : processId(processId),
       nIters(nIters),
       N(N),
@@ -183,7 +183,7 @@ class Grid
   void calculateLocalResidual(taskr::Task *currentTask, const uint64_t lx, const uint64_t ly, const uint64_t lz, const uint32_t it);
   void sync();
 
-  static inline void tryPush(taskr::Task *currentTask, HiCR::channel::fixedSize::SPSC::Producer *channel, std::shared_ptr<HiCR::L0::LocalMemorySlot> slot)
+  static inline void tryPush(taskr::Task *currentTask, HiCR::channel::fixedSize::SPSC::Producer *channel, std::shared_ptr<HiCR::LocalMemorySlot> slot)
   {
     // If the channel is full, suspend task until it frees up
     if (channel->isFull())
@@ -219,8 +219,8 @@ class Grid
 
   taskr::Runtime *const _taskr;
 
-  HiCR::L1::MemoryManager *const        _memoryManager;
-  HiCR::L1::TopologyManager *const      _topologyManager;
-  HiCR::L1::CommunicationManager *const _communicationManager;
+  HiCR::MemoryManager *const        _memoryManager;
+  HiCR::TopologyManager *const      _topologyManager;
+  HiCR::CommunicationManager *const _communicationManager;
 
 }; // class Grid

@@ -17,25 +17,25 @@
 #include <chrono>
 #include <hwloc.h>
 #include <taskr/taskr.hpp>
-#include <hicr/core/L1/communicationManager.hpp>
-#include <hicr/core/L1/instanceManager.hpp>
-#include <hicr/core/L1/memoryManager.hpp>
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/core/communicationManager.hpp>
+#include <hicr/core/instanceManager.hpp>
+#include <hicr/core/memoryManager.hpp>
+#include <hicr/backends/hwloc/topologyManager.hpp>
 
 #include <nosv.h>
 #include <hicr/backends/nosv/common.hpp>
-#include <hicr/backends/nosv/L1/computeManager.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-  #include <hicr/backends/mpi/L1/communicationManager.hpp>
-  #include <hicr/backends/mpi/L1/instanceManager.hpp>
-  #include <hicr/backends/mpi/L1/memoryManager.hpp>
+  #include <hicr/backends/mpi/communicationManager.hpp>
+  #include <hicr/backends/mpi/instanceManager.hpp>
+  #include <hicr/backends/mpi/memoryManager.hpp>
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-  #include <hicr/backends/pthreads/L1/communicationManager.hpp>
-  #include <hicr/backends/hwloc/L1/instanceManager.hpp>
-  #include <hicr/backends/hwloc/L1/memoryManager.hpp>
+  #include <hicr/backends/pthreads/communicationManager.hpp>
+  #include <hicr/backends/hwloc/instanceManager.hpp>
+  #include <hicr/backends/hwloc/memoryManager.hpp>
 #endif
 
 #include "grid.hpp"
@@ -57,32 +57,32 @@ int main(int argc, char *argv[])
   //// Instantiating distributed execution machinery
 
   // Storage for the distributed engine's communication manager
-  std::unique_ptr<HiCR::L1::CommunicationManager> communicationManager;
+  std::unique_ptr<HiCR::CommunicationManager> communicationManager;
 
   // Storage for the distributed engine's instance manager
-  std::unique_ptr<HiCR::L1::InstanceManager> instanceManager;
+  std::unique_ptr<HiCR::InstanceManager> instanceManager;
 
   // Storage for the distributed engine's memory manager
-  std::unique_ptr<HiCR::L1::MemoryManager> memoryManager;
+  std::unique_ptr<HiCR::MemoryManager> memoryManager;
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
   #error "LPF backend not supported yet"
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
-  instanceManager      = HiCR::backend::mpi::L1::InstanceManager::createDefault(&argc, &argv);
-  communicationManager = std::make_unique<HiCR::backend::mpi::L1::CommunicationManager>();
-  memoryManager        = std::make_unique<HiCR::backend::mpi::L1::MemoryManager>();
+  instanceManager      = HiCR::backend::mpi::InstanceManager::createDefault(&argc, &argv);
+  communicationManager = std::make_unique<HiCR::backend::mpi::CommunicationManager>();
+  memoryManager        = std::make_unique<HiCR::backend::mpi::MemoryManager>();
 #endif
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_NONE
-  instanceManager      = std::make_unique<HiCR::backend::hwloc::L1::InstanceManager>();
-  communicationManager = std::make_unique<HiCR::backend::pthreads::L1::CommunicationManager>();
-  memoryManager        = HiCR::backend::hwloc::L1::MemoryManager::createDefault();
+  instanceManager      = std::make_unique<HiCR::backend::hwloc::InstanceManager>();
+  communicationManager = std::make_unique<HiCR::backend::pthreads::CommunicationManager>();
+  memoryManager        = HiCR::backend::hwloc::MemoryManager::createDefault();
 #endif
 
   // Creating (local host) topology manager
-  const auto topologyManager = HiCR::backend::hwloc::L1::TopologyManager::createDefault();
+  const auto topologyManager = HiCR::backend::hwloc::TopologyManager::createDefault();
 
   // Getting distributed instance information
   const auto instanceCount  = instanceManager->getInstances().size();
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
   //// Setting up Taskr
 
   // Initializing nosv-based compute manager to run tasks in parallel
-  HiCR::backend::nosv::L1::ComputeManager computeManager;
+  HiCR::backend::nosv::ComputeManager computeManager;
 
   // Creating HWloc topology object
   hwloc_topology_t topology;
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();

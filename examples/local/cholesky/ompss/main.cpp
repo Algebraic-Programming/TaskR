@@ -19,10 +19,10 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
-#include <hicr/backends/host/pthreads/L1/computeManager.hpp>
-#include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
-#include <hicr/backends/host/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/host/pthreads/computeManager.hpp>
+#include <hicr/backends/host/pthreads/communicationManager.hpp>
+#include <hicr/backends/host/hwloc/memoryManager.hpp>
+#include <hicr/backends/host/hwloc/topologyManager.hpp>
 
 #include "cholesky.hpp"
 
@@ -53,9 +53,9 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology and memory manager
-  HiCR::backend::host::hwloc::L1::TopologyManager         tm(&topology);
-  HiCR::backend::host::hwloc::L1::MemoryManager           memoryManager(&topology);
-  HiCR::backend::host::pthreads::L1::CommunicationManager communicationManager;
+  HiCR::backend::host::hwloc::TopologyManager         tm(&topology);
+  HiCR::backend::host::hwloc::MemoryManager           memoryManager(&topology);
+  HiCR::backend::host::pthreads::CommunicationManager communicationManager;
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();

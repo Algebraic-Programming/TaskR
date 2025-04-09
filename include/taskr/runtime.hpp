@@ -28,17 +28,17 @@
 #include <memory>
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
-#include <hicr/core/L0/device.hpp>
-#include <hicr/core/L1/computeManager.hpp>
+#include <hicr/core/device.hpp>
+#include <hicr/core/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
-#include <hicr/core/concurrent/queue.hpp>
-#include <hicr/backends/nosv/L1/computeManager.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
 
 #ifdef ENABLE_INSTRUMENTATION
 #include <tracr.hpp>
 #endif
 
+#include "queue.hpp"
 #include "task.hpp"
 #include "taskImpl.hpp"
 #include "worker.hpp"
@@ -120,9 +120,9 @@ class Runtime
    * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(HiCR::L1::ComputeManager *const               executionStateComputeManager,
-          HiCR::L1::ComputeManager *const               processingUnitComputeManager,
-          const HiCR::L0::Device::computeResourceList_t computeResources,
+  Runtime(HiCR::ComputeManager *const               executionStateComputeManager,
+          HiCR::ComputeManager *const               processingUnitComputeManager,
+          const HiCR::Device::computeResourceList_t computeResources,
           nlohmann::json                                config = nlohmann::json())
     : _executionStateComputeManager(executionStateComputeManager),
       _processingUnitComputeManager(processingUnitComputeManager),
@@ -131,7 +131,7 @@ class Runtime
     #ifdef ENABLE_INSTRUMENTATION
     
     // This is to check if ovni has been already initialized by nOS-V
-    bool external_init_ = (dynamic_cast<HiCR::backend::nosv::L1::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? false : true;
+    bool external_init_ = (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? false : true;
 
     // TraCR start tracing and create the task and thread markers
     INSTRUMENTATION_START(external_init_);
@@ -718,7 +718,7 @@ class Runtime
     #ifdef ENABLE_INSTRUMENTATION
 
     // TraCR end thread (only if backend is not nOS-V)
-    if (dynamic_cast<HiCR::backend::nosv::L1::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
+    if (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
 
     #endif
 
@@ -734,12 +734,12 @@ class Runtime
   /**
    * Compute manager to use to instantiate task's execution states
    */
-  HiCR::L1::ComputeManager *const _executionStateComputeManager;
+  HiCR::ComputeManager *const _executionStateComputeManager;
 
   /**
    * Compute manager to use to instantiate processing units
    */
-  HiCR::L1::ComputeManager *const _processingUnitComputeManager;
+  HiCR::ComputeManager *const _processingUnitComputeManager;
 
   /**
    * Type definition for the task's callback map
@@ -811,7 +811,7 @@ class Runtime
   /**
    * The compute resources to use to run workers with
    */
-  HiCR::L0::Device::computeResourceList_t _computeResources;
+  HiCR::Device::computeResourceList_t _computeResources;
 
   /**
    * Common lock-free queue for services.

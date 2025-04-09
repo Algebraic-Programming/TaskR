@@ -18,10 +18,10 @@
 #include <chrono>
 #include <lapack.h>
 #include <cblas.h>
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
-#include <hicr/core/L0/device.hpp>
-#include <hicr/core/L0/computeResource.hpp>
-#include <hicr/backends/hwloc/L1/memoryManager.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
+#include <hicr/core/device.hpp>
+#include <hicr/core/computeResource.hpp>
+#include <hicr/backends/hwloc/memoryManager.hpp>
 #include <taskr/taskr.hpp>
 
 #include "../utils.hpp"
@@ -83,7 +83,7 @@ __INLINE__ void syrk(double *A, double *B, const uint32_t blockSize, const uint3
   cblas_dsyrk(CblasRowMajor, CblasUpper, CblasTrans, blockSize, blockSize, -1.0, A, matrixDimensionSize, 1.0, B, matrixDimensionSize);
 }
 
-void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix, const uint32_t blocks, const uint32_t blockSize)
+void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &blockMatrix, const uint32_t blocks, const uint32_t blockSize)
 {
   double *pointer0;
   double *pointer1;
@@ -145,9 +145,9 @@ void choleskyDriver(taskr::Runtime                                    &taskr,
                     const uint32_t                                     blocks,
                     const bool                                         readFromFile,
                     const bool                                         checkResult,
-                    HiCR::backend::hwloc::L1::MemoryManager           *memoryManager,
-                    HiCR::backend::pthreads::L1::CommunicationManager *communicationManager,
-                    const std::shared_ptr<HiCR::L0::MemorySpace>      &memorySpace,
+                    HiCR::backend::hwloc::MemoryManager           *memoryManager,
+                    HiCR::backend::pthreads::CommunicationManager *communicationManager,
+                    const std::shared_ptr<HiCR::MemorySpace>      &memorySpace,
                     const std::string                                 &matrixPath)
 {
   // Setting onTaskFinish callback to free up task memory when it finishes
@@ -183,7 +183,7 @@ void choleskyDriver(taskr::Runtime                                    &taskr,
   else { initMatrix((double *)matrix->getPointer(), matrixDimension); }
 
   // Allocate buffer to save the inital matrix if we need to check the result later
-  std::shared_ptr<HiCR::L0::LocalMemorySlot> originalMatrix;
+  std::shared_ptr<HiCR::LocalMemorySlot> originalMatrix;
 
   if (checkResult == true)
   {
@@ -196,7 +196,7 @@ void choleskyDriver(taskr::Runtime                                    &taskr,
   }
 
   // Initialize the block matrix
-  std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> blockMatrix(blocks, std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>(blocks));
+  std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> blockMatrix(blocks, std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>(blocks));
 
   // Malloc the block matrix memory regions
   allocateBlockMatrix(blocks, blockSize, memoryManager, memorySpace, blockMatrix);

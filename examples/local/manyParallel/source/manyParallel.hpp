@@ -15,7 +15,7 @@
  */
 
 #include <cstdio>
-#include <hicr/core/L0/device.hpp>
+#include <hicr/core/device.hpp>
 #include <taskr/taskr.hpp>
 
 void manyParallel(taskr::Runtime &taskr, const size_t branchCount, const size_t taskCount)

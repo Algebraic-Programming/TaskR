@@ -25,7 +25,7 @@
 
 #include <chrono>
 #include <queue>
-#include <hicr/core/concurrent/queue.hpp>
+#include "queue.hpp"
 #include "mutex.hpp"
 #include "task.hpp"
 

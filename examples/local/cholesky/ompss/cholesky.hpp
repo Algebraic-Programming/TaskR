@@ -18,8 +18,8 @@
 #include <chrono>
 #include <lapack.h>
 #include <cblas.h>
-#include <hicr/backends/host/pthreads/L1/communicationManager.hpp>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
+#include <hicr/backends/host/pthreads/communicationManager.hpp>
+#include <hicr/backends/host/hwloc/memoryManager.hpp>
 
 #include "../utils.hpp"
 #include "init.hpp"
@@ -89,8 +89,8 @@ void choleskyDriver(const uint32_t                                           mat
                     const uint32_t                                           blocks,
                     const bool                                               readFromFile,
                     const bool                                               checkResult,
-                    HiCR::backend::host::hwloc::L1::MemoryManager           *memoryManager,
-                    HiCR::backend::host::pthreads::L1::CommunicationManager *communicationManager,
+                    HiCR::backend::host::hwloc::MemoryManager           *memoryManager,
+                    HiCR::backend::host::pthreads::CommunicationManager *communicationManager,
                     const std::shared_ptr<HiCR::L0::MemorySpace>            &memorySpace,
                     const std::string                                       &matrixPath)
 {

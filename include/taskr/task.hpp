@@ -24,10 +24,10 @@
 #pragma once
 
 #include <list>
-#include <hicr/core/concurrent/hashSet.hpp>
-#include <hicr/core/concurrent/queue.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/task.hpp>
+#include "hashSet.hpp"
+#include "queue.hpp"
 #include "common.hpp"
 #include "task.hpp"
 

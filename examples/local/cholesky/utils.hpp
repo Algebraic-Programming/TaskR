@@ -19,9 +19,9 @@
 #include <cblas.h>
 #include <fstream>
 #include <hicr/core/exceptions.hpp>
-#include <hicr/core/L0/localMemorySlot.hpp>
-#include <hicr/core/L0/memorySpace.hpp>
-#include <hicr/backends/hwloc/L1/memoryManager.hpp>
+#include <hicr/core/localMemorySlot.hpp>
+#include <hicr/core/memorySpace.hpp>
+#include <hicr/backends/hwloc/memoryManager.hpp>
 
 ///////////////////////////////////// Matrix utilities
 
@@ -45,9 +45,9 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension);
 */
 void allocateBlockMatrix(const uint32_t                                                        blocks,
                          const uint32_t                                                        blockDimensionSize,
-                         HiCR::backend::hwloc::L1::MemoryManager                              *memoryManager,
-                         const std::shared_ptr<HiCR::L0::MemorySpace>                         &memorySpace,
-                         std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix)
+                         HiCR::backend::hwloc::MemoryManager                              *memoryManager,
+                         const std::shared_ptr<HiCR::MemorySpace>                         &memorySpace,
+                         std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &blockMatrix)
 {
   for (uint32_t i = 0; i < blocks; i++)
     for (uint32_t j = 0; j < blocks; j++) { blockMatrix[i][j] = memoryManager->allocateLocalMemorySlot(memorySpace, blockDimensionSize * blockDimensionSize * sizeof(double)); }
@@ -59,7 +59,7 @@ void allocateBlockMatrix(const uint32_t                                         
  * @param[in] blockMatrix data structure holding the block matrix
  * @param[in] memoryManager memory manager
 */
-void freeBlockMatrix(std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &blockMatrix, HiCR::backend::hwloc::L1::MemoryManager *memoryManager)
+void freeBlockMatrix(std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &blockMatrix, HiCR::backend::hwloc::MemoryManager *memoryManager)
 {
   for (auto &row : blockMatrix)
     for (auto &block : row) { memoryManager->freeLocalMemorySlot(block); }
@@ -73,7 +73,7 @@ void freeBlockMatrix(std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemo
  * @param[in] blockDimensionSize size of dimension of a single block
  * @param[out] dst block matrix data structure
 */
-void convertToBlockMatrix(double *src, const uint32_t srcDimensionSize, const uint32_t blockDimensionSize, std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &dst)
+void convertToBlockMatrix(double *src, const uint32_t srcDimensionSize, const uint32_t blockDimensionSize, std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &dst)
 {
   uint32_t blocks = srcDimensionSize / blockDimensionSize;
 
@@ -104,7 +104,7 @@ void convertToBlockMatrix(double *src, const uint32_t srcDimensionSize, const ui
  * @param[in] blockDimensionSize size of dimension of a single block
  * @param[out] src block matrix data structure
 */
-void convertToPlainMatrix(double *dst, const uint32_t dstDimensionSize, const uint32_t blockDimensionSize, std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemorySlot>>> &src)
+void convertToPlainMatrix(double *dst, const uint32_t dstDimensionSize, const uint32_t blockDimensionSize, std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &src)
 {
   auto blocks = dstDimensionSize / blockDimensionSize;
   for (uint32_t i = 0; i < blocks; i++)
@@ -165,7 +165,7 @@ void readMatrixFromFile(double *matrix, uint32_t size, const std::string &path)
  * @param[in] matrixSize
  * @param[in] path
 */
-void tryReadMatrixFromFileOrGenerate(std::shared_ptr<HiCR::L0::LocalMemorySlot> &matrix, const uint32_t matrixDimension, const uint32_t matrixSize, const std::string &path)
+void tryReadMatrixFromFileOrGenerate(std::shared_ptr<HiCR::LocalMemorySlot> &matrix, const uint32_t matrixDimension, const uint32_t matrixSize, const std::string &path)
 {
   auto file = std::ifstream(path);
   if (file.good())
@@ -188,7 +188,7 @@ void tryReadMatrixFromFileOrGenerate(std::shared_ptr<HiCR::L0::LocalMemorySlot> 
  * @param[in] matrixSize 
  * @param[in] path
 */
-void tryWriteMatrixToFile(std::shared_ptr<HiCR::L0::LocalMemorySlot> &matrix, const uint32_t matrixSize, const std::string &path)
+void tryWriteMatrixToFile(std::shared_ptr<HiCR::LocalMemorySlot> &matrix, const uint32_t matrixSize, const std::string &path)
 {
   auto file = std::ifstream(path);
   if (file.good())

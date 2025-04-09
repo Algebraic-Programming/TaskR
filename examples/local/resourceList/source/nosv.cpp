@@ -17,12 +17,12 @@
 #include <chrono>
 #include <cstdio>
 #include <hwloc.h>
-#include <hicr/backends/hwloc/L1/topologyManager.hpp>
+#include <hicr/backends/hwloc/topologyManager.hpp>
 #include <taskr/taskr.hpp>
 
 #include <nosv.h>
 #include <hicr/backends/nosv/common.hpp>
-#include <hicr/backends/nosv/L1/computeManager.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
 
 #include "source/workTask.hpp"
 
@@ -44,13 +44,13 @@ int main(int argc, char **argv)
   hwloc_topology_init(&topology);
 
   // Initializing HWLoc-based host (CPU) topology manager
-  HiCR::backend::hwloc::L1::TopologyManager tm(&topology);
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
 
   // Asking backend to check the available devices
   const auto t = tm.queryTopology();
 
   // Getting compute resource lists from devices
-  std::vector<HiCR::L0::Device::computeResourceList_t> computeResourceLists;
+  std::vector<HiCR::Device::computeResourceList_t> computeResourceLists;
   for (auto d : t.getDevices()) computeResourceLists.push_back(d->getComputeResourceList());
 
   // Getting work task count
@@ -71,19 +71,19 @@ int main(int argc, char **argv)
   }
 
   // Create processing units from the detected compute resource list and giving them to taskr
-  HiCR::L0::Device::computeResourceList_t selectedComputeResources;
+  HiCR::Device::computeResourceList_t selectedComputeResources;
   for (auto computeResourceList : computeResourceLists)
     for (auto computeResource : computeResourceList)
     {
       // Interpreting compute resource as core
-      auto core = dynamic_pointer_cast<HiCR::backend::hwloc::L0::ComputeResource>(computeResource);
+      auto core = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(computeResource);
 
       // If the core affinity is included in the list, Add it to the list
       if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
     }
 
   // Initializing nosv-based compute manager to run tasks in parallel
-  HiCR::backend::nosv::L1::ComputeManager computeManager;
+  HiCR::backend::nosv::ComputeManager computeManager;
 
   // Creating taskr
   taskr::Runtime taskr(&computeManager, &computeManager, selectedComputeResources);

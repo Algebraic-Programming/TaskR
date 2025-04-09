@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <hicr/backends/pthreads/L1/computeManager.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
 #include "common.hpp"
 #include "task.hpp"
 
@@ -54,7 +54,7 @@ class Function
    */
   __INLINE__ Function(const function_t fc)
     : _executionUnit(
-        HiCR::backend::pthreads::L1::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
+        HiCR::backend::pthreads::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
   {}
 
   /**
@@ -62,14 +62,14 @@ class Function
    * 
    * @return The function's internal execution unit
    */
-  __INLINE__ std::shared_ptr<HiCR::L0::ExecutionUnit> getExecutionUnit() const { return _executionUnit; }
+  __INLINE__ std::shared_ptr<HiCR::ExecutionUnit> getExecutionUnit() const { return _executionUnit; }
 
   private:
 
   /**
    * Represents the internal HiCR-based execution unit to be replicated to run this function
    */
-  const std::shared_ptr<HiCR::L0::ExecutionUnit> _executionUnit;
+  const std::shared_ptr<HiCR::ExecutionUnit> _executionUnit;
 
 }; // class Task
 

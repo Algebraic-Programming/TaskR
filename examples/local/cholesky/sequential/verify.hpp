@@ -17,9 +17,9 @@
 #pragma once
 
 #include <cblas.h>
-#include <hicr/backends/host/hwloc/L1/memoryManager.hpp>
-#include <hicr/core/L0/memorySpace.hpp>
-#include <hicr/core/L0/localMemorySlot.hpp>
+#include <hicr/backends/host/hwloc/memoryManager.hpp>
+#include <hicr/core/memorySpace.hpp>
+#include <hicr/core/localMemorySlot.hpp>
 
 /**
  * Verify Cholesky factorization. It multiplies the result matrix with its transpose and 
@@ -34,7 +34,7 @@
 double verifyCholesky(double                                       *originalMatrixPtr,
                       double                                       *decomposedMatrix,
                       int                                           matrixSize,
-                      HiCR::L1::MemoryManager                      *memoryManager,
+                      HiCR::MemoryManager                      *memoryManager,
                       const std::shared_ptr<HiCR::L0::MemorySpace> &memorySpace)
 {
   // Allocate memory for reconstructedMatrix'
