@@ -43,8 +43,8 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension);
  * @param[in] memorySpace memorySpace where allocation should be performed
  * @param[out] blockMatrix data structure holding the resulting block matrix
 */
-void allocateBlockMatrix(const uint32_t                                                        blocks,
-                         const uint32_t                                                        blockDimensionSize,
+void allocateBlockMatrix(const uint32_t                                                    blocks,
+                         const uint32_t                                                    blockDimensionSize,
                          HiCR::backend::hwloc::MemoryManager                              *memoryManager,
                          const std::shared_ptr<HiCR::MemorySpace>                         &memorySpace,
                          std::vector<std::vector<std::shared_ptr<HiCR::LocalMemorySlot>>> &blockMatrix)

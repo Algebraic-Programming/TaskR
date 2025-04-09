@@ -52,10 +52,10 @@ class Worker : public HiCR::tasking::Worker
    * \param[in] processingUnitComputeManager A backend's compute manager to initialize and run processing units
    * \param[in] pullFunction A callback for the worker to get a new task to execute
    */
-  __INLINE__ Worker(const workerId_t                workerId,
-                    HiCR::ComputeManager *const executionStateComputeManager,
-                    HiCR::ComputeManager *const processingUnitComputeManager,
-                    HiCR::tasking::pullFunction_t   pullFunction)
+  __INLINE__ Worker(const workerId_t              workerId,
+                    HiCR::ComputeManager *const   executionStateComputeManager,
+                    HiCR::ComputeManager *const   processingUnitComputeManager,
+                    HiCR::tasking::pullFunction_t pullFunction)
     : HiCR::tasking::Worker(executionStateComputeManager, processingUnitComputeManager, pullFunction),
       _workerId(workerId),
       _readyTaskQueue(std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_WORKER_ACTIVE_TASKS))

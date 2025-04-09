@@ -76,13 +76,13 @@ void cholesky(const std::vector<std::vector<std::shared_ptr<HiCR::L0::LocalMemor
   }
 }
 
-void choleskyDriver(const uint32_t                                           matrixDimension,
-                    const uint32_t                                           blocks,
-                    const bool                                               checkResult,
+void choleskyDriver(const uint32_t                                       matrixDimension,
+                    const uint32_t                                       blocks,
+                    const bool                                           checkResult,
                     HiCR::backend::host::hwloc::MemoryManager           *memoryManager,
                     HiCR::backend::host::pthreads::CommunicationManager *communicationManager,
-                    const std::shared_ptr<HiCR::L0::MemorySpace>            &memorySpace,
-                    const std::string                                       &matrixPath)
+                    const std::shared_ptr<HiCR::L0::MemorySpace>        &memorySpace,
+                    const std::string                                   &matrixPath)
 {
   // Compute the blocks for the block matrix
   const uint32_t blockSize = matrixDimension / blocks;

@@ -15,7 +15,7 @@
  */
 
 /**
- * @file concurrent/hashSet.hpp
+ * @file hashSet.hpp
  * @brief Provides generic support for parallel hash sets
  * @author S. M. Martin
  * @date 29/2/2023

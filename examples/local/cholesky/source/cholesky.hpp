@@ -140,15 +140,15 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
   }
 }
 
-void choleskyDriver(taskr::Runtime                                    &taskr,
-                    const uint32_t                                     matrixDimension,
-                    const uint32_t                                     blocks,
-                    const bool                                         readFromFile,
-                    const bool                                         checkResult,
+void choleskyDriver(taskr::Runtime                                &taskr,
+                    const uint32_t                                 matrixDimension,
+                    const uint32_t                                 blocks,
+                    const bool                                     readFromFile,
+                    const bool                                     checkResult,
                     HiCR::backend::hwloc::MemoryManager           *memoryManager,
                     HiCR::backend::pthreads::CommunicationManager *communicationManager,
                     const std::shared_ptr<HiCR::MemorySpace>      &memorySpace,
-                    const std::string                                 &matrixPath)
+                    const std::string                             &matrixPath)
 {
   // Setting onTaskFinish callback to free up task memory when it finishes
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });

@@ -380,10 +380,9 @@ bool Grid::initialize()
     if (t.X0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 0;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
-        3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 1;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteCoordinationBufferKey);
@@ -441,10 +440,9 @@ bool Grid::initialize()
     if (t.Y0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 0;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
-        3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 1;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteCoordinationBufferKey);
@@ -502,10 +500,9 @@ bool Grid::initialize()
     if (t.Z0.type == REMOTE)
     {
       // Obtaining the globally exchanged memory slots
-      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey =
-        3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
-      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteTokenBufferKey        = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 0;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
+      const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
       auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteTokenBufferKey);
       auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteCoordinationBufferKey);

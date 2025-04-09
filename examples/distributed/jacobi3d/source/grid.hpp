@@ -132,7 +132,7 @@ class Grid
   size_t bufferSizeZ;
 
   // Storage for L2 residual calculation
-  std::shared_ptr<HiCR::LocalMemorySlot>                         residualSendBuffer;
+  std::shared_ptr<HiCR::LocalMemorySlot>                             residualSendBuffer;
   std::unique_ptr<HiCR::channel::fixedSize::MPSC::locking::Consumer> residualConsumerChannel;
   std::unique_ptr<HiCR::channel::fixedSize::MPSC::locking::Producer> residualProducerChannel;
   std::atomic<double>                                                _residual;
@@ -146,13 +146,13 @@ class Grid
   std::unique_ptr<taskr::Function> sendFc;
   std::unique_ptr<taskr::Function> localResidualFc;
 
-  Grid(const int                             processId,
-       const size_t                          N,
-       const size_t                          nIters,
-       const size_t                          gDepth,
-       const D3                             &pt,
-       const D3                             &lt,
-       taskr::Runtime *const                 taskr,
+  Grid(const int                         processId,
+       const size_t                      N,
+       const size_t                      nIters,
+       const size_t                      gDepth,
+       const D3                         &pt,
+       const D3                         &lt,
+       taskr::Runtime *const             taskr,
        HiCR::MemoryManager *const        memoryManager,
        HiCR::TopologyManager *const      topologyManager,
        HiCR::CommunicationManager *const communicationManager)

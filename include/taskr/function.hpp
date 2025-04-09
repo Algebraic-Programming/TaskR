@@ -53,8 +53,7 @@ class Function
    * @param[in] fc Specifies the function to execute.
    */
   __INLINE__ Function(const function_t fc)
-    : _executionUnit(
-        HiCR::backend::pthreads::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
+    : _executionUnit(HiCR::backend::pthreads::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
   {}
 
   /**

@@ -34,7 +34,7 @@
 double verifyCholesky(double                                       *originalMatrixPtr,
                       double                                       *decomposedMatrix,
                       int                                           matrixSize,
-                      HiCR::MemoryManager                      *memoryManager,
+                      HiCR::MemoryManager                          *memoryManager,
                       const std::shared_ptr<HiCR::L0::MemorySpace> &memorySpace)
 {
   // Allocate memory for reconstructedMatrix'

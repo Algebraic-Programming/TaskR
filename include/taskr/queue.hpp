@@ -15,7 +15,7 @@
  */
 
 /**
- * @file concurrent/queue.hpp
+ * @file queue.hpp
  * @brief Provides generic support for concurrent queues.
  * @author S. M. Martin
  * @date 14/8/2023
