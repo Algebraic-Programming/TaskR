@@ -12,8 +12,8 @@ option('buildExamples', type : 'boolean', value : false,
        description: 'Indicates whether to build example apps'
 )
 
-option('buildInstrumentations', type : 'boolean', value : false,
-       description: 'Indicates whether to build the instrumentations (TraCR)',
+option('buildInstrumentation', type : 'boolean', value : false,
+       description: 'Indicates whether to build the instrumentation using TraCR',
 )
 
 option('compileWarningsAsErrors', type : 'boolean', value : false,

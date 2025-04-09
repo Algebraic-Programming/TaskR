@@ -24,7 +24,9 @@
 #include <hicr/core/concurrent/queue.hpp>
 #include <hicr/backends/nosv/L1/computeManager.hpp>
 
+#ifdef ENABLE_INSTRUMENTATION
 #include <tracr.hpp>
+#endif
 
 #include "task.hpp"
 #include "taskImpl.hpp"
@@ -115,6 +117,8 @@ class Runtime
       _processingUnitComputeManager(processingUnitComputeManager),
       _computeResources(computeResources)
   {
+    #ifdef ENABLE_INSTRUMENTATION
+    
     // This is to check if ovni has been already initialized by nOS-V
     bool external_init_ = (dynamic_cast<HiCR::backend::nosv::L1::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? false : true;
 
@@ -128,6 +132,8 @@ class Runtime
     thread_idx.suspending = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GRAY, "suspended");
     thread_idx.resuming   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GREEN, "resumed");
     thread_idx.finished   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_YELLOW, "finished"); // maybe make it RED for nOS-V
+
+    #endif
 
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
@@ -356,8 +362,12 @@ class Runtime
     // Set state back to initialized
     _state = state_t::initialized;
 
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR set trace of thread being finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
+
+    #endif
   }
 
   /**
@@ -377,8 +387,12 @@ class Runtime
     // Setting state back to uninitialized
     _state = state_t::uninitialized;
 
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR stop tracing
     INSTRUMENTATION_END();
+
+    #endif
   }
 
   /**
@@ -411,8 +425,12 @@ class Runtime
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
   {
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
+
+    #endif
 
     // Getting worker pointer
     auto worker = _serviceWorkers[serviceWorkerId];
@@ -429,8 +447,12 @@ class Runtime
     // If found run it, and put it back into the queue
     if (service != nullptr)
     {
+      #ifdef ENABLE_INSTRUMENTATION
+
       // TraCR set trace of thread executing a service
       INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
+
+      #endif
 
       // Running service
       (*service)();
@@ -445,8 +467,12 @@ class Runtime
 
   __INLINE__ taskr::Task *taskWorkerLoop(const workerId_t taskWorkerId)
   {
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
+
+    #endif
 
     // The worker is once again active
     _activeTaskWorkerCount++;
@@ -463,8 +489,13 @@ class Runtime
       // If found run it, and put it back into the queue
       if (service != nullptr)
       {
+
+        #ifdef ENABLE_INSTRUMENTATION
+
         // TraCR set trace of thread executing a service
         INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
+
+        #endif
 
         // Running service
         (*service)();
@@ -521,8 +552,12 @@ class Runtime
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
 
+    #ifdef ENABLE_INSTRUMENTATION
+    
     // TraCR set trace of thread executing a task
     if (task != nullptr) INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_task);
+
+    #endif
 
     // Returning task pointer regardless if found or not
     return task;
@@ -618,8 +653,12 @@ class Runtime
 
   __INLINE__ void onWorkerStartCallback(HiCR::tasking::Worker *const worker)
   {
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR initialize the thread
     INSTRUMENTATION_THREAD_INIT();
+
+    #endif
 
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
@@ -633,8 +672,12 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR set trace of thread suspended
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.suspending);
+
+    #endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerSuspend);
@@ -645,8 +688,12 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR set trace of thread resumed
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.resuming);
+
+    #endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerResume);
@@ -657,8 +704,12 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
+    #ifdef ENABLE_INSTRUMENTATION
+
     // TraCR end thread (only if backend is not nOS-V)
     if (dynamic_cast<HiCR::backend::nosv::L1::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
+
+    #endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerTerminate);

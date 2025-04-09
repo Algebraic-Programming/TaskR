@@ -49,15 +49,14 @@ TaskRBuildIncludes = include_directories([
    'include'
   ])
 
-####### Build Instrumentation part (TraCR)
+####### Build Instrumentation using TraCR
 
-buildInstrumentations = get_option('buildInstrumentations')
+if get_option('buildInstrumentation')
 
 InstrumentationProject = subproject('tracr', required: true)
 InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
 taskrDependencies += InstrumentationBuildDep
 
-if buildInstrumentations
   add_project_arguments('-DENABLE_INSTRUMENTATION', language: 'cpp')
 
   # uncomment this to enable debug prints of TraCR
