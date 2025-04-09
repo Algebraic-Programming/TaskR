@@ -710,15 +710,15 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-    #ifdef ENABLE_INSTRUMENTATION
-    
+#ifdef ENABLE_INSTRUMENTATION
+
     // Set the marker of this thread to be finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
     if (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
 
-    #endif
+#endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerTerminate);
