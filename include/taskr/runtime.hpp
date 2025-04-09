@@ -133,16 +133,19 @@ class Runtime
     // This is to check if ovni has been already initialized by nOS-V
     bool external_init_ = (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? false : true;
 
-    // TraCR start tracing and create the task and thread markers
+    // TraCR start tracing
     INSTRUMENTATION_START(external_init_);
 
+    // TraCR initialize marker type
     INSTRUMENTATION_THREAD_MARK_INIT(0);
+
+    // TraCR marker types with the given string messages
     thread_idx.exec_task  = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_GREEN, "executing");
     thread_idx.exec_serv  = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_CYAN, "executing a service");
     thread_idx.polling    = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_NAVY, "polling");
     thread_idx.suspending = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GRAY, "suspended");
     thread_idx.resuming   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GREEN, "resumed");
-    thread_idx.finished   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_YELLOW, "finished"); // maybe make it RED for nOS-V
+    thread_idx.finished   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_YELLOW, "finished");
 
 #endif
 
@@ -375,7 +378,7 @@ class Runtime
 
 #ifdef ENABLE_INSTRUMENTATION
 
-    // TraCR set trace of thread being finished
+    // TraCR set trace of the main thread being finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
 #endif
@@ -562,13 +565,6 @@ class Runtime
     // The worker exits the main loop, therefore is no longer active
     _activeTaskWorkerCount--;
 
-#ifdef ENABLE_INSTRUMENTATION
-
-    // TraCR set trace of thread executing a task
-    if (task != nullptr) INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_task);
-
-#endif
-
     // Returning task pointer regardless if found or not
     return task;
   }
@@ -714,12 +710,15 @@ class Runtime
     // Getting TaskR worker pointer
     auto taskrWorker = (taskr::Worker *)worker;
 
-#ifdef ENABLE_INSTRUMENTATION
+    #ifdef ENABLE_INSTRUMENTATION
+    
+    // Set the marker of this thread to be finished
+    INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
     if (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
 
-#endif
+    #endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerTerminate);
