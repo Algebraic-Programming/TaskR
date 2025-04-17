@@ -1,6 +1,8 @@
 [submodule "extern/tracr"]
 	path = extern/tracr
-	url = git@ssh.gitlab.huaweirc.ch:zrc-von-neumann-lab/runtime-system-innovations/tracr.git
+	url = https://github.com/SergioMartin86/TraCR.git
+	branch = main
 [submodule "extern/hicr"]
 	path = extern/hicr
-	url = git@ssh.gitlab.huaweirc.ch:zrc-von-neumann-lab/runtime-system-innovations/hicr.git
+	url = https://github.com/Algebraic-Programming/HiCR.git
+	branch = master
