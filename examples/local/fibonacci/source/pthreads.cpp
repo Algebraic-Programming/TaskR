@@ -58,7 +58,7 @@ int main(int argc, char **argv)
   auto cr = (*(t.getDevices().begin()))->getComputeResourceList();
 
   // Adding it to the list
-  auto itr = cr.begin();
+  auto itr      = cr.begin();
   auto numCores = std::max(8ul, cr.size());
   for (int i = 0; i < numCores; i++)
   {
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
   // Running Fibonacci example
   auto result = fibonacciDriver(initialValue, taskr);
-  
+
   // Printing result
   printf("Fib(%lu) = %lu\n", initialValue, result);
 
