@@ -72,7 +72,7 @@ int main(int argc, char **argv)
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Running Fibonacci example
-  auto result = fibonacciDriver(initialValue, taskr);
+  //auto result = fibonacciDriver(initialValue, taskr);
 
   // Printing result
   printf("Fib(%lu) = %lu\n", initialValue, result);
