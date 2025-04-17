@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 
   // Running Fibonacci example
   //auto result = fibonacciDriver(initialValue, taskr);
-
+  size_t result = 0;
   // Printing result
   printf("Fib(%lu) = %lu\n", initialValue, result);
 
