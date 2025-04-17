@@ -1,7 +1,7 @@
 testSuite = [ 'examples', 'local', 'cholesky' ]
 
 choleskyDep = declare_dependency(
-    dependencies: [ TaskRBuildDep, dependency('openblas', required: true, version: '0.3.28') ],
+    dependencies: [ TaskRBuildDep, dependency('openblas', required: true, version: '0.3.26') ],
     include_directories: ['.'],
     compile_args: [ '-ffast-math','-Werror' ]
 )
