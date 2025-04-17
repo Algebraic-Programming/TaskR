@@ -59,7 +59,8 @@ int main(int argc, char **argv)
 
   // Adding it to the list
   auto itr = cr.begin();
-  for (int i = 0; i < 8; i++)
+  auto numCores = std::max(8ul, cr.size());
+  for (int i = 0; i < numCores; i++)
   {
     computeResources.push_back(*itr);
     itr++;
@@ -72,8 +73,8 @@ int main(int argc, char **argv)
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
   // Running Fibonacci example
-  //auto result = fibonacciDriver(initialValue, taskr);
-  size_t result = 0;
+  auto result = fibonacciDriver(initialValue, taskr);
+  
   // Printing result
   printf("Fib(%lu) = %lu\n", initialValue, result);
 
