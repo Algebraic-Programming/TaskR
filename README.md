@@ -9,7 +9,7 @@ ___________              __   __________
                \/     \/     \/       \/ 
 ```
 
-TaskR is a lightweight dependency-driven tasking runtime system based entirely on function calls to the HiCR API
+TaskR is a lightweight dependency-driven tasking runtime system based entirely on function calls to the [HiCR API](https://github.com/Algebraic-Programming/HiCR)
 
 ## License
 
