@@ -66,7 +66,7 @@ int main(int argc, char **argv)
   // Adding it to the list
   auto itr      = cr.begin();
   auto numCores = std::max(8ul, cr.size());
-  for (int i = 0; i < numCores; i++)
+  for (size_t i = 0; i < numCores; i++)
   {
     computeResources.push_back(*itr);
     itr++;
