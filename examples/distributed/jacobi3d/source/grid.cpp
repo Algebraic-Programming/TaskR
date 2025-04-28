@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <mpi.h>
 #include <stdio.h>
 #include <math.h>
 #include "grid.hpp"
