@@ -71,7 +71,7 @@ TaskRBuildDep = declare_dependency(
     dependencies: taskrDependencies
     )
 
-####### Build test / example targets only if HiCR is being loaded as a subproject
+####### Build test / example targets only if TaskR is being loaded as a subproject
 
 if meson.is_subproject() == false
 

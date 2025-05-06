@@ -1,5 +1,4 @@
-ARG ARCH=
-FROM registry.gitlab.huaweirc.ch/zrc-von-neumann-lab/runtime-system-innovations/hicr/buildenv-${ARCH}:latest
+FROM ghcr.io/algebraic-programming/hicr/buildenv:latest
 
 ENV USER=hicr
 ENV HOME=/home/$USER

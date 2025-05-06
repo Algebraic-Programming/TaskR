@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
 
-  # Build HiCR and run tests
+  # Build TaskR and run tests
   build:
     runs-on: ubuntu-latest
     steps:
