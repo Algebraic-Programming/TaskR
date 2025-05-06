@@ -1,5 +1,5 @@
 build:
-  image: ghcr.io/algebraic-programming/taskr/buildenv-x86_64:latest
+  image: ghcr.io/algebraic-programming/taskr/buildenv:latest
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   tags:
