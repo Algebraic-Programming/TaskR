@@ -13,13 +13,13 @@ concurrency:
 
 jobs:
   ci-arm64:
-    uses: algebraic-programming/TaskR/.github/workflows/pr-development-workflow.yml@master
+    uses: Algebraic-Programming/TaskR/.github/workflows/pr-development-workflow.yml@main
     with:
       os: ubuntu-24.04-arm
       arch: arm64
   
   ci-amd64:
-    uses: algebraic-programming/TaskR/.github/workflows/pr-development-workflow.yml@master
+    uses: Algebraic-Programming/TaskR/.github/workflows/pr-development-workflow.yml@main
     with:
       os: ubuntu-24.04
       arch: amd64
