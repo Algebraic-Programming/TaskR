@@ -4,7 +4,7 @@ name: Merge into master - Build and Run Tests
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
