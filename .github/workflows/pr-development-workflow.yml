@@ -231,7 +231,7 @@ jobs:
           docker run --name taskr --shm-size=1024M --privileged -v $PWD:/home/hicr/taskr -w /home/hicr/taskr -td ${{ env.DOCKERIMAGE }}:${{ inputs.arch }}-latest bash
 
       - name: Setup
-        run: docker exec -u hicr taskr bash -c "meson setup build -Dbackends=hwloc,pthreads,mpi,lpf,nosv,boost,opencl -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true"
+        run: docker exec -u hicr taskr bash -c "meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true"
 
       - name: Compile
         run: docker exec -u hicr taskr bash -c "meson compile -C build"
@@ -239,8 +239,6 @@ jobs:
       - name: Running tests and creating coverage report
         run: |
           echo "Running Tests..."
-          docker exec -u hicr taskr bash -c "source /home/hicr/.bashrc && meson setup build --wipe -Db_coverage=true -Dbackends=hwloc,pthreads,mpi,nosv,boost -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true"
-          docker exec -u hicr taskr bash -c "source /home/hicr/.bashrc && meson compile -C build"
           docker exec -u hicr taskr bash -c "source /home/hicr/.bashrc && meson test -C build"
           echo "Creating coverage report..."
           docker exec -u hicr taskr bash -c "ninja -C build coverage"
@@ -273,7 +271,7 @@ jobs:
           submodules: 'true'
 
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -Dbackends=hwloc,pthreads,mpi,lpf,nosv,boost,opencl -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
+        run: source /home/hicr/.bashrc && meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build
@@ -283,8 +281,6 @@ jobs:
         run: |
           echo "Running Tests..."
           source /home/hicr/.bashrc
-          meson setup build --wipe -Db_coverage=true -Dbackends=hwloc,pthreads,mpi,nosv,boost -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
-          meson compile -C build
           meson test -C build
           echo "Creating coverage report..."
           ninja -C build coverage
