@@ -1,5 +1,5 @@
 build:
-  image: registry.gitlab.huaweirc.ch/zrc-von-neumann-lab/runtime-system-innovations/taskr/buildenv-x86_64:latest
+  image: ghcr.io/algebraic-programming/taskr/buildenv-x86_64:latest
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   tags:
@@ -36,7 +36,7 @@ build:
   - tags
 
 docs:
-  image: registry.gitlab.huaweirc.ch/zrc-von-neumann-lab/runtime-system-innovations/hicr/docs:latest
+  image: ghcr.io/algebraic-programming/hicr/docs:latest
   tags:
   - docker
   - tiny

@@ -1,4 +1,4 @@
-[![Build and Run Tests](https://github.com/Algebraic-Programming/TaskR/actions/workflows/taskr.yml/badge.svg)](https://github.com/Algebraic-Programming/TaskR/actions/workflows/taskr.yml)
+[![Build and Run Tests](https://github.com/Algebraic-Programming/TaskR/actions/workflows/master.yml/badge.svg)](https://github.com/Algebraic-Programming/TaskR/actions/workflows/master.yml)
 
 ```
 ___________              __   __________ 

@@ -5,7 +5,7 @@ If it fixes a bug or resolves a feature request, be sure to link to that issue._
 
 ## Type of change
 
-_What type of changes does your code introduce to HiCR? Put an `x` in the box that apply._
+_What type of changes does your code introduce to TaskR? Put an `x` in the box that apply._
 
 - [ ] `CHANGE` (fix or feature that would cause existing functionality to not work as expected)
 - [ ] `FEATURE` (non-breaking change which adds functionality)

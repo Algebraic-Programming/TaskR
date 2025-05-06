@@ -8,4 +8,4 @@ fi
 folder=${1}
 arch=${2}
 
-docker run --name taskr --shm-size=1024M --privileged -td "registry.gitlab.huaweirc.ch/zrc-von-neumann-lab/runtime-system-innovations/taskr/${folder}-${arch}:latest" bash 
+docker run --name taskr --shm-size=1024M --privileged -td "ghcr.io/algebraic-programming/taskr/${folder}:latest" bash 
