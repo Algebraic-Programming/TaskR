@@ -41,7 +41,7 @@ jobs:
           submodules: 'true'
 
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -Dbackends=hwloc,pthreads,mpi,lpf,nosv,boost,opencl -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
+        run: source /home/hicr/.bashrc && meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build
@@ -51,8 +51,6 @@ jobs:
         run: |
           echo "Running Tests..."
           source /home/hicr/.bashrc
-          meson setup build --wipe -Db_coverage=true -Dbackends=hwloc,pthreads,mpi,nosv,boost -Dfrontends=channel,RPCEngine,tasking,objectStore -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
-          meson compile -C build
           meson test -C build
           echo "Creating coverage report..."
           ninja -C build coverage
