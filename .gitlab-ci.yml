@@ -9,8 +9,6 @@ build:
   script:
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
-  - echo "Compiling OVNI..."
-  - mkdir extern/tracr/extern/ovni/build; pushd extern/tracr/extern/ovni/build; cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=FALSE; make -j24; sudo make install; popd
   - echo "Building TaskR..."
   - mkdir build
   - meson setup build -Dbuildtype=debug -Db_coverage=true -DbuildTests=true -DbuildExamples=true -DdistributedEngine=mpi -DbuildInstrumentation=true -DcompileWarningsAsErrors=true
@@ -32,5 +30,4 @@ build:
         path: build/meson-logs/coverage.xml 
   only:
   - main
-  - merge_requests
   - tags
