@@ -231,7 +231,7 @@ jobs:
           docker run --name taskr --shm-size=1024M --privileged -v $PWD:/home/hicr/taskr -w /home/hicr/taskr -td ${{ env.DOCKERIMAGE }}:${{ inputs.arch }}-latest bash
 
       - name: Setup
-        run: docker exec -u hicr taskr bash -c "meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true"
+        run: docker exec -u hicr taskr bash -c "meson setup build -Dbuildtype=debug -Db_coverage=true  -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true"
 
       - name: Compile
         run: docker exec -u hicr taskr bash -c "meson compile -C build"
@@ -271,7 +271,7 @@ jobs:
           submodules: 'true'
 
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
+        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build

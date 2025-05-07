@@ -41,7 +41,7 @@ jobs:
           submodules: 'true'
 
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
+        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build
