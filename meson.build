@@ -63,6 +63,10 @@ taskrDependencies += InstrumentationBuildDep
   # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
 endif
 
+if get_option('buildPythonAPI')
+  subdir('include/python_api')
+endif
+
 ####### Collect the dependencies
 
 TaskRBuildDep = declare_dependency(
