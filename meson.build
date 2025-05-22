@@ -53,9 +53,9 @@ TaskRBuildIncludes = include_directories([
 
 if get_option('buildInstrumentation')
 
-InstrumentationProject = subproject('tracr', required: true)
-InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
-taskrDependencies += InstrumentationBuildDep
+  InstrumentationProject = subproject('tracr', required: true)
+  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+  taskrDependencies += InstrumentationBuildDep
 
   add_project_arguments('-DENABLE_INSTRUMENTATION', language: 'cpp')
 
