@@ -16,7 +16,7 @@ option('buildInstrumentation', type : 'boolean', value : false,
        description: 'Indicates whether to build the instrumentation using TraCR',
 )
 
-option('buildPythonAPI', type : 'boolean', value : false,
+option('buildPyTaskR', type : 'boolean', value : false,
        description: 'Indicates whether to build the TaskR Python API',
 )
 

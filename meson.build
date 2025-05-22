@@ -63,8 +63,8 @@ if get_option('buildInstrumentation')
   # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
 endif
 
-if get_option('buildPythonAPI')
-  subdir('include/python_api')
+if get_option('buildPyTaskR')
+  subdir('include/pytaskr')
 endif
 
 ####### Collect the dependencies

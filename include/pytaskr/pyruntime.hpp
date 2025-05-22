@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <memory>
 
 #include <hwloc.h>
 #include <hicr/backends/hwloc/topologyManager.hpp>
+#include <hicr/backends/boost/computeManager.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
+
 #include <nosv.h>
 #include <hicr/backends/nosv/common.hpp>
 #include <hicr/backends/nosv/computeManager.hpp>
 
 #include <taskr/taskr.hpp>
-
-// #include <pybind11/pybind11.h>
 
 namespace taskr
 {
@@ -135,28 +138,3 @@ public:
 };
 
 } // namespace taskr
-
-/*
-PYBIND11_MODULE(taskr, m)
-{
-    m.doc() = "pybind11 plugin for TaskR";
-    
-    // TaskR's Runtime class
-    py::class_<PyRuntime>(m, "PyRuntime")
-    .def(py::init<const std::string&, const int&>())
-    .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
-    .def("initialize", &Runtime::initialize)
-    .def("addTask", &Runtime::addTask)
-    .def("run", &Runtime::run)
-    .def("await_", &Runtime::await)
-    .def("finalize", &Runtime::finalize)
-    
-    // TaskR's Function class
-    py::class_<Function>(m, "Function")
-    .def(py::init<const function_t>())
-    
-    // TaskR's Task class
-    py::class_<Task>(m, "Task")
-    .def(py::init<const label_t, Function>())
-}
-*/

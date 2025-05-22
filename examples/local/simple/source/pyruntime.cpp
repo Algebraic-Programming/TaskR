@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-#include <hicr/backends/hwloc/topologyManager.hpp>
-#include <hicr/backends/boost/computeManager.hpp>
-#include <hicr/backends/pthreads/computeManager.hpp>
-
-#include "python_api/taskr_modules.hpp"
+#include <pytaskr/pytaskr.hpp>
 
 #include "simple.hpp"
 
 int main(int argc, char **argv)
 {
   // Creating taskr
-  taskr::PyRuntime pytaskr("nosv", 2);
+  taskr::PyRuntime pytaskr("threading", 8);
 
   // Running simple example
   simple(pytaskr.get_runtime());
