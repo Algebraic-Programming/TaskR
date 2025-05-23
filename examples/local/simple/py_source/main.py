@@ -2,13 +2,15 @@ import taskr
 import simple
 
 def main():
-    # maybe get resources as well as initializing number of PUs
 
-    # 
-    runtime = taskr.Runtime(ComputeManager, ComputeManager, [])
+    # Initialize taskr with the wanted compute manager backend and number of PUs
+    t = taskr.taskr("threading", 1)
+
+    # Get the runtime
+    runtime = t.get_runtime
 
     # Running simple example
-    simple(runtime)
+    simple.simple(runtime)
 
 if __name__ == "__main__":
     main()

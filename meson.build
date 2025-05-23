@@ -63,10 +63,6 @@ if get_option('buildInstrumentation')
   # add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
 endif
 
-if get_option('buildPyTaskR')
-  subdir('include/pytaskr')
-endif
-
 ####### Collect the dependencies
 
 TaskRBuildDep = declare_dependency(
@@ -74,6 +70,11 @@ TaskRBuildDep = declare_dependency(
     include_directories: TaskRBuildIncludes,
     dependencies: taskrDependencies
     )
+
+####### Build PyTaskR
+if get_option('buildPyTaskR')
+  subdir('include/pytaskr')
+endif
 
 ####### Build test / example targets only if TaskR is being loaded as a subproject
 

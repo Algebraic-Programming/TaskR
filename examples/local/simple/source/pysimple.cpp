@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include <pytaskr/pytaskr.hpp>
+#include <pytaskr/pyruntime.hpp>
 
 #include "simple.hpp"
 
 int main(int argc, char **argv)
 {
   // Creating taskr
-  taskr::PyRuntime pytaskr("threading", 8);
+  taskr::PyRuntime pytaskr("nosv", 8);
 
   // Running simple example
   simple(pytaskr.get_runtime());

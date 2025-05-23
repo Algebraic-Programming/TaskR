@@ -12,11 +12,17 @@ if get_option('buildTests')
 	test('nosv', nosv, args : [ ], is_parallel : false, suite: testSuite, workdir: nosv.path() + '.p' )
 endif
 
-if get_option('buildTests') and get_option('buildPyTaskR')
-	pyruntime = executable('pyruntime', [ 'source/pyruntime.cpp'], dependencies: [ TaskRBuildDep ])
+if get_option('buildPyTaskR')
+	pysimple_cpp = executable('pysimple_cpp', [ 'source/pysimple.cpp'], dependencies: [ TaskRBuildDep ])
 
-	test('pyruntime', pyruntime, args : [ ], suite: testSuite, workdir: pyruntime.path() + '.p' )
+	if get_option('buildTests')
+		test('pysimple_cpp', pysimple_cpp, args : [ ], suite: testSuite, workdir: pysimple_cpp.path() + '.p' )
 
-	# python_script = find_program('py_source/main.py', required: true)
-	# test('python_script', python_script, args : [ ], suite: testSuite)
+		test('pysimple', 
+			 py,
+			 args : [ 'py_source/main.py' ], 
+			 env: ['PYTHONPATH=' + meson.current_source_dir() + ':' + meson.project_build_root() + '/include/pytaskr/'],
+			 suite: testSuite, 
+			 workdir: meson.current_source_dir())
+	endif
 endif

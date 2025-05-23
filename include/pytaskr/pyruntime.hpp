@@ -79,7 +79,7 @@ public:
 
         auto itr = cr.begin();
 
-        // Specify allocate the compute resources (i.e. PUs)
+        // Allocate the compute resources (i.e. PUs)
         if(num_workers == 0)
         {
             num_workers = cr.size();
@@ -90,7 +90,7 @@ public:
         }
         else
         {
-            HICR_THROW_LOGIC("num_workers = %d is not a legal number. We can have at most %d workers.\n", num_workers, cr.size());
+            HICR_THROW_LOGIC("num_workers = %d is not a legal number. FYI, we can have at most %d workers.\n", num_workers, cr.size());
         }
         
         for (size_t i = 0; i < num_workers; i++)

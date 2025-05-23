@@ -1,0 +1,14 @@
+{
+    "version": 3,
+    "ovni": {
+        "lib": {
+            "version": "1.12.0",
+            "commit": "unknown"
+        },
+        "part": "thread",
+        "tid": 992751,
+        "pid": 992751,
+        "loom": "nbaumann-ThinkStation-P340.9",
+        "app_id": 1
+    }
+}
