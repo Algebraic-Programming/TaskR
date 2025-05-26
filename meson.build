@@ -53,9 +53,9 @@ TaskRBuildIncludes = include_directories([
 
 if get_option('buildInstrumentation')
 
-InstrumentationProject = subproject('tracr', required: true)
-InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
-taskrDependencies += InstrumentationBuildDep
+  InstrumentationProject = subproject('tracr', required: true)
+  InstrumentationBuildDep = InstrumentationProject.get_variable('InstrumentationBuildDep')
+  taskrDependencies += InstrumentationBuildDep
 
   add_project_arguments('-DENABLE_INSTRUMENTATION', language: 'cpp')
 
@@ -70,6 +70,11 @@ TaskRBuildDep = declare_dependency(
     include_directories: TaskRBuildIncludes,
     dependencies: taskrDependencies
     )
+
+####### Build PyTaskR
+if get_option('buildPyTaskR')
+  subdir('include/pytaskr')
+endif
 
 ####### Build test / example targets only if TaskR is being loaded as a subproject
 
