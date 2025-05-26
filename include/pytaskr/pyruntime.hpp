@@ -117,9 +117,9 @@ public:
         }
     }
     
-    Runtime* get_runtime()
+    Runtime& get_runtime()
     {
-        return _runtime.get();
+        return *_runtime;
     }
     
     private:

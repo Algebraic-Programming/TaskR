@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 
 #include <taskr/taskr.hpp>
 #include <pytaskr/pyruntime.hpp>
@@ -27,27 +28,27 @@ PYBIND11_MODULE(taskr, m)
 {
     m.doc() = "pybind11 plugin for TaskR";
     
+    // TaskR's Runtime class
+    py::class_<Runtime>(m, "Runtime")
+    .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
+    .def("initialize", &Runtime::initialize)
+    .def("addTask", &Runtime::addTask)
+    .def("run", &Runtime::run)
+    .def("await_", &Runtime::await)
+    .def("finalize", &Runtime::finalize);
+
     // pyTaskR's PyRuntime class
     py::class_<PyRuntime>(m, "taskr")
     .def(py::init<const std::string&, size_t>())
-    .def("get_runtime", &PyRuntime::get_runtime);
-
-    // // TaskR's Runtime class
-    // py::class_<Runtime>(m, "Runtime")
-    // .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
-    // .def("initialize", &Runtime::initialize)
-    // .def("addTask", &Runtime::addTask)
-    // .def("run", &Runtime::run)
-    // .def("await_", &Runtime::await)
-    // .def("finalize", &Runtime::finalize);
+    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal);
     
-    // // TaskR's Function class
-    // py::class_<Function>(m, "Function")
-    // .def(py::init<const function_t>());
+    // TaskR's Function class
+    py::class_<Function>(m, "Function")
+    .def(py::init<const function_t>());
     
-    // // TaskR's Task class
-    // py::class_<Task>(m, "Task")
-    // .def(py::init<const label_t, Function, const workerId_t>());
+    // TaskR's Task class
+    py::class_<Task>(m, "Task")
+    .def(py::init<const label_t, Function*, const workerId_t>());
 }
 
 }

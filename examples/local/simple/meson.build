@@ -13,10 +13,10 @@ if get_option('buildTests')
 endif
 
 if get_option('buildPyTaskR')
-	pysimple_cpp = executable('pysimple_cpp', [ 'source/pysimple.cpp'], dependencies: [ TaskRBuildDep ])
+	pyruntime = executable('pyruntime', [ 'source/pyruntime.cpp'], dependencies: [ TaskRBuildDep ])
 
 	if get_option('buildTests')
-		test('pysimple_cpp', pysimple_cpp, args : [ ], suite: testSuite, workdir: pysimple_cpp.path() + '.p' )
+		test('pyruntime', pyruntime, args : [ ], suite: testSuite, workdir: pyruntime.path() + '.p' )
 
 		test('pysimple', 
 			 py,

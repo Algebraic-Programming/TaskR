@@ -7,7 +7,7 @@ def main():
     t = taskr.taskr("threading", 1)
 
     # Get the runtime
-    runtime = t.get_runtime
+    runtime = t.get_runtime()
 
     # Running simple example
     simple.simple(runtime)
