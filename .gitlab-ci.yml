@@ -9,8 +9,6 @@ build:
   script:
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
-  - echo "Compiling OVNI..."
-  - mkdir extern/tracr/extern/ovni/build; pushd extern/tracr/extern/ovni/build; cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=FALSE; make -j24; sudo make install; popd
   - echo "Building TaskR..."
   - mkdir build
   - meson setup build -Dbuildtype=debug -Db_coverage=true -DbuildTests=true -DbuildExamples=true -DdistributedEngine=mpi -DbuildInstrumentation=true -DcompileWarningsAsErrors=true
@@ -32,23 +30,4 @@ build:
         path: build/meson-logs/coverage.xml 
   only:
   - main
-  - merge_requests
   - tags
-
-docs:
-  image: ghcr.io/algebraic-programming/hicr/docs:latest
-  tags:
-  - docker
-  - tiny
-  script:
-  - echo "Checking TaskR source and test formatting..."
-  - .build-tools/style/check-style.sh check include
-  - .build-tools/style/check-style.sh check tests
-  - .build-tools/style/check-style.sh check examples
-  - echo "Building code documentation..."
-  - make -j1 -C docs
-  only: 
-  - main
-  - merge_requests
-  - tags
-
