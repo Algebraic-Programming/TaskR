@@ -4,6 +4,18 @@ option('distributedEngine', type : 'combo',
        value: 'none'
        )
 
+option('executionStateType', type : 'array',
+       choices : ['boost', 'nosv'],
+       description : 'Specifies which HiCR backend to use for the tasks (i.e. executionStates). Default: boost',
+       value: ['boost', 'nosv']
+)
+
+option('processingUnitType', type : 'array',
+       choices : ['pthreads', 'nosv'],
+       description : 'Specifies which HiCR backend to use for the workers (i.e. processingUnits). Default: pthreads',
+       value: ['pthreads', 'nosv']
+)
+
 option('buildTests', type : 'boolean', value : false,
        description: 'Indicates whether to build tests'
 )

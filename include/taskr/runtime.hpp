@@ -32,7 +32,6 @@
 #include <hicr/core/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
 #include <hicr/frontends/tasking/tasking.hpp>
-#include <hicr/backends/nosv/computeManager.hpp>
 
 #ifdef ENABLE_INSTRUMENTATION
   #include <tracr.hpp>
@@ -131,7 +130,7 @@ class Runtime
 #ifdef ENABLE_INSTRUMENTATION
 
     // This is to check if ovni has been already initialized by nOS-V
-    bool external_init_ = (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? false : true;
+    bool external_init_ = (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? true : false;
 
     // TraCR start tracing
     INSTRUMENTATION_START(external_init_);
@@ -716,7 +715,7 @@ class Runtime
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
-    if (dynamic_cast<HiCR::backend::nosv::ComputeManager *>(_processingUnitComputeManager) == nullptr) { INSTRUMENTATION_THREAD_END(); }
+    if (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) != nullptr) { INSTRUMENTATION_THREAD_END(); }
 
 #endif
 
