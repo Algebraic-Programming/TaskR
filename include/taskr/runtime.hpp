@@ -715,7 +715,7 @@ class Runtime
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
-    if (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) != nullptr) { INSTRUMENTATION_THREAD_END(); }
+    INSTRUMENTATION_THREAD_END();
 
 #endif
 

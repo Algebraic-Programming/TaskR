@@ -17,14 +17,16 @@
 #include <chrono>
 #include <hwloc.h>
 #include <taskr/taskr.hpp>
+
+#include <nosv.h>
+#include <hicr/backends/nosv/common.hpp>
+#include <hicr/backends/nosv/computeManager.hpp>
+
 #include <hicr/core/communicationManager.hpp>
 #include <hicr/core/instanceManager.hpp>
 #include <hicr/core/memoryManager.hpp>
 #include <hicr/backends/hwloc/topologyManager.hpp>
 
-#include <nosv.h>
-#include <hicr/backends/nosv/common.hpp>
-#include <hicr/backends/nosv/computeManager.hpp>
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   #include <hicr/backends/mpi/communicationManager.hpp>
