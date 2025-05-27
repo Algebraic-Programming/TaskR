@@ -27,7 +27,6 @@
 #include <hicr/core/memoryManager.hpp>
 #include <hicr/backends/hwloc/topologyManager.hpp>
 
-
 #ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   #include <hicr/backends/mpi/communicationManager.hpp>
   #include <hicr/backends/mpi/instanceManager.hpp>
