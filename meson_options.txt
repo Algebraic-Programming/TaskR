@@ -6,13 +6,13 @@ option('distributedEngine', type : 'combo',
 
 option('executionStateType', type : 'array',
        choices : ['boost', 'nosv'],
-       description : 'Specifies which HiCR backend to use for the tasks (i.e. executionStates). Default: boost',
+       description : 'Specifies which HiCR backend to use for the tasks (i.e. executionStates) of the examples. Default: boost',
        value: ['boost']
 )
 
 option('processingUnitType', type : 'array',
        choices : ['pthreads', 'nosv'],
-       description : 'Specifies which HiCR backend to use for the workers (i.e. processingUnits). Default: pthreads',
+       description : 'Specifies which HiCR backend to use for the workers (i.e. processingUnits) of the examples. Default: pthreads',
        value: ['pthreads']
 )
 
