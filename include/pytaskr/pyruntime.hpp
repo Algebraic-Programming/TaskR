@@ -35,7 +35,7 @@ namespace taskr
 class PyRuntime
 {
 public:
-    PyRuntime(const std::string& str, size_t num_workers = 0) : _str(str)
+    PyRuntime(const std::string& str = "threading", size_t num_workers = 0) : _str(str)
     {
         // Specify the compute Managers
         if(_str == "nosv")
@@ -84,11 +84,7 @@ public:
         {
             num_workers = cr.size();
         }
-        else if(num_workers >= 1 || num_workers <= cr.size())
-        {
-            // valid, do nothing
-        }
-        else
+        else if(num_workers > cr.size())
         {
             HICR_THROW_LOGIC("num_workers = %d is not a legal number. FYI, we can have at most %d workers.\n", num_workers, cr.size());
         }

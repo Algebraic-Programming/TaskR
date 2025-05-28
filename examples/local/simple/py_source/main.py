@@ -4,7 +4,7 @@ import simple
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading", 1)
+    t = taskr.taskr("threading", 2)
 
     # Get the runtime
     runtime = t.get_runtime()

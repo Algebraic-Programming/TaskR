@@ -32,14 +32,14 @@ PYBIND11_MODULE(taskr, m)
     py::class_<Runtime>(m, "Runtime")
     .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
     .def("initialize", &Runtime::initialize)
-    .def("addTask", &Runtime::addTask)
-    .def("run", &Runtime::run)
-    .def("await_", &Runtime::await)
+    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>())
+    .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
+    .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>())
     .def("finalize", &Runtime::finalize);
 
     // pyTaskR's PyRuntime class
     py::class_<PyRuntime>(m, "taskr")
-    .def(py::init<const std::string&, size_t>())
+    .def(py::init<const std::string&, size_t>(), py::arg("backend") = "threading", py::arg("num_workers") = 0)
     .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal);
     
     // TaskR's Function class
@@ -48,7 +48,8 @@ PYBIND11_MODULE(taskr, m)
     
     // TaskR's Task class
     py::class_<Task>(m, "Task")
-    .def(py::init<const label_t, Function*, const workerId_t>());
+    .def(py::init<const label_t, Function*, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
+    .def("getLabel", &Task::getLabel);
 }
 
 }
