@@ -49,7 +49,8 @@ PYBIND11_MODULE(taskr, m)
     // TaskR's Task class
     py::class_<Task>(m, "Task")
     .def(py::init<const label_t, Function*, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
-    .def("getLabel", &Task::getLabel);
+    .def("getLabel", &Task::getLabel)
+    .def("addDependency", &Task::addDependency);
 }
 
 }
