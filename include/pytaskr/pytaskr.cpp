@@ -24,6 +24,12 @@ namespace py = pybind11;
 namespace taskr
 {
 
+void lockWrapper(Mutex& self, Task& task) {
+    self.lock(&task);
+}
+
+// TODO: add all methods of all classes
+
 PYBIND11_MODULE(taskr, m)
 {
     m.doc() = "pybind11 plugin for TaskR";
@@ -32,7 +38,8 @@ PYBIND11_MODULE(taskr, m)
     py::class_<Runtime>(m, "Runtime")
     .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
     .def("initialize", &Runtime::initialize)
-    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>())
+    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>())  // keep_alive as the task should be alive until runtime's destructor
+    .def("resumeTask", &Runtime::resumeTask)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
     .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>())
     .def("finalize", &Runtime::finalize);
@@ -50,7 +57,32 @@ PYBIND11_MODULE(taskr, m)
     py::class_<Task>(m, "Task")
     .def(py::init<const label_t, Function*, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
     .def("getLabel", &Task::getLabel)
-    .def("addDependency", &Task::addDependency);
+    .def("addDependency", &Task::addDependency)
+    .def("suspend", &Task::suspend);
+    
+    py::enum_<Task::callback_t>(m, "TaskCallback")
+    .value("onTaskExecute", Task::callback_t::onTaskExecute)
+    .value("onTaskSuspend", Task::callback_t::onTaskSuspend)
+    .value("onTaskFinish", Task::callback_t::onTaskFinish)
+    .value("onTaskSync", Task::callback_t::onTaskSync)
+    .export_values();
+
+    // TaskR's Mutex class
+    py::class_<Mutex>(m, "Mutex")
+    .def(py::init<>())
+    .def("lock", &Mutex::lock)
+    .def("unlock", &Mutex::unlock);
+
+    // TaskR's ConditionVariable class
+    py::class_<ConditionVariable>(m, "ConditionVariable")
+    .def(py::init<>())
+    .def("wait", py::overload_cast<Task*, Mutex&>(&ConditionVariable::wait), "cv wait")
+    .def("wait", py::overload_cast<Task*, Mutex&, const std::function<bool(void)>&>(&ConditionVariable::wait), "cv wait with condition")
+    .def("waitFor", py::overload_cast<Task*, Mutex&, const std::function<bool(void)>&, size_t>(&ConditionVariable::waitFor), "cv waitFor with condition")
+    .def("waitFor", py::overload_cast<Task*, Mutex&, size_t>(&ConditionVariable::waitFor), "cv waitFor")
+    .def("notifyOne", &ConditionVariable::notifyOne)
+    .def("notifyAll", &ConditionVariable::notifyAll)
+    .def("getWaitingTaskCount", &ConditionVariable::getWaitingTaskCount);
 }
 
 }

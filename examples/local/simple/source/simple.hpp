@@ -26,7 +26,7 @@ void simple(taskr::Runtime *taskr)
   // Initializing taskr
   taskr->initialize();
 
-  auto fc = [](taskr::Task *task) { printf("Hello, I am task %ld\n", task->getLabel()); };
+  auto fc = [](taskr::Task *task) { printf("Hello, I am task %ld\n", task->getLabel());};
 
   // Create the taskr Tasks
   auto taskfc = taskr::Function(fc);

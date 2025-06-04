@@ -24,3 +24,12 @@
       compile_args: TaskRTestCppFlags,
       dependencies:  gtest_dep
       )
+
+#### Testing if the python interface of pytaskr is working
+
+if get_option('buildPyTaskR')
+  testSuite = ['tests', 'pyruntime']
+	pyruntime = executable('pyruntime', [ 'pyruntime.cpp'], dependencies: [ TaskRBuildDep ])
+
+	test('pyruntime', pyruntime, args : [ ], suite: testSuite, workdir: pyruntime.path() + '.p' )
+endif

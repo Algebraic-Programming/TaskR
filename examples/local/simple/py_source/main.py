@@ -9,6 +9,8 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
+    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
+
     # Running simple example
     simple.simple(runtime)
 

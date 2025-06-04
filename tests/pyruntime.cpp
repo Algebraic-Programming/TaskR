@@ -17,17 +17,16 @@
 #include <taskr/taskr.hpp>
 #include <pytaskr/pyruntime.hpp>
 
-#include "simple.hpp"
-
 int main(int argc, char **argv)
 {
-  // Creating taskr
-  taskr::PyRuntime pytaskr("threading", 8);
-
+  // Creating taskr instance
+  taskr::PyRuntime pytaskr("nosv", 0);
+  
+  // Getting the runtime
   taskr::Runtime& runtime = pytaskr.get_runtime();
-
-  // Running simple example
-  simple(&runtime);
-
+  
+  // Printing runtime
+  printf("I got the runtime with nOS-V backend: %p\n", &runtime);
+  
   return 0;
 }
