@@ -35,13 +35,15 @@ def conditionVariableWaitFor(runtime):
   forever = 1000 * 1000 * 1000
 
   def fc(task):
+    nonlocal  value
+
     # Waiting for the other task's notification
     print("Thread 1: I wait for a notification (Waiting for an hour)")
 
     mutex.lock(task)
     wasNotified = cv.waitFor(task, mutex, forever)
     mutex.unlock(task)
-    if not was_notified:
+    if not wasNotified:
       sys.stderr.write("Error: I have returned due to a timeout!")
       sys.exit(1)
 
@@ -72,6 +74,8 @@ def conditionVariableWaitFor(runtime):
   waitFc = taskr.Function(fc)
 
   def fc(task):
+    nonlocal  value
+
     # Notifying the other task
     print("Thread 2: Notifying anybody interested (only once)")
     while value != 1:

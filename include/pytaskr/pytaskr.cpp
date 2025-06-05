@@ -23,11 +23,7 @@ namespace py = pybind11;
 
 namespace taskr
 {
-
-void lockWrapper(Mutex& self, Task& task) {
-    self.lock(&task);
-}
-
+    
 // TODO: add all methods of all classes
 
 PYBIND11_MODULE(taskr, m)
@@ -41,7 +37,7 @@ PYBIND11_MODULE(taskr, m)
     .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>())  // keep_alive as the task should be alive until runtime's destructor
     .def("resumeTask", &Runtime::resumeTask)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
-    .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>())
+    .def("await_", &Runtime::await)
     .def("finalize", &Runtime::finalize);
 
     // pyTaskR's PyRuntime class
@@ -57,6 +53,9 @@ PYBIND11_MODULE(taskr, m)
     py::class_<Task>(m, "Task")
     .def(py::init<const label_t, Function*, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
     .def("getLabel", &Task::getLabel)
+    .def("setLabel", &Task::setLabel)
+    .def("getWorkerAffinity", &Task::getWorkerAffinity)
+    .def("setWorkerAffinity", &Task::setWorkerAffinity)
     .def("addDependency", &Task::addDependency)
     .def("suspend", &Task::suspend);
     

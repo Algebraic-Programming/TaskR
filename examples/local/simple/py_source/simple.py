@@ -1,10 +1,6 @@
 import taskr
 
 def simple(runtime):
-  # TODO: Setting onTaskFinish callback to free up task memory when it finishes (not sure if we will have this)
-  # runtime.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; })
-  # runtime.setTaskCallbackHandler(taskr.onTaskFinish, lambda task : del task)
-
   # Initializing taskr
   runtime.initialize()
 

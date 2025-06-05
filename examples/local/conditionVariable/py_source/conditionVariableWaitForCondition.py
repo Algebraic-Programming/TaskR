@@ -35,6 +35,8 @@ def conditionVariableWaitForCondition(runtime):
   forever = 1000 * 1000 * 1000
 
   def fc(task):
+    nonlocal  value
+
     # Using lock to update the value
     print("Thread 1: I go first and set value to 1")
     mutex.lock(task)
@@ -87,6 +89,8 @@ def conditionVariableWaitForCondition(runtime):
   thread1Fc = taskr.Function(fc)
 
   def fc(task):
+    nonlocal  value
+    
     # Waiting for the other thread to set the first value
     print("Thread 2: First, I'll wait for the value to become 1")
     mutex.lock(task)

@@ -28,6 +28,8 @@ def conditionVariableWait(runtime):
 
   def fc(task):
     nonlocal  value
+    print(f"Hello I am Task: {task.getLabel()} on PID: {task.getWorkerAffinity()}")
+
     # Waiting for the other task's notification
     print("Thread 1: I wait for a notification")
     mutex.lock(task)
@@ -43,6 +45,8 @@ def conditionVariableWait(runtime):
 
   def fc(task):
     nonlocal  value
+    print(f"Hello I am Task: {task.getLabel()} on PID: {task.getWorkerAffinity()}")
+
     # Notifying the other task
     print("Thread 2: Notifying anybody interested")
     while value != 1:
