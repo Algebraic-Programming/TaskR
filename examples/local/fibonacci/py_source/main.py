@@ -14,22 +14,27 @@
   limitations under the License.
 """
 
+import sys
 import taskr
-import simple
+import fibonacci
 
 def main():
+    # Define the Fibonacci number to compute.
+    initialValue = 10
+    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
 
     # Get the runtime
+    global runtime
     runtime = t.get_runtime()
 
-    # FOR TESTING: checking if a task resumes after being suspended (nosv doesn't work)
-    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
+    # Running Fibonacci example
+    result = fibonacci.fibonacciDriver(initialValue, runtime)
 
-    # Running simple example
-    simple.simple(runtime)
+    # Printing result
+    print(f"Fib({initialValue}) = {result}")
 
 if __name__ == "__main__":
     main()

@@ -37,7 +37,7 @@ PYBIND11_MODULE(taskr, m)
     .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>())  // keep_alive as the task should be alive until runtime's destructor
     .def("resumeTask", &Runtime::resumeTask)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
-    .def("await_", &Runtime::await)
+    .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
     .def("finalize", &Runtime::finalize);
 
     // pyTaskR's PyRuntime class

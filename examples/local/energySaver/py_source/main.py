@@ -14,10 +14,20 @@
   limitations under the License.
 """
 
+import sys
 import taskr
-import simple
+import energySaver
 
 def main():
+    # Getting arguments, if provided
+    workTaskCount = 3
+    secondsDelay  = 1
+    iterations    = 100
+    if len(sys.argv) > 1: workTaskCount = int(sys.argv[1])
+    if len(sys.argv) > 2: secondsDelay = int(sys.argv[2])
+    if len(sys.argv) > 3: iterations = int(sys.argv[3])
+
+    print(sys.argv, workTaskCount, secondsDelay, iterations)
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
@@ -25,11 +35,8 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
-    # FOR TESTING: checking if a task resumes after being suspended (nosv doesn't work)
-    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
-
     # Running simple example
-    simple.simple(runtime)
+    energySaver.energySaver(runtime, workTaskCount, secondsDelay, iterations)
 
 if __name__ == "__main__":
     main()
