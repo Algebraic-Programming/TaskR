@@ -16,12 +16,14 @@
 
 import sys
 import taskr
-import fibonacci
+import manyParallel
 
 def main():
-    # Define the Fibonacci number to compute.
-    initialValue = 10
-    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
+    # Getting arguments, if provided
+    taskCount   = 2
+    branchCount = 100
+    if len(sys.argv) > 1: taskCount   = int(sys.argv[1])
+    if len(sys.argv) > 2: branchCount = int(sys.argv[2])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
@@ -29,11 +31,8 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
-    # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
-
-    # Printing result
-    print(f"Fib({initialValue}) = {result}")
+    # Running simple example
+    manyParallel.manyParallel(runtime, taskCount, branchCount)
 
 if __name__ == "__main__":
     main()

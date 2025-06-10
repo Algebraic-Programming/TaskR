@@ -17,6 +17,8 @@
 #pragma once
 
 #include <memory>
+#include <set>
+#include <vector>
 
 #include <hwloc.h>
 #include <hicr/backends/hwloc/topologyManager.hpp>
@@ -35,6 +37,9 @@ namespace taskr
 class PyRuntime
 {
 public:
+    /**
+     * 
+    */
     PyRuntime(const std::string& str = "threading", size_t num_workers = 0) : _str(str)
     {
         // Specify the compute Managers
@@ -95,9 +100,84 @@ public:
             itr++;
         }
 
+        _num_workers = num_workers;
+
         _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
     }
 
+    /**
+     * 
+    */
+    PyRuntime(const std::string& str, const std::set<int>& workersSet) : _str(str)
+    {
+        // Check if the workerSet is not empty
+        if (workersSet.empty())
+        {
+            HICR_THROW_LOGIC("Error: no compute resources provided\n");
+        }
+
+        // Specify the compute Managers
+        if(_str == "nosv")
+        {
+            // Initialize nosv
+            check(nosv_init());
+
+            // nosv task instance for the main thread
+            nosv_task_t mainTask;
+
+            // Attaching the main thread
+            check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
+            
+            _executionStateComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
+            _processingUnitComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
+        }
+        else if(_str == "threading")
+        {
+            _executionStateComputeManager = std::make_unique<HiCR::backend::boost::ComputeManager>();
+            _processingUnitComputeManager = std::make_unique<HiCR::backend::pthreads::ComputeManager>();
+        }
+        else
+        {
+            HICR_THROW_LOGIC("'%s' is not a known HiCR backend. Try 'nosv' or 'threading'\n", str);
+        }
+
+        // Reserving memory for hwloc
+        hwloc_topology_init(&_topology);
+
+        // Initializing HWLoc-based host (CPU) topology manager
+        HiCR::backend::hwloc::TopologyManager tm(&_topology);
+
+        // Asking backend to check the available devices
+        const auto t = tm.queryTopology();
+
+        // Getting compute resource lists from devices
+        std::vector<HiCR::Device::computeResourceList_t> computeResourceLists;
+        for (auto d : t.getDevices()) computeResourceLists.push_back(d->getComputeResourceList());
+
+        // Create processing units from the detected compute resource list and giving them to taskr
+        HiCR::Device::computeResourceList_t _computeResources;
+        for (auto computeResourceList : computeResourceLists)
+            for (auto computeResource : computeResourceList)
+            {
+                // Interpreting compute resource as core
+                auto core = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(computeResource);
+
+                // If the core affinity is included in the list, Add it to the list
+                if (workersSet.contains(core->getProcessorId())) _computeResources.push_back(computeResource);
+            }
+
+        if(!_computeResources.size()){
+            HICR_THROW_LOGIC("Error: non-existing compute resources provided\n");
+        }
+
+        _num_workers = _computeResources.size();
+
+        _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
+    }
+
+    /**
+     * 
+     */
     ~PyRuntime()
     {
         // Freeing up memory
@@ -117,10 +197,17 @@ public:
     {
         return *_runtime;
     }
+
+    const size_t get_num_workers()
+    {
+        return _num_workers;
+    }
     
     private:
 
     const std::string _str;
+
+    size_t _num_workers;
 
     std::unique_ptr<HiCR::ComputeManager> _executionStateComputeManager;
     

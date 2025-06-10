@@ -14,26 +14,11 @@
   limitations under the License.
 """
 
-import sys
 import taskr
-import fibonacci
 
-def main():
-    # Define the Fibonacci number to compute.
-    initialValue = 10
-    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
-
-    # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading")
-
-    # Get the runtime
-    runtime = t.get_runtime()
-
-    # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
-
-    # Printing result
-    print(f"Fib({initialValue}) = {result}")
-
-if __name__ == "__main__":
-    main()
+def work(iterations):
+  value = 2.0
+  for i in range(iterations):
+    for j in range(iterations):
+      value = (value + i)**0.5
+      value **= 2

@@ -14,14 +14,10 @@
   limitations under the License.
 """
 
-import sys
 import taskr
-import fibonacci
+import workerSpecific
 
 def main():
-    # Define the Fibonacci number to compute.
-    initialValue = 10
-    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
@@ -29,11 +25,10 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
-    # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
+    num_workers = t.get_num_workers()
 
-    # Printing result
-    print(f"Fib({initialValue}) = {result}")
+    # Running workerSpecific example
+    workerSpecific.workerSpecific(runtime, num_workers)
 
 if __name__ == "__main__":
     main()

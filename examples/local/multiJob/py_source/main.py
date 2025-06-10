@@ -13,15 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 """
+ITERATIONS = 100
 
-import sys
 import taskr
-import fibonacci
+import job1
+import job2
 
 def main():
-    # Define the Fibonacci number to compute.
-    initialValue = 10
-    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
@@ -29,11 +27,21 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
-    # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
+    # Running multiJob example
+    job1.job1(runtime)
+    job2.job2(runtime)
 
-    # Printing result
-    print(f"Fib({initialValue}) = {result}")
+    # Initializing taskr
+    runtime.initialize()
+
+    # Running taskr for the current repetition
+    runtime.run()
+
+    # Waiting current repetition to end
+    runtime.await_()
+
+    # Finalizing taskr
+    runtime.finalize()
 
 if __name__ == "__main__":
     main()

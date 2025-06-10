@@ -14,14 +14,10 @@
   limitations under the License.
 """
 
-import sys
 import taskr
-import fibonacci
+import mutex
 
 def main():
-    # Define the Fibonacci number to compute.
-    initialValue = 10
-    if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.taskr("threading")
@@ -29,11 +25,8 @@ def main():
     # Get the runtime
     runtime = t.get_runtime()
 
-    # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
-
-    # Printing result
-    print(f"Fib({initialValue}) = {result}")
+    # Running mutex example
+    mutex.mutex(runtime)
 
 if __name__ == "__main__":
     main()

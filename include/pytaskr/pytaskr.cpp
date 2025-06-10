@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 #include <pybind11/pybind11.h>
-#include <pybind11/functional.h>
+#include <pybind11/functional.h>    // std::function
+#include <pybind11/stl.h>           // std::set
 
 #include <taskr/taskr.hpp>
 #include <pytaskr/pyruntime.hpp>
@@ -43,7 +44,9 @@ PYBIND11_MODULE(taskr, m)
     // pyTaskR's PyRuntime class
     py::class_<PyRuntime>(m, "taskr")
     .def(py::init<const std::string&, size_t>(), py::arg("backend") = "threading", py::arg("num_workers") = 0)
-    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal);
+    .def(py::init<const std::string&, const std::set<int>&>(), py::arg("backend") = "threading", py::arg("workersSet"))
+    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
+    .def("get_num_workers", &PyRuntime::get_num_workers);
     
     // TaskR's Function class
     py::class_<Function>(m, "Function")
@@ -57,6 +60,7 @@ PYBIND11_MODULE(taskr, m)
     .def("getWorkerAffinity", &Task::getWorkerAffinity)
     .def("setWorkerAffinity", &Task::setWorkerAffinity)
     .def("addDependency", &Task::addDependency)
+    .def("addPendingOperation", &Task::addPendingOperation)
     .def("suspend", &Task::suspend);
     
     py::enum_<Task::callback_t>(m, "TaskCallback")
