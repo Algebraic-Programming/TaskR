@@ -103,5 +103,8 @@ def fibonacciDriver(initialValue, runtime):
   # Finalizing taskR
   runtime.finalize()
 
+  # Dereferencing this global instance to let runtime call his Destructor
+  _runtime = None
+
   # Returning fibonacci value
   return result

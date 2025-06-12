@@ -20,8 +20,6 @@ import taskr
 import suspend
 
 def main():
-
-
     # Getting arguments, if provided
     taskCount = 2
     branchCount = 100

@@ -74,3 +74,7 @@ def workerSpecific(runtime, workerCount):
 
   # Finalizing taskr
   runtime.finalize()
+
+  # Overwrite the onTaskSuspend fc to be None such that runtime no longer has
+  # a dependency to the previous fc and runtime can call the destructor
+  runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, None)
