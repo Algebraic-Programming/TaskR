@@ -27,9 +27,23 @@ namespace taskr
     
 // TODO: add all methods of all classes
 
+void call_python_callback(py::function callback, Task* task) {
+    py::gil_scoped_acquire acquire;
+    callback(task);  // Call the Python function safely
+}
+
 PYBIND11_MODULE(taskr, m)
 {
     m.doc() = "pybind11 plugin for TaskR";
+
+    m.def("call_python_callback", &call_python_callback, "blabla");
+    
+    // pyTaskR's PyRuntime class
+    py::class_<PyRuntime>(m, "taskr")
+    .def(py::init<const std::string&, size_t>(), py::arg("backend") = "threading", py::arg("num_workers") = 0)
+    .def(py::init<const std::string&, const std::set<int>&>(), py::arg("backend") = "threading", py::arg("workersSet"))
+    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
+    .def("get_num_workers", &PyRuntime::get_num_workers);
     
     // TaskR's Runtime class
     py::class_<Runtime>(m, "Runtime")
@@ -40,13 +54,6 @@ PYBIND11_MODULE(taskr, m)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
     .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
     .def("finalize", &Runtime::finalize);
-
-    // pyTaskR's PyRuntime class
-    py::class_<PyRuntime>(m, "taskr")
-    .def(py::init<const std::string&, size_t>(), py::arg("backend") = "threading", py::arg("num_workers") = 0)
-    .def(py::init<const std::string&, const std::set<int>&>(), py::arg("backend") = "threading", py::arg("workersSet"))
-    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
-    .def("get_num_workers", &PyRuntime::get_num_workers);
     
     // TaskR's Function class
     py::class_<Function>(m, "Function")
@@ -61,7 +68,7 @@ PYBIND11_MODULE(taskr, m)
     .def("setWorkerAffinity", &Task::setWorkerAffinity)
     .def("addDependency", &Task::addDependency)
     .def("addPendingOperation", &Task::addPendingOperation)
-    .def("suspend", &Task::suspend);
+    .def("suspend", &Task::suspend, py::call_guard<py::gil_scoped_release>());
     
     py::enum_<Task::callback_t>(m, "TaskCallback")
     .value("onTaskExecute", Task::callback_t::onTaskExecute)

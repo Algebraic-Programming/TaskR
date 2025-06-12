@@ -20,7 +20,7 @@ import workerSpecific
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading")
+    t = taskr.taskr("nosv")
 
     # Get the runtime
     runtime = t.get_runtime()

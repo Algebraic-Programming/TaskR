@@ -24,7 +24,7 @@ def main():
     if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading")
+    t = taskr.taskr("nosv")
 
     # Get the runtime
     runtime = t.get_runtime()

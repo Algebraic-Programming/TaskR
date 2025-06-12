@@ -29,7 +29,7 @@ def main():
     if len(sys.argv) > 2: branchCount = int(sys.argv[2])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading")
+    t = taskr.taskr("nosv")
 
     # Get the runtime
     runtime = t.get_runtime()

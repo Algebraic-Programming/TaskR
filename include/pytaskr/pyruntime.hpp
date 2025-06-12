@@ -42,6 +42,7 @@ public:
     */
     PyRuntime(const std::string& str = "threading", size_t num_workers = 0) : _str(str)
     {
+        printf("Constructor being called for %s\n", _str.c_str());
         // Specify the compute Managers
         if(_str == "nosv")
         {
@@ -103,6 +104,8 @@ public:
         _num_workers = num_workers;
 
         _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
+
+        // _runtime->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](taskr::Task *task) { printf("resume task\n"); fflush(stdout); this->_runtime->resumeTask(task); });
     }
 
     /**
@@ -173,6 +176,8 @@ public:
         _num_workers = _computeResources.size();
 
         _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
+
+        // _runtime->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](taskr::Task *task) { this->_runtime->resumeTask(task); });
     }
 
     /**
@@ -180,6 +185,7 @@ public:
      */
     ~PyRuntime()
     {
+        printf("Destructor being called for %s\n", _str.c_str());
         // Freeing up memory
         hwloc_topology_destroy(_topology);
 
@@ -203,12 +209,14 @@ public:
         return _num_workers;
     }
     
+    std::unique_ptr<Runtime> _runtime;
+
     private:
-
+    
     const std::string _str;
-
+    
     size_t _num_workers;
-
+    
     std::unique_ptr<HiCR::ComputeManager> _executionStateComputeManager;
     
     std::unique_ptr<HiCR::ComputeManager> _processingUnitComputeManager;
@@ -216,8 +224,6 @@ public:
     hwloc_topology_t _topology;
     
     const HiCR::Device::computeResourceList_t _computeResources;
-    
-    std::unique_ptr<Runtime> _runtime;
 };
 
 } // namespace taskr

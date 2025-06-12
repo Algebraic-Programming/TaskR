@@ -18,15 +18,11 @@ import taskr
 import simple
 
 def main():
-
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading")
+    t = taskr.taskr("nosv")
 
     # Get the runtime
     runtime = t.get_runtime()
-
-    # FOR TESTING: checking if a task resumes after being suspended (nosv doesn't work)
-    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
 
     # Running simple example
     simple.simple(runtime)

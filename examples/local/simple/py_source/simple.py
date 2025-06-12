@@ -13,8 +13,14 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 """
+import ctypes
+
+libc = ctypes.CDLL("libc.so.6")
+libc.sched_getcpu.restype = ctypes.c_int
 
 import taskr
+
+NTASKS = 2
 
 def simple(runtime):
   # Initializing taskr
@@ -22,20 +28,11 @@ def simple(runtime):
 
   fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
 
-  # def fc(task):
-  #   print(f"Before suspend task {task.getLabel()}")
-  #   task.suspend()
-  #   print(f"After suspend task {task.getLabel()}")
-
-  # Create the taskr Tasks
   taskfc = taskr.Function(fc)
 
-  # Creating the execution units (functions that the tasks will run)
-  for i in range(1):
-    task = taskr.Task(i, taskfc)
-
-    # Adding to taskr
-    runtime.addTask(task)
+  # Adding to tasks to taskr
+  for i in range(NTASKS):
+    runtime.addTask(taskr.Task(i, taskfc))
 
   # Running taskr for the current repetition
   runtime.run()

@@ -27,28 +27,32 @@ endif
 if get_option('buildPyTaskR') and get_option('buildTests')
 	test('pyTaskR_conditionVariableWait', 
 		 py,
-		 args : [ 'py_source/main.py' ], 
+		 args : [ 'py_source/main.py' ],
+		 is_parallel : false, 
 		 env: ['PYTHONPATH=' + meson.current_source_dir() + ':' + meson.project_build_root() + '/include/pytaskr/', '__TEST_FUNCTION_=conditionVariableWait'],
 		 suite: testSuite, 
 		 workdir: meson.current_source_dir())
 
 	test('pyTaskR_conditionVariableWaitFor', 
 		 py,
-		 args : [ 'py_source/main.py' ], 
+		 args : [ 'py_source/main.py' ],
+		 is_parallel : false, 
 		 env: ['PYTHONPATH=' + meson.current_source_dir() + ':' + meson.project_build_root() + '/include/pytaskr/', '__TEST_FUNCTION_=conditionVariableWaitFor'],
 		 suite: testSuite, 
 		 workdir: meson.current_source_dir())
 
 	test('pyTaskR_conditionVariableWaitCondition', 
 		 py,
-		 args : [ 'py_source/main.py' ], 
+		 args : [ 'py_source/main.py' ],
+		 is_parallel : false, 
 		 env: ['PYTHONPATH=' + meson.current_source_dir() + ':' + meson.project_build_root() + '/include/pytaskr/', '__TEST_FUNCTION_=conditionVariableWaitCondition'],
 		 suite: testSuite, 
 		 workdir: meson.current_source_dir())
 
 	test('pyTaskR_conditionVariableWaitForCondition', 
 		 py,
-		 args : [ 'py_source/main.py' ], 
+		 args : [ 'py_source/main.py' ],
+		 is_parallel : false, 
 		 env: ['PYTHONPATH=' + meson.current_source_dir() + ':' + meson.project_build_root() + '/include/pytaskr/', '__TEST_FUNCTION_=conditionVariableWaitForCondition'],
 		 suite: testSuite, 
 		 workdir: meson.current_source_dir())
