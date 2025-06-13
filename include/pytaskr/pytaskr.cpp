@@ -90,8 +90,8 @@ PYBIND11_MODULE(taskr, m)
     .def("wait", py::overload_cast<Task*, Mutex&, const std::function<bool(void)>&>(&ConditionVariable::wait), py::call_guard<py::gil_scoped_release>(), "cv wait with condition")
     .def("waitFor", py::overload_cast<Task*, Mutex&, const std::function<bool(void)>&, size_t>(&ConditionVariable::waitFor), py::call_guard<py::gil_scoped_release>(), "cv waitFor with condition")
     .def("waitFor", py::overload_cast<Task*, Mutex&, size_t>(&ConditionVariable::waitFor), py::call_guard<py::gil_scoped_release>(), "cv waitFor")
-    .def("notifyOne", &ConditionVariable::notifyOne)
-    .def("notifyAll", &ConditionVariable::notifyAll)
+    .def("notifyOne", &ConditionVariable::notifyOne)    // Not sure if I need to release the GIL here as this function also uses the intern mutex lock
+    .def("notifyAll", &ConditionVariable::notifyAll)    // Same here
     .def("getWaitingTaskCount", &ConditionVariable::getWaitingTaskCount);
 }
 

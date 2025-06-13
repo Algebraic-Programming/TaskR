@@ -16,7 +16,8 @@
 
 import sys
 import taskr
-import fibonacci
+# import fibonacci
+import fibonacci_mutex
 
 def main():
     # Define the Fibonacci number to compute.
@@ -30,7 +31,8 @@ def main():
     runtime = t.get_runtime()
 
     # Running Fibonacci example
-    result = fibonacci.fibonacciDriver(initialValue, runtime)
+    # result = fibonacci.fibonacciDriver(initialValue, runtime)
+    result = fibonacci_mutex.fibonacciDriver(initialValue, runtime)
 
     # Printing result
     print(f"Fib({initialValue}) = {result}")
