@@ -21,12 +21,12 @@ int main(int argc, char **argv)
 {
   // Creating taskr instance
   taskr::PyRuntime pytaskr("nosv", 0);
-  
+
   // Getting the runtime
-  taskr::Runtime& runtime = pytaskr.get_runtime();
-  
+  taskr::Runtime &runtime = pytaskr.get_runtime();
+
   // Printing runtime
   printf("I got the runtime with nOS-V backend: %p\n", &runtime);
-  
+
   return 0;
 }
