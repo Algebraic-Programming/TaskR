@@ -14,11 +14,32 @@ taskrDependencies = [ ]
 
 if meson.is_subproject() == false
 
-  # Selecting default HiCR Backends
-  HiCRBackends = [ 'hwloc', 'pthreads', 'boost', 'nosv' ]
+  HiCRBackends = [ ]
+  if get_option('buildExamples') or get_option('buildTests')
+
+    # Selecting default HiCR Backends
+    HiCRBackends = ['hwloc']
+
+    if 'boost' in get_option('executionStateType') 
+      HiCRBackends += ['boost']
+    endif
+
+    if 'nosv' in get_option('executionStateType')
+      HiCRBackends += ['nosv']
+    endif
+
+    if 'pthreads' in get_option('processingUnitType')
+      HiCRBackends += ['pthreads']
+    endif
+
+    if 'nosv' in get_option('processingUnitType')
+      if 'nosv' not in HiCRBackends
+        HiCRBackends += ['nosv']
+      endif
+    endif
+  endif
 
   # Getting selected distributed engine
-
   distributedEngine = get_option('distributedEngine')
 
   # If, selected, adding the dependency for the distributed engine
