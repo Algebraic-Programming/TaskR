@@ -11,8 +11,9 @@ endif
 if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processingUnitType')
 	nosv = executable('nosv', [ 'source/nosv.cpp'], dependencies: [ TaskRBuildDep ])
 
-if get_option('buildTests')
-	test('nosv', nosv, args : [ ], is_parallel : false, suite: testSuite, workdir: nosv.path() + '.p')
+	if get_option('buildTests')
+		test('nosv', nosv, args : [ ], is_parallel : false, suite: testSuite, workdir: nosv.path() + '.p')
+	endif
 endif
 
 if get_option('buildPyTaskR') and get_option('buildTests')
