@@ -4,7 +4,7 @@ import abcTasks
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading", 2)
+    t = taskr.taskr(taskr.HiCRBackend.threading, 2)
 
     # Get the runtime
     runtime = t.get_runtime()

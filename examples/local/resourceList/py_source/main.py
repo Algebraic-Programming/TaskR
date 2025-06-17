@@ -41,7 +41,7 @@ def main():
         sys.exit(1)
     
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr("threading", coreSubset)
+    t = taskr.taskr(taskr.HiCRBackend.threading, coreSubset)
 
     # Get the runtime
     runtime = t.get_runtime()

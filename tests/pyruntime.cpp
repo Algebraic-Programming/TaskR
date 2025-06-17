@@ -20,7 +20,7 @@
 int main(int argc, char **argv)
 {
   // Creating taskr instance
-  taskr::PyRuntime pytaskr("nosv", 0);
+  taskr::PyRuntime pytaskr(taskr::backend_t::nosv, 0);
 
   // Getting the runtime
   taskr::Runtime &runtime = pytaskr.get_runtime();

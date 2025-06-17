@@ -34,19 +34,32 @@
 namespace taskr
 {
 
+enum backend_t
+{
+  /**
+   * HiCR's nOS-V backend with the executionStates and ProcessingUnits being nOS-V
+   */
+  nosv,
+
+  /**
+   * executionStates are Boost and ProcessingUnits are Pthreads
+   */
+  threading
+};
+
+
 class PyRuntime
 {
   public:
 
   /**
-     * 
+    * 
     */
-  PyRuntime(const std::string &str = "threading", size_t num_workers = 0)
-    : _str(str)
+  PyRuntime(const backend_t& backend_type = backend_t::nosv, size_t num_workers = 0)
+    : _backend_type(backend_type)
   {
-    printf("Constructor being called for %s\n", _str.c_str());
     // Specify the compute Managers
-    if (_str == "nosv")
+    if (_backend_type == backend_t::nosv)
     {
       // Initialize nosv
       check(nosv_init());
@@ -60,12 +73,12 @@ class PyRuntime
       _executionStateComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
     }
-    else if (_str == "threading")
+    else if (_backend_type == backend_t::threading)
     {
       _executionStateComputeManager = std::make_unique<HiCR::backend::boost::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::pthreads::ComputeManager>();
     }
-    else { HICR_THROW_LOGIC("'%s' is not a known HiCR backend. Try 'nosv' or 'threading'\n", str); }
+    else { HICR_THROW_LOGIC("'%d' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
 
     // Reserving memory for hwloc
     hwloc_topology_init(&_topology);
@@ -97,21 +110,19 @@ class PyRuntime
     _num_workers = num_workers;
 
     _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
-
-    // _runtime->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](taskr::Task *task) { printf("resume task\n"); fflush(stdout); this->_runtime->resumeTask(task); });
   }
 
   /**
-     * 
+    * 
     */
-  PyRuntime(const std::string &str, const std::set<int> &workersSet)
-    : _str(str)
+  PyRuntime(const backend_t& backend_type, const std::set<int> &workersSet)
+    : _backend_type(backend_type)
   {
     // Check if the workerSet is not empty
     if (workersSet.empty()) { HICR_THROW_LOGIC("Error: no compute resources provided\n"); }
 
     // Specify the compute Managers
-    if (_str == "nosv")
+    if (_backend_type == backend_t::nosv)
     {
       // Initialize nosv
       check(nosv_init());
@@ -125,12 +136,12 @@ class PyRuntime
       _executionStateComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
     }
-    else if (_str == "threading")
+    else if (_backend_type == backend_t::threading)
     {
       _executionStateComputeManager = std::make_unique<HiCR::backend::boost::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::pthreads::ComputeManager>();
     }
-    else { HICR_THROW_LOGIC("'%s' is not a known HiCR backend. Try 'nosv' or 'threading'\n", str); }
+    else { HICR_THROW_LOGIC("'%d' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
 
     // Reserving memory for hwloc
     hwloc_topology_init(&_topology);
@@ -162,20 +173,18 @@ class PyRuntime
     _num_workers = _computeResources.size();
 
     _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
-
-    // _runtime->setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [this](taskr::Task *task) { this->_runtime->resumeTask(task); });
   }
 
   /**
-     * 
-     */
+    * Destructor
+    * Destroying topology and shutting down nOS-V if nosv backend have been used.
+    */
   ~PyRuntime()
   {
-    printf("Destructor being called for %s\n", _str.c_str());
     // Freeing up memory
     hwloc_topology_destroy(_topology);
 
-    if (_str == "nosv")
+    if (_backend_type == backend_t::nosv)
     {
       // Detaching the main thread
       check(nosv_detach(NOSV_DETACH_NONE));
@@ -193,7 +202,7 @@ class PyRuntime
 
   private:
 
-  const std::string _str;
+  backend_t _backend_type;
 
   size_t _num_workers;
 

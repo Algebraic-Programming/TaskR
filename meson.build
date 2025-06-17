@@ -20,24 +20,26 @@ if meson.is_subproject() == false
     # Selecting default HiCR Backends
     HiCRBackends = ['hwloc']
 
+    HiCR_ES_PU_Backends = []
     if 'boost' in get_option('executionStateType') 
-      HiCRBackends += ['boost']
+      HiCR_ES_PU_Backends += ['boost']
     endif
 
     if 'nosv' in get_option('executionStateType')
-      HiCRBackends += ['nosv']
+      HiCR_ES_PU_Backends += ['nosv']
     endif
 
     if 'pthreads' in get_option('processingUnitType')
-      HiCRBackends += ['pthreads']
+      HiCR_ES_PU_Backends += ['pthreads']
     endif
 
     if 'nosv' in get_option('processingUnitType')
-      if 'nosv' not in HiCRBackends
-        HiCRBackends += ['nosv']
+      if 'nosv' not in HiCR_ES_PU_Backends
+        HiCR_ES_PU_Backends += ['nosv']
       endif
     endif
   endif
+  HiCRBackends += HiCR_ES_PU_Backends
 
   # Getting selected distributed engine
   distributedEngine = get_option('distributedEngine')
@@ -94,6 +96,9 @@ TaskRBuildDep = declare_dependency(
 
 ####### Build PyTaskR
 if get_option('buildPyTaskR')
+  message(HiCR_ES_PU_Backends)
+  assert(HiCR_ES_PU_Backends.length() == 3, 'To use pyTaskr, one has to enable all 4 backends: -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads')
+  
   subdir('include/pytaskr')
 endif
 

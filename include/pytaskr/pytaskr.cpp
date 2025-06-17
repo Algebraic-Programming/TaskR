@@ -27,22 +27,19 @@ namespace taskr
 
 // TODO: add all methods of all classes
 
-void call_python_callback(py::function callback, Task *task)
-{
-  py::gil_scoped_acquire acquire;
-  callback(task); // Call the Python function safely
-}
-
 PYBIND11_MODULE(taskr, m)
 {
   m.doc() = "pybind11 plugin for TaskR";
-
-  m.def("call_python_callback", &call_python_callback, "blabla");
+  
+  py::enum_<backend_t>(m, "HiCRBackend")
+    .value("nosv", backend_t::nosv)
+    .value("threading", backend_t::threading)
+    .export_values();
 
   // pyTaskR's PyRuntime class
   py::class_<PyRuntime>(m, "taskr")
-    .def(py::init<const std::string &, size_t>(), py::arg("backend") = "threading", py::arg("num_workers") = 0)
-    .def(py::init<const std::string &, const std::set<int> &>(), py::arg("backend") = "threading", py::arg("workersSet"))
+    .def(py::init<const backend_t&, size_t>(), py::arg("backend") = backend_t::nosv, py::arg("num_workers") = 0)
+    .def(py::init<const backend_t&, const std::set<int> &>(), py::arg("backend") = backend_t::nosv, py::arg("workersSet"))
     .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
     .def("get_num_workers", &PyRuntime::get_num_workers);
 
@@ -57,7 +54,7 @@ PYBIND11_MODULE(taskr, m)
     .def("finalize", &Runtime::finalize);
 
   // TaskR's Function class
-  py::class_<Function>(m, "Function").def(py::init<const function_t>());
+  py::class_<Function>(m, "Function").def(py::init<const function_t>(), py::call_guard<py::gil_scoped_release>()); // TODO: experimental
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
