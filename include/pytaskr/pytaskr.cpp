@@ -52,10 +52,6 @@ PYBIND11_MODULE(taskr, m)
     if (it == reg.end()) HICR_THROW_RUNTIME("Function not found: %s\n", name);
 
     return std::make_unique<Function>(it->fc);
-    // [fc = it->fc](Task* task) {
-
-    //   fc(task);
-    // });
   });
 
   py::enum_<backend_t>(m, "HiCRBackend").value("nosv", backend_t::nosv).value("threading", backend_t::threading).export_values();
