@@ -6,7 +6,7 @@ py = import('python').find_installation(pure: false)
 pybind11_dep = dependency('pybind11', required: true)
 
 py.extension_module('taskr',
-    'pytaskr.cpp',
+    ['pytaskr.cpp', 'mmm.cpp'],
     install: true,
     dependencies : [TaskRBuildDep, pybind11_dep],
 )

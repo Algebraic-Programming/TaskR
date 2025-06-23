@@ -96,7 +96,6 @@ TaskRBuildDep = declare_dependency(
 
 ####### Build PyTaskR
 if get_option('buildPyTaskR')
-  message(HiCR_ES_PU_Backends)
   assert(HiCR_ES_PU_Backends.length() == 3, 'To use pyTaskr, one has to enable all 4 backends: -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads')
   
   subdir('include/pytaskr')

@@ -14,27 +14,28 @@
   limitations under the License.
 """
 
+import time
 import taskr
 
 NTASKS = 2
 
-def simple(runtime):
+def mmm_cpp_Driver(runtime):
   # Initializing taskr
   runtime.initialize()
 
-  fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
-
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.get_cpp_function("cpp_mmm")
 
   # Adding to tasks to taskr
   for i in range(NTASKS):
     runtime.addTask(taskr.Task(i, taskfc))
 
   # Running taskr for the current repetition
+  t_start = time.time()
   runtime.run()
 
   # Waiting current repetition to end
   runtime.await_()
+  print(f"total time: {time.time() - t_start}")
 
   # Finalizing taskr
   runtime.finalize()

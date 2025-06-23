@@ -15,26 +15,19 @@
 """
 
 import taskr
+# from mmm import mmmDriver
+from mmm_cpp import mmm_cpp_Driver
 
-NTASKS = 2
+def main():
+    # Initialize taskr with the wanted compute manager backend and number of PUs
+    t = taskr.taskr(taskr.HiCRBackend.nosv, 2)
 
-def simple(runtime):
-  # Initializing taskr
-  runtime.initialize()
+    # Get the runtime
+    runtime = t.get_runtime()
 
-  fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
+    # Running mmm example
+    # mmmDriver(runtime)
+    mmm_cpp_Driver(runtime)
 
-  taskfc = taskr.Function(fc)
-
-  # Adding to tasks to taskr
-  for i in range(NTASKS):
-    runtime.addTask(taskr.Task(i, taskfc))
-
-  # Running taskr for the current repetition
-  runtime.run()
-
-  # Waiting current repetition to end
-  runtime.await_()
-
-  # Finalizing taskr
-  runtime.finalize()
+if __name__ == "__main__":
+    main()

@@ -198,13 +198,13 @@ class PyRuntime
 
   const size_t get_num_workers() { return _num_workers; }
 
-  std::unique_ptr<Runtime> _runtime;
-
   private:
-
+  
   backend_t _backend_type;
-
+  
   size_t _num_workers;
+  
+  std::unique_ptr<Runtime> _runtime;
 
   std::unique_ptr<HiCR::ComputeManager> _executionStateComputeManager;
 

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h> // std::function
 #include <pybind11/stl.h>        // std::set
@@ -20,17 +21,45 @@
 #include <taskr/taskr.hpp>
 #include <pytaskr/pyruntime.hpp>
 
+#include "pytaskr.hpp"
+
 namespace py = pybind11;
 
 namespace taskr
 {
+
+std::vector<FunctionRegistration>& get_registry() {
+    static std::vector<FunctionRegistration> reg;
+    return reg;
+}
+
+void register_function(const std::string& name, function_t fc) {
+    get_registry().push_back({name, fc});
+}
 
 // TODO: add all methods of all classes
 
 PYBIND11_MODULE(taskr, m)
 {
   m.doc() = "pybind11 plugin for TaskR";
-  
+
+  // Register any other user defined functions
+  m.def("get_cpp_function", [](const std::string& name) {
+    auto& reg = taskr::get_registry();
+
+    // check if this function even exists
+    auto it = std::find_if(reg.begin(), reg.end(),
+                          [&](const auto& e) { return e.name == name; });
+
+    if (it == reg.end()) HICR_THROW_RUNTIME("Function not found: %s\n", name);
+
+    return std::make_unique<Function>(it->fc);
+      // [fc = it->fc](Task* task) {
+
+      //   fc(task);
+      // });
+  });
+
   py::enum_<backend_t>(m, "HiCRBackend")
     .value("nosv", backend_t::nosv)
     .value("threading", backend_t::threading)
@@ -54,7 +83,8 @@ PYBIND11_MODULE(taskr, m)
     .def("finalize", &Runtime::finalize);
 
   // TaskR's Function class
-  py::class_<Function>(m, "Function").def(py::init<const function_t>(), py::call_guard<py::gil_scoped_release>()); // TODO: experimental
+  py::class_<Function>(m, "Function")
+    .def(py::init<const function_t>());
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
@@ -80,8 +110,14 @@ PYBIND11_MODULE(taskr, m)
   // TaskR's ConditionVariable class
   py::class_<ConditionVariable>(m, "ConditionVariable")
     .def(py::init<>())
-    .def("wait", py::overload_cast<Task *, Mutex &>(&ConditionVariable::wait), py::call_guard<py::gil_scoped_release>(), "cv wait")
-    .def("wait", py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &>(&ConditionVariable::wait), py::call_guard<py::gil_scoped_release>(), "cv wait with condition")
+    .def("wait",
+         py::overload_cast<Task *, Mutex &>(&ConditionVariable::wait), 
+         py::call_guard<py::gil_scoped_release>(), 
+         "cv wait")
+    .def("wait",
+         py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &>(&ConditionVariable::wait), 
+         py::call_guard<py::gil_scoped_release>(), 
+         "cv wait with condition")
     .def("waitFor",
          py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &, size_t>(&ConditionVariable::waitFor),
          py::call_guard<py::gil_scoped_release>(),

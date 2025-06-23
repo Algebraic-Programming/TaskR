@@ -14,27 +14,50 @@
   limitations under the License.
 """
 
+import time
+import numpy as np
 import taskr
 
 NTASKS = 2
 
-def simple(runtime):
+N = 1000
+
+def mmm(task):
+  A = np.zeros((N,N))
+  B = np.empty((N,N))
+  C = np.empty((N,N))
+
+  for i in range(N):
+    for j in range(N):
+      B[i, j] = i
+      C[i, j] = j
+
+  B += task.getLabel()+1
+  C += task.getLabel()+1
+  
+  A = B @ C
+  print(f"Hello, I am task {task.getLabel()}")
+
+
+def mmmDriver(runtime):
   # Initializing taskr
   runtime.initialize()
 
-  fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
-
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.Function(mmm)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):
-    runtime.addTask(taskr.Task(i, taskfc))
+    runtime.addTask(taskr.Task(i, taskfc, i))
 
   # Running taskr for the current repetition
+  t_start = time.time()
   runtime.run()
 
   # Waiting current repetition to end
   runtime.await_()
+  t_duration = time.time() - t_start
+
+  print(f"total time: {t_duration}s")
 
   # Finalizing taskr
   runtime.finalize()
