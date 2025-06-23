@@ -26,7 +26,8 @@
 /**
  * Compute mmm locally
  */
-void mmm(taskr::Task *) {
+void mmm(taskr::Task *)
+{
   const size_t N = 1000;
 
   // Allocate memory
@@ -35,33 +36,37 @@ void mmm(taskr::Task *) {
   volatile mytype *C = (mytype *)malloc(N * N * sizeof(mytype));
 
   // Filling matrices B and C
-  for (size_t i = 0; i < N; ++i) {
-    for (size_t j = 0; j < N; ++j) {
-      B[i * N + j] = 1.0/(mytype(i + 1));
-      C[i * N + j] = 1.0/(mytype(j + 1));
+  for (size_t i = 0; i < N; ++i)
+  {
+    for (size_t j = 0; j < N; ++j)
+    {
+      B[i * N + j] = 1.0 / (mytype(i + 1));
+      C[i * N + j] = 1.0 / (mytype(j + 1));
     }
   }
 
   // mmm
-  for (size_t i = 0; i < N; ++i) {
-    for (size_t j = 0; j < N; ++j) {
-      for (size_t k = 0; k < N; ++k) {
-        A[i * N + j] += B[i * N + k] * C[k * N + j];
-      }
+  for (size_t i = 0; i < N; ++i)
+  {
+    for (size_t j = 0; j < N; ++j)
+    {
+      for (size_t k = 0; k < N; ++k) { A[i * N + j] += B[i * N + k] * C[k * N + j]; }
     }
   }
 
   // free memory
-  free((mytype*)A);
-  free((mytype*)B);
-  free((mytype*)C);
+  free((mytype *)A);
+  free((mytype *)B);
+  free((mytype *)C);
 }
 
-namespace taskr {
+namespace taskr
+{
 
 __attribute__((constructor))  // GCC/Clang: Run before main/init
-void register_my_func() {
-    register_function("cpp_mmm", mmm);
+void register_my_func()
+{
+  register_function("cpp_mmm", mmm);
 }
 
-}
+} // namespace taskr

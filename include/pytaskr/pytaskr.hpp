@@ -19,17 +19,17 @@
 #include <vector>
 #include <string>
 
-namespace taskr 
+namespace taskr
 {
 
-struct FunctionRegistration {
-    std::string name;
-    function_t fc;
+struct FunctionRegistration
+{
+  std::string name;
+  function_t  fc;
 };
 
-std::vector<FunctionRegistration>& get_registry();
+std::vector<FunctionRegistration> &get_registry();
 
-void register_function(const std::string& name, function_t fc);
+void register_function(const std::string &name, function_t fc);
 
-
-}
+} // namespace taskr

@@ -28,14 +28,13 @@ namespace py = pybind11;
 namespace taskr
 {
 
-std::vector<FunctionRegistration>& get_registry() {
-    static std::vector<FunctionRegistration> reg;
-    return reg;
+std::vector<FunctionRegistration> &get_registry()
+{
+  static std::vector<FunctionRegistration> reg;
+  return reg;
 }
 
-void register_function(const std::string& name, function_t fc) {
-    get_registry().push_back({name, fc});
-}
+void register_function(const std::string &name, function_t fc) { get_registry().push_back({name, fc}); }
 
 // TODO: add all methods of all classes
 
@@ -44,31 +43,27 @@ PYBIND11_MODULE(taskr, m)
   m.doc() = "pybind11 plugin for TaskR";
 
   // Register any other user defined functions
-  m.def("get_cpp_function", [](const std::string& name) {
-    auto& reg = taskr::get_registry();
+  m.def("get_cpp_function", [](const std::string &name) {
+    auto &reg = taskr::get_registry();
 
     // check if this function even exists
-    auto it = std::find_if(reg.begin(), reg.end(),
-                          [&](const auto& e) { return e.name == name; });
+    auto it = std::find_if(reg.begin(), reg.end(), [&](const auto &e) { return e.name == name; });
 
     if (it == reg.end()) HICR_THROW_RUNTIME("Function not found: %s\n", name);
 
     return std::make_unique<Function>(it->fc);
-      // [fc = it->fc](Task* task) {
+    // [fc = it->fc](Task* task) {
 
-      //   fc(task);
-      // });
+    //   fc(task);
+    // });
   });
 
-  py::enum_<backend_t>(m, "HiCRBackend")
-    .value("nosv", backend_t::nosv)
-    .value("threading", backend_t::threading)
-    .export_values();
+  py::enum_<backend_t>(m, "HiCRBackend").value("nosv", backend_t::nosv).value("threading", backend_t::threading).export_values();
 
   // pyTaskR's PyRuntime class
   py::class_<PyRuntime>(m, "taskr")
-    .def(py::init<const backend_t&, size_t>(), py::arg("backend") = backend_t::nosv, py::arg("num_workers") = 0)
-    .def(py::init<const backend_t&, const std::set<int> &>(), py::arg("backend") = backend_t::nosv, py::arg("workersSet"))
+    .def(py::init<const backend_t &, size_t>(), py::arg("backend") = backend_t::nosv, py::arg("num_workers") = 0)
+    .def(py::init<const backend_t &, const std::set<int> &>(), py::arg("backend") = backend_t::nosv, py::arg("workersSet"))
     .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
     .def("get_num_workers", &PyRuntime::get_num_workers);
 
@@ -83,8 +78,7 @@ PYBIND11_MODULE(taskr, m)
     .def("finalize", &Runtime::finalize);
 
   // TaskR's Function class
-  py::class_<Function>(m, "Function")
-    .def(py::init<const function_t>());
+  py::class_<Function>(m, "Function").def(py::init<const function_t>());
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
@@ -110,14 +104,8 @@ PYBIND11_MODULE(taskr, m)
   // TaskR's ConditionVariable class
   py::class_<ConditionVariable>(m, "ConditionVariable")
     .def(py::init<>())
-    .def("wait",
-         py::overload_cast<Task *, Mutex &>(&ConditionVariable::wait), 
-         py::call_guard<py::gil_scoped_release>(), 
-         "cv wait")
-    .def("wait",
-         py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &>(&ConditionVariable::wait), 
-         py::call_guard<py::gil_scoped_release>(), 
-         "cv wait with condition")
+    .def("wait", py::overload_cast<Task *, Mutex &>(&ConditionVariable::wait), py::call_guard<py::gil_scoped_release>(), "cv wait")
+    .def("wait", py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &>(&ConditionVariable::wait), py::call_guard<py::gil_scoped_release>(), "cv wait with condition")
     .def("waitFor",
          py::overload_cast<Task *, Mutex &, const std::function<bool(void)> &, size_t>(&ConditionVariable::waitFor),
          py::call_guard<py::gil_scoped_release>(),

@@ -47,7 +47,6 @@ enum backend_t
   threading
 };
 
-
 class PyRuntime
 {
   public:
@@ -55,7 +54,7 @@ class PyRuntime
   /**
     * 
     */
-  PyRuntime(const backend_t& backend_type = backend_t::nosv, size_t num_workers = 0)
+  PyRuntime(const backend_t &backend_type = backend_t::nosv, size_t num_workers = 0)
     : _backend_type(backend_type)
   {
     // Specify the compute Managers
@@ -115,7 +114,7 @@ class PyRuntime
   /**
     * 
     */
-  PyRuntime(const backend_t& backend_type, const std::set<int> &workersSet)
+  PyRuntime(const backend_t &backend_type, const std::set<int> &workersSet)
     : _backend_type(backend_type)
   {
     // Check if the workerSet is not empty
@@ -199,11 +198,11 @@ class PyRuntime
   const size_t get_num_workers() { return _num_workers; }
 
   private:
-  
+
   backend_t _backend_type;
-  
+
   size_t _num_workers;
-  
+
   std::unique_ptr<Runtime> _runtime;
 
   std::unique_ptr<HiCR::ComputeManager> _executionStateComputeManager;
