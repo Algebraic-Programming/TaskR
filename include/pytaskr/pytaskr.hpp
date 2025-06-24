@@ -22,14 +22,23 @@
 namespace taskr
 {
 
+/**
+ * Struct with the cpp funcion and the given name
+ */
 struct FunctionRegistration
 {
   std::string name;
   function_t  fc;
 };
 
+/**
+   * Vector to keep track which cpp functions to register
+   */
 std::vector<FunctionRegistration> &get_registry();
 
+/**
+ * Function to store the cpp function with a given naming
+ */
 void register_function(const std::string &name, function_t fc);
 
 } // namespace taskr

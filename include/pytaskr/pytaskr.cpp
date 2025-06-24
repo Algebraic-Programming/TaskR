@@ -28,16 +28,23 @@ namespace py = pybind11;
 namespace taskr
 {
 
+/**
+ * Vector to keep track which cpp functions to register
+ */
 std::vector<FunctionRegistration> &get_registry()
 {
   static std::vector<FunctionRegistration> reg;
   return reg;
 }
 
+/**
+ * Function to store the cpp function with a given naming
+ */
 void register_function(const std::string &name, function_t fc) { get_registry().push_back({name, fc}); }
 
-// TODO: add all methods of all classes
-
+/**
+ * Pybind11 module for binding taskr stuff
+ */
 PYBIND11_MODULE(taskr, m)
 {
   m.doc() = "pybind11 plugin for TaskR";
@@ -66,25 +73,36 @@ PYBIND11_MODULE(taskr, m)
   // TaskR's Runtime class
   py::class_<Runtime>(m, "Runtime")
     .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
+    .def("setServiceWorkerCallbackHandler", &Runtime::setServiceWorkerCallbackHandler)
+    .def("setTaskWorkerCallbackHandler", &Runtime::setTaskWorkerCallbackHandler)
     .def("initialize", &Runtime::initialize)
     .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>()) // keep_alive as the task should be alive until runtime's destructor
     .def("resumeTask", &Runtime::resumeTask)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
     .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
-    .def("finalize", &Runtime::finalize);
+    .def("finalize", &Runtime::finalize)
+    .def("setFinishedTask", &Runtime::setFinishedTask)
+    .def("addService", &Runtime::addService);
 
   // TaskR's Function class
   py::class_<Function>(m, "Function").def(py::init<const function_t>());
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
+    .def(py::init<Function *, const workerId_t>(), py::arg("fc"), py::arg("workerAffinity") = -1)
     .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
     .def("getLabel", &Task::getLabel)
     .def("setLabel", &Task::setLabel)
     .def("getWorkerAffinity", &Task::getWorkerAffinity)
     .def("setWorkerAffinity", &Task::setWorkerAffinity)
     .def("addDependency", &Task::addDependency)
+    .def("getDependencyCount", &Task::getDependencyCount)
+    .def("incrementDependencyCount", &Task::incrementDependencyCount)
+    .def("decrementDependencyCount", &Task::decrementDependencyCount)
+    .def("addOutputDependency", &Task::addOutputDependency)
+    .def("getOutputDependencies", &Task::getOutputDependencies)
     .def("addPendingOperation", &Task::addPendingOperation)
+    .def("getPendingOperations", &Task::getPendingOperations)
     .def("suspend", &Task::suspend, py::call_guard<py::gil_scoped_release>());
 
   py::enum_<Task::callback_t>(m, "TaskCallback")
@@ -95,7 +113,7 @@ PYBIND11_MODULE(taskr, m)
     .export_values();
 
   // TaskR's Mutex class
-  py::class_<Mutex>(m, "Mutex").def(py::init<>()).def("lock", &Mutex::lock).def("unlock", &Mutex::unlock);
+  py::class_<Mutex>(m, "Mutex").def(py::init<>()).def("lock", &Mutex::lock).def("unlock", &Mutex::unlock).def("ownsLock", &Mutex::ownsLock).def("trylock", &Mutex::trylock);
 
   // TaskR's ConditionVariable class
   py::class_<ConditionVariable>(m, "ConditionVariable")

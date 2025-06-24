@@ -47,12 +47,15 @@ enum backend_t
   threading
 };
 
+/**
+ * TaskR Runtime class python wrapper. It simplifies the user for constructing the TaskR Runtime
+ */
 class PyRuntime
 {
   public:
 
   /**
-    * 
+    * Constructor with num_workers being an interger value. If 0, initialize all.
     */
   PyRuntime(const backend_t &backend_type = backend_t::nosv, size_t num_workers = 0)
     : _backend_type(backend_type)
@@ -112,7 +115,7 @@ class PyRuntime
   }
 
   /**
-    * 
+    * Constructor with num_workers being a set of integers. The set specifies which process affinity to use (if available).
     */
   PyRuntime(const backend_t &backend_type, const std::set<int> &workersSet)
     : _backend_type(backend_type)
@@ -169,13 +172,16 @@ class PyRuntime
 
     if (!_computeResources.size()) { HICR_THROW_LOGIC("Error: non-existing compute resources provided\n"); }
 
+    // Store the number of initialized workers
     _num_workers = _computeResources.size();
 
+    // Initialize the runtime
     _runtime = std::make_unique<Runtime>(_executionStateComputeManager.get(), _processingUnitComputeManager.get(), _computeResources);
   }
 
   /**
-    * Destructor
+    * Destructor of PyRuntime
+    * 
     * Destroying topology and shutting down nOS-V if nosv backend have been used.
     */
   ~PyRuntime()
