@@ -57,7 +57,7 @@ int main(int argc, char **argv)
   // Creating taskr
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources);
 
-  // Running ABCtasks example
+  // Running simple example
   simple(&taskr);
 
   // Freeing up memory
