@@ -5,8 +5,12 @@
 py = import('python').find_installation(pure: false)
 pybind11_dep = dependency('pybind11', required: true)
 
+pysources = ['pytaskr.cpp']
+
+pysources += ['../../examples/matmul/python/matmul.cpp']
+
 py.extension_module('taskr',
-    ['pytaskr.cpp', 'matmul.cpp'],
+    pysources,
     install: true,
     dependencies : [TaskRBuildDep, pybind11_dep],
 )

@@ -61,10 +61,12 @@ void matmul(taskr::Task *)
 namespace taskr
 {
 
-__attribute__((constructor))  // GCC/Clang: Run before main/init
-void register_my_func()
-{
-  register_function("cpp_matmul", matmul);
-}
+struct AutoRegister {
+    AutoRegister() {
+        register_function("cpp_matmul", matmul);
+    }
+};
+
+static AutoRegister reg{};
 
 } // namespace taskr
