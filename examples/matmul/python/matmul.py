@@ -15,8 +15,10 @@
 """
 
 import time
-import taskr
 import numpy as np
+
+import taskr
+import cpp_matmul
 
 NTASKS = 2
 
@@ -24,7 +26,7 @@ def matmul_cpp_Driver(runtime):
   # Initializing taskr
   runtime.initialize()
 
-  taskfc = taskr.get_cpp_function("cpp_matmul")
+  taskfc = taskr.Function(cpp_matmul.cpp_matmul)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):

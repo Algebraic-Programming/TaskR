@@ -21,26 +21,10 @@
 #include <taskr/taskr.hpp>
 #include <pytaskr/pyruntime.hpp>
 
-#include "pytaskr.hpp"
-
 namespace py = pybind11;
 
 namespace taskr
 {
-
-/**
- * Vector to keep track which cpp functions to register
- */
-std::vector<FunctionRegistration> &get_registry()
-{
-  static std::vector<FunctionRegistration> reg;
-  return reg;
-}
-
-/**
- * Function to store the cpp function with a given naming
- */
-void register_function(const std::string &name, function_t fc) { get_registry().push_back({name, fc}); }
 
 /**
  * Pybind11 module for binding taskr stuff
@@ -48,18 +32,6 @@ void register_function(const std::string &name, function_t fc) { get_registry().
 PYBIND11_MODULE(taskr, m)
 {
   m.doc() = "pybind11 plugin for TaskR";
-
-  // Register any other user defined functions
-  m.def("get_cpp_function", [](const std::string &name) {
-    auto &reg = taskr::get_registry();
-
-    // check if this function even exists
-    auto it = std::find_if(reg.begin(), reg.end(), [&](const auto &e) { return e.name == name; });
-
-    if (it == reg.end()) HICR_THROW_RUNTIME("Function not found: %s\n", name);
-
-    return std::make_unique<Function>(it->fc);
-  });
 
   py::enum_<backend_t>(m, "HiCRBackend").value("nosv", backend_t::nosv).value("threading", backend_t::threading).export_values();
 

@@ -15,9 +15,9 @@
  */
 
 #include <chrono>
+#include <pybind11/pybind11.h>
 
 #include <taskr/taskr.hpp>
-#include <pytaskr/pytaskr.hpp>
 
 #define mytype float
 
@@ -58,15 +58,9 @@ void matmul(taskr::Task *)
   free((mytype *)C);
 }
 
-namespace taskr
+PYBIND11_MODULE(cpp_matmul, m)
 {
+  m.doc() = "pybind11 plugin for matmul example";
 
-struct AutoRegister {
-    AutoRegister() {
-        register_function("cpp_matmul", matmul);
-    }
-};
-
-static AutoRegister reg{};
-
-} // namespace taskr
+  m.def("cpp_matmul", &matmul, "cpp function to do matrix-matrix multiplication.");
+}
