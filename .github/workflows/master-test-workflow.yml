@@ -45,7 +45,7 @@ jobs:
           cd extern/pybind11
           mkdir -p build
           cd build
-          cmake ..
+          cmake .. -DPython_EXECUTABLE=/usr/bin/python3
           make check -j"$(nproc)"
 
           mkdir -p mock_install/share/pkgconfig
