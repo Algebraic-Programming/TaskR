@@ -27,7 +27,7 @@ def main():
     # Running matmul example
     matmul_cpp_Driver(runtime)
 
-    matmul_numpy_Driver(runtime)
+    # matmul_numpy_Driver(runtime)
 
 
 if __name__ == "__main__":
