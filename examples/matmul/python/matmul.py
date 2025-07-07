@@ -45,15 +45,13 @@ def matmul_cpp_Driver(runtime):
 
 
 
-
-
 def matmul_numpy_Driver(runtime):
   # Initializing taskr
   runtime.initialize()
 
   def matmul_numpy(task):
     N = 1000
-    A = np.zeros((N,N))
+    A = np.empty((N,N))
     B = np.empty((N,N))
     C = np.empty((N,N))
 

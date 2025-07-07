@@ -13,13 +13,15 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 """
-
 import taskr
+
 import simple
 
+NWORKERS = 4
+
 def main():
-    # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.nosv, 2)
+    # Initialize taskr with the wanted HiCR backend and number of Workers
+    t = taskr.taskr(backend=taskr.HiCRBackend.nosv, num_workers=NWORKERS)
 
     # Get the runtime
     runtime = t.get_runtime()
