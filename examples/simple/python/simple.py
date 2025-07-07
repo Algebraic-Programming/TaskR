@@ -13,7 +13,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 """
-
 import taskr
 
 NTASKS = 2
@@ -22,8 +21,8 @@ def simple(runtime):
   # Initializing taskr
   runtime.initialize()
 
+  # Create tasks
   fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
-
   taskfc = taskr.Function(fc)
 
   # Adding to tasks to taskr

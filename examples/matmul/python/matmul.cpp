@@ -19,6 +19,10 @@
 
 #include <taskr/taskr.hpp>
 
+#ifdef ENABLE_INSTRUMENTATION
+  #include <tracr.hpp>
+#endif
+
 #define mytype float
 
 /**
@@ -26,7 +30,11 @@
  */
 void matmul(taskr::Task *)
 {
-  const size_t N = 1000;
+#ifdef ENABLE_INSTRUMENTATION
+  INSTRUMENTATION_VMARKER_SET(MARK_COLOR_RED);
+#endif
+
+  const size_t N = 200;
 
   // Allocate memory
   volatile mytype *A = (mytype *)calloc(1, N * N * sizeof(mytype));
@@ -56,6 +64,10 @@ void matmul(taskr::Task *)
   free((mytype *)A);
   free((mytype *)B);
   free((mytype *)C);
+
+#ifdef ENABLE_INSTRUMENTATION
+  INSTRUMENTATION_VMARKER_RESET();
+#endif
 }
 
 PYBIND11_MODULE(cpp_matmul, m)

@@ -48,7 +48,7 @@ PYBIND11_MODULE(taskr, m)
     .def("setServiceWorkerCallbackHandler", &Runtime::setServiceWorkerCallbackHandler)
     .def("setTaskWorkerCallbackHandler", &Runtime::setTaskWorkerCallbackHandler)
     .def("initialize", &Runtime::initialize)
-    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>()) // keep_alive as the task should be alive until runtime's destructor
+    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>(), py::arg("task")) // keep_alive as the task should be alive until runtime's destructor
     .def("resumeTask", &Runtime::resumeTask)
     .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
     .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
@@ -57,12 +57,12 @@ PYBIND11_MODULE(taskr, m)
     .def("addService", &Runtime::addService);
 
   // TaskR's Function class
-  py::class_<Function>(m, "Function").def(py::init<const function_t>());
+  py::class_<Function>(m, "Function").def(py::init<const function_t>(), py::arg("fc"));
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
     .def(py::init<Function *, const workerId_t>(), py::arg("fc"), py::arg("workerAffinity") = -1)
-    .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("label"), py::arg("fc"), py::arg("workerAffinity") = -1)
+    .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("label"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
     .def("getLabel", &Task::getLabel)
     .def("setLabel", &Task::setLabel)
     .def("getWorkerAffinity", &Task::getWorkerAffinity)

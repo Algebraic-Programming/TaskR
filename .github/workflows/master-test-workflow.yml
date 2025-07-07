@@ -40,8 +40,31 @@ jobs:
         with:
           submodules: 'true'
 
+      - name: Build Pybind11
+        run: |
+          cd extern/pybind11
+          mkdir -p build
+          cd build
+          cmake .. -DPython_EXECUTABLE=/usr/bin/python3
+          make check -j"$(nproc)"
+
+          mkdir -p mock_install/share/pkgconfig
+          cat <<EOF > mock_install/share/pkgconfig/pybind11.pc
+          prefix=$(pwd)/..
+          includedir=\${prefix}/include
+
+          Name: pybind11
+          Description: Seamless operability between C++11 and Python
+          Version: 2.13.6
+          Cflags: -I\${includedir}
+          EOF
+
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/mock_install/share/pkgconfig" >> $GITHUB_ENV
+
+          export LD_PRELOAD=/usr/local/lib/libnosv.so
+        
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true
+        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads -DbuildPyTaskR=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build
