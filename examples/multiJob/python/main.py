@@ -22,26 +22,23 @@ import job2
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.threading)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create(backend="threading")
 
     # Running multiJob example
-    job1.job1(runtime)
-    job2.job2(runtime)
+    job1.job1(t)
+    job2.job2(t)
 
     # Initializing taskr
-    runtime.initialize()
+    t.initialize()
 
     # Running taskr for the current repetition
-    runtime.run()
+    t.run()
 
     # Waiting current repetition to end
-    runtime.await_()
+    t.wait()
 
     # Finalizing taskr
-    runtime.finalize()
+    t.finalize()
 
 if __name__ == "__main__":
     main()

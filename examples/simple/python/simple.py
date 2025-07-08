@@ -33,7 +33,7 @@ def simple(runtime):
   runtime.run()
 
   # Waiting current repetition to end
-  runtime.await_()
+  runtime.wait()
 
   # Finalizing taskr
   runtime.finalize()

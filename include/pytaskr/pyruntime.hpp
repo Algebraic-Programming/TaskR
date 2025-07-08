@@ -19,6 +19,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <string>
 
 #include <hwloc.h>
 #include <hicr/backends/hwloc/topologyManager.hpp>
@@ -34,19 +35,6 @@
 namespace taskr
 {
 
-enum backend_t
-{
-  /**
-   * HiCR's nOS-V backend with the executionStates and ProcessingUnits being nOS-V
-   */
-  nosv,
-
-  /**
-   * executionStates are Boost and ProcessingUnits are Pthreads
-   */
-  threading
-};
-
 /**
  * TaskR Runtime class python wrapper. It simplifies the user for constructing the TaskR Runtime
  */
@@ -57,11 +45,11 @@ class PyRuntime
   /**
     * Constructor with num_workers being an interger value. If 0, initialize all.
     */
-  PyRuntime(const backend_t &backend_type = backend_t::nosv, size_t num_workers = 0)
+  PyRuntime(const std::string &backend_type = "nosv", size_t num_workers = 0)
     : _backend_type(backend_type)
   {
     // Specify the compute Managers
-    if (_backend_type == backend_t::nosv)
+    if (_backend_type == "nosv")
     {
       // Initialize nosv
       check(nosv_init());
@@ -75,12 +63,12 @@ class PyRuntime
       _executionStateComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
     }
-    else if (_backend_type == backend_t::threading)
+    else if (_backend_type == "threading")
     {
       _executionStateComputeManager = std::make_unique<HiCR::backend::boost::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::pthreads::ComputeManager>();
     }
-    else { HICR_THROW_LOGIC("'%d' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
+    else { HICR_THROW_LOGIC("'%s' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
 
     // Reserving memory for hwloc
     hwloc_topology_init(&_topology);
@@ -117,14 +105,14 @@ class PyRuntime
   /**
     * Constructor with num_workers being a set of integers. The set specifies which process affinity to use (if available).
     */
-  PyRuntime(const backend_t &backend_type, const std::set<int> &workersSet)
+  PyRuntime(const std::string &backend_type, const std::set<int> &workersSet)
     : _backend_type(backend_type)
   {
     // Check if the workerSet is not empty
     if (workersSet.empty()) { HICR_THROW_LOGIC("Error: no compute resources provided\n"); }
 
     // Specify the compute Managers
-    if (_backend_type == backend_t::nosv)
+    if (_backend_type == "nosv")
     {
       // Initialize nosv
       check(nosv_init());
@@ -138,12 +126,12 @@ class PyRuntime
       _executionStateComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::nosv::ComputeManager>();
     }
-    else if (_backend_type == backend_t::threading)
+    else if (_backend_type == "threading")
     {
       _executionStateComputeManager = std::make_unique<HiCR::backend::boost::ComputeManager>();
       _processingUnitComputeManager = std::make_unique<HiCR::backend::pthreads::ComputeManager>();
     }
-    else { HICR_THROW_LOGIC("'%d' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
+    else { HICR_THROW_LOGIC("'%s' is not a known HiCR backend. Try 'nosv' or 'threading'\n", _backend_type); }
 
     // Reserving memory for hwloc
     hwloc_topology_init(&_topology);
@@ -189,7 +177,7 @@ class PyRuntime
     // Freeing up memory
     hwloc_topology_destroy(_topology);
 
-    if (_backend_type == backend_t::nosv)
+    if (_backend_type == "nosv")
     {
       // Detaching the main thread
       check(nosv_detach(NOSV_DETACH_NONE));
@@ -199,13 +187,83 @@ class PyRuntime
     }
   }
 
+  /**
+   * 
+   */
   Runtime &get_runtime() { return *_runtime; }
 
+  /**
+   * 
+   */
   const size_t get_num_workers() { return _num_workers; }
+
+  /**
+   * 
+   */
+  __INLINE__ void setTaskCallbackHandler(const HiCR::tasking::Task::callback_t event, HiCR::tasking::callbackFc_t<taskr::Task *> fc)
+  {
+    _runtime->setTaskCallbackHandler(event, fc);
+  }
+
+  /**
+   * 
+   */
+  __INLINE__ void setServiceWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _runtime->setServiceWorkerCallbackHandler(event, fc);
+  }
+
+  /**
+   * 
+   */
+  __INLINE__ void setTaskWorkerCallbackHandler(const HiCR::tasking::Worker::callback_t event, HiCR::tasking::callbackFc_t<HiCR::tasking::Worker *> fc)
+  {
+    _runtime->setTaskWorkerCallbackHandler(event, fc);
+  }
+
+  /**
+   * 
+   */
+  __INLINE__ void addTask(taskr::Task *const task) { _runtime->addTask(task); }
+
+  /**
+   * 
+   */
+  __INLINE__ void resumeTask(taskr::Task *const task) { _runtime->resumeTask(task); }
+
+  /**
+   * 
+   */
+  __INLINE__ void initialize() { _runtime->initialize(); }
+
+  /**
+   * 
+   */
+  __INLINE__ void run() { _runtime->run(); }
+
+  /**
+   * 
+   */
+  __INLINE__ void await() { _runtime->await(); }
+
+  /**
+   * 
+   */
+  __INLINE__ void finalize() { _runtime->finalize(); }
+
+  /**
+   * 
+   */
+  __INLINE__ void setFinishedTask(taskr::Task *const task) { _runtime->setFinishedTask(task); }
+
+  /**
+   * 
+   */
+  __INLINE__ void addService(taskr::service_t *service) { _runtime->addService(service); }
 
   private:
 
-  backend_t _backend_type;
+  std::string _backend_type;
 
   size_t _num_workers;
 

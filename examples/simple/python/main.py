@@ -17,17 +17,12 @@ import taskr
 
 import simple
 
-NWORKERS = 4
-
 def main():
     # Initialize taskr with the wanted HiCR backend and number of Workers
-    t = taskr.taskr(backend=taskr.HiCRBackend.nosv, num_workers=NWORKERS)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create(backend="nosv", num_workers=4)
 
     # Running simple example
-    simple.simple(runtime)
+    simple.simple(t)
 
 if __name__ == "__main__":
     main()

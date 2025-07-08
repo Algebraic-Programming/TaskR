@@ -84,7 +84,7 @@ def conditionVariableWaitCondition(runtime):
   runtime.run()
 
   # Waiting for task to finish
-  runtime.await_()
+  runtime.wait()
 
   # Finalizing taskr
   runtime.finalize()

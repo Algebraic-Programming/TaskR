@@ -25,9 +25,6 @@ def main():
     if len(sys.argv) > 1: workTaskCount = int(sys.argv[1])
     if len(sys.argv) > 2: iterations = int(sys.argv[2])
 
-    
-
-
     # Getting the core subset from the argument list (could be from a file too)
     coreSubset = {0, 1, 2, 3}
     if len(sys.argv) > 3:
@@ -41,10 +38,7 @@ def main():
         sys.exit(1)
     
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.threading, coreSubset)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create("threading", coreSubset)
 
     # Creating task function
     taskFunction = taskr.Function(lambda task : workTask.work(iterations))
@@ -53,22 +47,22 @@ def main():
     print(f"Running {workTaskCount} work tasks with {len(coreSubset)} processing units...")
     for i in range(workTaskCount):
         task = taskr.Task(i, taskFunction)
-        runtime.addTask(task)
+        t.addTask(task)
 
     # Initializing taskR
-    runtime.initialize()
+    t.initialize()
 
     # Running taskr only on the core subset
     t0 = time.time()
-    runtime.run()
-    runtime.await_()
+    t.run()
+    t.wait()
     tf = time.time()
 
     dt = tf - t0
     print(f"Finished in {dt:.3} seconds.")
 
     # Finalizing taskR
-    runtime.finalize()
+    t.finalize()
 
 if __name__ == "__main__":
     main()

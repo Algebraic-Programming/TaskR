@@ -70,7 +70,7 @@ def workerSpecific(runtime, workerCount):
   runtime.run()
 
   # Waiting for taskr to finish
-  runtime.await_()
+  runtime.wait()
 
   # Finalizing taskr
   runtime.finalize()

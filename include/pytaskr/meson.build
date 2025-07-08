@@ -12,8 +12,12 @@ endif
 
 pybind11_dep = dependency('pybind11', required: true)
 
+message('Python binary: ' + py.path())
+message('Python install dir: ' + py.get_install_dir())
+
 py.extension_module('taskr',
     ['pytaskr.cpp'],
     install: true,
+    install_dir: py.get_install_dir(),
     dependencies : [TaskRBuildDep, pybind11_dep],
 )

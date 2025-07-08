@@ -36,7 +36,7 @@ def matmul_cpp_Driver(runtime):
   runtime.run()
 
   # Waiting current repetition to end
-  runtime.await_()
+  runtime.wait()
   print(f"total time: {time.time() - t_start}")
 
   # Finalizing taskr
@@ -76,7 +76,7 @@ def matmul_numpy_Driver(runtime):
   runtime.run()
 
   # Waiting current repetition to end
-  runtime.await_()
+  runtime.wait()
   print(f"total time: {time.time() - t_start}")
 
   # Finalizing taskr

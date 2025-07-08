@@ -20,13 +20,10 @@
 int main(int argc, char **argv)
 {
   // Creating taskr instance
-  taskr::PyRuntime pytaskr(taskr::backend_t::nosv, 0);
-
-  // Getting the runtime
-  taskr::Runtime &runtime = pytaskr.get_runtime();
+  taskr::PyRuntime pytaskr("nosv", 0);
 
   // Printing runtime
-  printf("I got the runtime with nOS-V backend: %p\n", &runtime);
+  printf("I got the runtime with nOS-V backend: %p and num_workers: %ld\n", &pytaskr, pytaskr.get_num_workers());
 
   return 0;
 }

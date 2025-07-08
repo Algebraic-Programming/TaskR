@@ -272,6 +272,8 @@ jobs:
 
       - name: Build Pybind11
         run: |
+          /usr/bin/python3 -m pip install --upgrade pip pytest
+
           cd extern/pybind11
           mkdir -p build
           cd build
@@ -290,8 +292,6 @@ jobs:
           EOF
 
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/mock_install/share/pkgconfig" >> $GITHUB_ENV
-
-          export LD_PRELOAD=/usr/local/lib/libnosv.so
         
       - name: Setup
         run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads -DbuildPyTaskR=true
@@ -301,6 +301,8 @@ jobs:
 
       - name: Running tests and creating coverage report
         shell: bash
+        env:
+          LD_PRELOAD: /usr/local/lib/libnosv.so
         run: |
           echo "Running Tests..."
           source /home/hicr/.bashrc

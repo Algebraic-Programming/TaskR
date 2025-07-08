@@ -51,7 +51,7 @@ def suspend(runtime, branchCount, taskCount):
   # Running taskr for the current repetition
   startTime = time.time()
   runtime.run()
-  runtime.await_()
+  runtime.wait()
 
   endTime = time.time()
   computeTime = endTime - startTime

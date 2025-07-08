@@ -81,7 +81,7 @@ def energySaver(runtime, workTaskCount, secondsDelay, iterations):
   # Running taskr
   print("Starting (open 'htop' in another console to see the workers going to sleep during the long task)...\n")
   runtime.run()
-  runtime.await_()
+  runtime.wait()
   print("Finished.\n")
 
   # Finalizing taskr
