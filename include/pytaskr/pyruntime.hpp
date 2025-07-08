@@ -186,7 +186,7 @@ class PyRuntime
       check(nosv_shutdown());
     }
   }
-  
+
   /**
    * 
    */
@@ -196,7 +196,7 @@ class PyRuntime
    * 
    */
   const size_t get_num_workers() { return _num_workers; }
-  
+
   /**
    * 
    */
@@ -224,66 +224,42 @@ class PyRuntime
   /**
    * 
    */
-  __INLINE__ void addTask(taskr::Task *const task)
-  {
-    _runtime->addTask(task);
-  }
-  
-  /**
-   * 
-   */
-  __INLINE__ void resumeTask(taskr::Task *const task)
-  {
-    _runtime->resumeTask(task);
-  }
+  __INLINE__ void addTask(taskr::Task *const task) { _runtime->addTask(task); }
 
   /**
    * 
    */
-  __INLINE__ void initialize()
-  {
-    _runtime->initialize();
-  }
+  __INLINE__ void resumeTask(taskr::Task *const task) { _runtime->resumeTask(task); }
 
   /**
    * 
    */
-  __INLINE__ void run()
-  {
-    _runtime->run();
-  }
+  __INLINE__ void initialize() { _runtime->initialize(); }
 
   /**
    * 
    */
-  __INLINE__ void await()
-  {
-    _runtime->await();
-  }
+  __INLINE__ void run() { _runtime->run(); }
 
   /**
    * 
    */
-  __INLINE__ void finalize()
-  {
-    _runtime->finalize();
-  }
+  __INLINE__ void await() { _runtime->await(); }
 
   /**
    * 
    */
-  __INLINE__ void setFinishedTask(taskr::Task *const task)
-  {
-    _runtime->setFinishedTask(task);
-  }
+  __INLINE__ void finalize() { _runtime->finalize(); }
 
   /**
    * 
    */
-  __INLINE__ void addService(taskr::service_t *service)
-  {
-    _runtime->addService(service);
-  }
+  __INLINE__ void setFinishedTask(taskr::Task *const task) { _runtime->setFinishedTask(task); }
+
+  /**
+   * 
+   */
+  __INLINE__ void addService(taskr::service_t *service) { _runtime->addService(service); }
 
   private:
 
