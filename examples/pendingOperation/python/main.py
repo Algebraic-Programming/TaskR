@@ -20,13 +20,10 @@ import pendingOperation
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.nosv)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create()
 
     # Running pendingOperation example
-    pendingOperation.pendingOperation(runtime)
+    pendingOperation.pendingOperation(t)
 
 if __name__ == "__main__":
     main()

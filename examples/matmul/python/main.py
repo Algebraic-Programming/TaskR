@@ -19,15 +19,12 @@ from matmul import matmul_cpp_Driver, matmul_numpy_Driver
 
 def main():
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.nosv, 2)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create(backend="nosv", num_workers=2)
 
     # Running matmul example
-    matmul_cpp_Driver(runtime)
+    matmul_cpp_Driver(t)
 
-    # matmul_numpy_Driver(runtime)
+    # matmul_numpy_Driver(t)
 
 
 if __name__ == "__main__":

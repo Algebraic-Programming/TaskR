@@ -4,9 +4,6 @@ REPETITIONS = 5
 ITERATIONS = 100
 
 def abcTasks(runtime):
-  # TODO: Setting onTaskFinish callback to free up task memory when it finishes (not sure if we will have this)
-  # runtime.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; })
-  # runtime.setTaskCallbackHandler(taskr.onTaskFinish, lambda task : del task)
 
    # Create the taskr Tasks
   taskAfc = taskr.Function(lambda task : print(f"Task A {task.getLabel()}"))
@@ -47,7 +44,7 @@ def abcTasks(runtime):
     runtime.run()
 
     # Waiting current repetition to end
-    runtime.await_()
+    runtime.wait()
 
   # Finalizing taskr
   runtime.finalize()

@@ -30,13 +30,10 @@ def main():
     print(sys.argv, workTaskCount, secondsDelay, iterations)
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.threading)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create(backend="threading")
 
     # Running simple example
-    energySaver.energySaver(runtime, workTaskCount, secondsDelay, iterations)
+    energySaver.energySaver(t, workTaskCount, secondsDelay, iterations)
 
 if __name__ == "__main__":
     main()

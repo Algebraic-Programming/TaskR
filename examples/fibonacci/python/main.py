@@ -25,14 +25,11 @@ def main():
     if len(sys.argv) > 1: initialValue = int(sys.argv[1])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.nosv)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create()
 
     # Running Fibonacci example
     # result = fibonacci.fibonacciDriver(initialValue, runtime)
-    result = fibonacci_mutex.fibonacciDriver(initialValue, runtime)
+    result = fibonacci_mutex.fibonacciDriver(initialValue, t)
 
     # Printing result
     print(f"Fib({initialValue}) = {result}")

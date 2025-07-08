@@ -20,13 +20,10 @@ import mutex
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.threading)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create("threading")
 
     # Running mutex example
-    mutex.mutex(runtime)
+    mutex.mutex(t)
 
 if __name__ == "__main__":
     main()

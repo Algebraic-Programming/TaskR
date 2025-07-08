@@ -20,15 +20,12 @@ import workerSpecific
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr()
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create()
 
     num_workers = t.get_num_workers()
 
     # Running workerSpecific example
-    workerSpecific.workerSpecific(runtime, num_workers)
+    workerSpecific.workerSpecific(t, num_workers)
 
 if __name__ == "__main__":
     main()

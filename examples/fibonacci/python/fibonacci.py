@@ -92,7 +92,7 @@ def fibonacciDriver(initialValue, runtime):
   # Running taskr
   startTime = time.time()
   runtime.run()
-  runtime.await_()
+  runtime.wait()
   endTime = time.time()
 
   computeTime = endTime - startTime

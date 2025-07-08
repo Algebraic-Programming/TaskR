@@ -26,12 +26,9 @@ from conditionVariableWaitForCondition import conditionVariableWaitForCondition
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr()
+    t = taskr.create()
 
-    # Get the runtime
-    runtime = t.get_runtime()
-
-    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
+    t.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : t.resumeTask(task))
 
     # Get the enviromnent variable for which function to call
     test_function_name = os.getenv('__TEST_FUNCTION_')
@@ -40,11 +37,11 @@ def main():
     test_function = globals()[test_function_name]
 
     # Call the function
-    test_function(runtime)
+    test_function(t)
 
     # Overwrite the onTaskSuspend fc to be None such that runtime no longer has
-    # a dependency to the previous fc and runtime can call the destructor
-    runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, None)
+    # a dependency to the previous fc and can call the destructor
+    t.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, None)
 
 
 if __name__ == "__main__":

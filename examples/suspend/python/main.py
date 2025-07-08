@@ -27,13 +27,10 @@ def main():
     if len(sys.argv) > 2: branchCount = int(sys.argv[2])
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.taskr(taskr.HiCRBackend.nosv)
-
-    # Get the runtime
-    runtime = t.get_runtime()
+    t = taskr.create()
 
     # Running simple example
-    suspend.suspend(runtime, branchCount, taskCount)
+    suspend.suspend(t, branchCount, taskCount)
 
 if __name__ == "__main__":
     main()

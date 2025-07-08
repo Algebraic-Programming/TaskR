@@ -33,28 +33,22 @@ PYBIND11_MODULE(taskr, m)
 {
   m.doc() = "pybind11 plugin for TaskR";
 
-  py::enum_<backend_t>(m, "HiCRBackend").value("nosv", backend_t::nosv).value("threading", backend_t::threading).export_values();
-
-  // pyTaskR's PyRuntime class
-  py::class_<PyRuntime>(m, "taskr")
-    .def(py::init<const backend_t &, size_t>(), py::arg("backend") = backend_t::nosv, py::arg("num_workers") = 0)
-    .def(py::init<const backend_t &, const std::set<int> &>(), py::arg("backend") = backend_t::nosv, py::arg("workersSet"))
-    .def("get_runtime", &PyRuntime::get_runtime, py::return_value_policy::reference_internal)
-    .def("get_num_workers", &PyRuntime::get_num_workers);
-
-  // TaskR's Runtime class
-  py::class_<Runtime>(m, "Runtime")
-    .def("setTaskCallbackHandler", &Runtime::setTaskCallbackHandler)
-    .def("setServiceWorkerCallbackHandler", &Runtime::setServiceWorkerCallbackHandler)
-    .def("setTaskWorkerCallbackHandler", &Runtime::setTaskWorkerCallbackHandler)
-    .def("initialize", &Runtime::initialize)
-    .def("addTask", &Runtime::addTask, py::keep_alive<1, 2>(), py::arg("task")) // keep_alive as the task should be alive until runtime's destructor
-    .def("resumeTask", &Runtime::resumeTask)
-    .def("run", &Runtime::run, py::call_guard<py::gil_scoped_release>())
-    .def("await_", &Runtime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
-    .def("finalize", &Runtime::finalize)
-    .def("setFinishedTask", &Runtime::setFinishedTask)
-    .def("addService", &Runtime::addService);
+  // pyTaskR's PyRuntime class (Wrapper class for the TaskR Runtime)
+  py::class_<PyRuntime>(m, "create")
+    .def(py::init<const std::string &, size_t>(), py::arg("backend") = "nosv", py::arg("num_workers") = 0)
+    .def(py::init<const std::string &, const std::set<int> &>(), py::arg("backend") = "nosv", py::arg("workersSet"))
+    .def("get_num_workers", &PyRuntime::get_num_workers)
+    .def("setTaskCallbackHandler", &PyRuntime::setTaskCallbackHandler)
+    .def("setServiceWorkerCallbackHandler", &PyRuntime::setServiceWorkerCallbackHandler)
+    .def("setTaskWorkerCallbackHandler", &PyRuntime::setTaskWorkerCallbackHandler)
+    .def("addTask", &PyRuntime::addTask, py::keep_alive<1, 2>(), py::arg("task")) // keep_alive as the task should be alive until runtime's destructor
+    .def("resumeTask", &PyRuntime::resumeTask)
+    .def("initialize", &PyRuntime::initialize)
+    .def("run", &PyRuntime::run, py::call_guard<py::gil_scoped_release>())
+    .def("wait", &PyRuntime::await, py::call_guard<py::gil_scoped_release>()) // Release GIL is important otherwise non-finished tasks are getting blocked
+    .def("finalize", &PyRuntime::finalize)
+    .def("setFinishedTask", &PyRuntime::setFinishedTask)
+    .def("addService", &PyRuntime::addService);
 
   // TaskR's Function class
   py::class_<Function>(m, "Function").def(py::init<const function_t>(), py::arg("fc"));
@@ -62,7 +56,7 @@ PYBIND11_MODULE(taskr, m)
   // TaskR's Task class
   py::class_<Task>(m, "Task")
     .def(py::init<Function *, const workerId_t>(), py::arg("fc"), py::arg("workerAffinity") = -1)
-    .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("label"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
+    .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("ID"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
     .def("getLabel", &Task::getLabel)
     .def("setLabel", &Task::setLabel)
     .def("getWorkerAffinity", &Task::getWorkerAffinity)
