@@ -23,9 +23,9 @@ def job2(runtime):
   tasks = [None] * (3 * ITERATIONS)
 
   # Creating the execution units (functions that the tasks will run)
-  taskAfc = taskr.Function(lambda task : print(f"Job 1 - Task A {task.getLabel()}"))
-  taskBfc = taskr.Function(lambda task : print(f"Job 1 - Task B {task.getLabel()}"))
-  taskCfc = taskr.Function(lambda task : print(f"Job 1 - Task C {task.getLabel()}"))
+  taskAfc = taskr.Function(lambda task : print(f"Job 1 - Task A {task.getTaskId()}"))
+  taskBfc = taskr.Function(lambda task : print(f"Job 1 - Task B {task.getTaskId()}"))
+  taskCfc = taskr.Function(lambda task : print(f"Job 1 - Task C {task.getTaskId()}"))
 
   # Now creating tasks
   for i in range(ITERATIONS):

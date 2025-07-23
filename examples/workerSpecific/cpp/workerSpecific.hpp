@@ -21,17 +21,17 @@
 
 void workFc(taskr::Task *currentTask)
 {
-  auto taskLabel    = currentTask->getLabel();
+  auto taskId    = currentTask->getTaskId();
   int  currentCPUId = sched_getcpu();
 
   ////// First launched on even cpus
 
-  printf("Task %lu first run running on CPU %d\n", taskLabel, currentCPUId);
+  printf("Task %lu first run running on CPU %d\n", taskId, currentCPUId);
 
   // Sanity check
-  if (int(2 * taskLabel) != currentCPUId)
+  if (int(2 * taskId) != currentCPUId)
   {
-    fprintf(stderr, "Task label (%lu) does not coincide with the current CPU id! (%d)\n", taskLabel, currentCPUId);
+    fprintf(stderr, "Task ID (%lu) does not coincide with the current CPU id! (%d)\n", taskId, currentCPUId);
     std::abort();
   }
 
@@ -44,12 +44,12 @@ void workFc(taskr::Task *currentTask)
   ///// Now launched in odd cpus
 
   currentCPUId = sched_getcpu();
-  printf("Task %lu second run running on CPU %d\n", taskLabel, currentCPUId);
+  printf("Task %lu second run running on CPU %d\n", taskId, currentCPUId);
 
   // Sanity check
-  if (int(2 * taskLabel) + 1 != currentCPUId)
+  if (int(2 * taskId) + 1 != currentCPUId)
   {
-    fprintf(stderr, "Task label (%lu) + 1 does not coincide with the current CPU id! (%d)\n", taskLabel, currentCPUId);
+    fprintf(stderr, "Task ID (%lu) + 1 does not coincide with the current CPU id! (%d)\n", taskId, currentCPUId);
     std::abort();
   }
 }

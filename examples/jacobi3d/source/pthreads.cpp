@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
   // Task map
-  std::map<taskr::label_t, std::shared_ptr<taskr::Task>> _taskMap;
+  std::map<taskr::taskId_t, std::shared_ptr<taskr::Task>> _taskMap;
 
   // printf("Instance %lu: Executing...\n", myInstanceId);
 

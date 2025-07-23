@@ -35,7 +35,7 @@ def main():
         nonlocal sorted_array
         nonlocal shuffled_array
 
-        id = task.getLabel()
+        id = task.getTaskId()
 
         value = shuffled_array[id]
 

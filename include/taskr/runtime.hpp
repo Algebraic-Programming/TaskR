@@ -409,10 +409,10 @@ class Runtime
   }
 
   /**
-   * This function informs TaskR that a certain task (with a given unique label) has finished
+   * This function informs TaskR that a certain task (with a given unique ID) has finished
    * If this task the last remaining dependency for a given task, now the task may be scheduled for execution.
    * 
-   * @param[in] task Label of the task to report as finished
+   * @param[in] task The task to report as finished
    */
   __INLINE__ void setFinishedTask(taskr::Task *const task)
   {

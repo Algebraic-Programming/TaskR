@@ -54,17 +54,17 @@ class Task final : public taskr::Task
     const auto                   hashResult = hasher(buffer);
 
     // find if this hash already exists in the hashmap if not: add it
-    size_t tasklabel;
+    size_t taskId;
     auto   it = taskid_hashmap.find(hashResult);
 
     if (it == taskid_hashmap.end())
     {
-      tasklabel = taskid_hashmap.size();
+      taskId = taskid_hashmap.size();
 
-      taskid_hashmap[hashResult] = tasklabel;
+      taskid_hashmap[hashResult] = taskId;
     }
-    else { tasklabel = it->second; }
+    else { taskId = it->second; }
 
-    return tasklabel;
+    return taskId;
   }
 };

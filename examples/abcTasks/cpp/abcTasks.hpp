@@ -27,9 +27,9 @@ void abcTasks(taskr::Runtime &taskr)
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskAfc = taskr::Function([](taskr::Task *task) { printf("Task A %ld\n", task->getLabel()); });
-  auto taskBfc = taskr::Function([](taskr::Task *task) { printf("Task B %ld\n", task->getLabel()); });
-  auto taskCfc = taskr::Function([](taskr::Task *task) { printf("Task C %ld\n", task->getLabel()); });
+  auto taskAfc = taskr::Function([](taskr::Task *task) { printf("Task A %ld\n", task->getTaskId()); });
+  auto taskBfc = taskr::Function([](taskr::Task *task) { printf("Task B %ld\n", task->getTaskId()); });
+  auto taskCfc = taskr::Function([](taskr::Task *task) { printf("Task C %ld\n", task->getTaskId()); });
 
   // Initializing taskr
   taskr.initialize();
@@ -38,7 +38,7 @@ void abcTasks(taskr::Runtime &taskr)
   for (size_t r = 0; r < REPETITIONS; r++)
   {
     // Calculating the base task id for this repetition
-    auto repetitionLabel = r * ITERATIONS * 3;
+    auto repetitionTaskId = r * ITERATIONS * 3;
 
     // Our connection with the previous iteration is the last task C, null in the first iteration
     taskr::Task *prevTaskC = nullptr;
@@ -46,9 +46,9 @@ void abcTasks(taskr::Runtime &taskr)
     // Each run consists of several iterations of ABC
     for (size_t i = 0; i < ITERATIONS; i++)
     {
-      auto taskA = new taskr::Task(repetitionLabel + i * 3 + 0, &taskAfc);
-      auto taskB = new taskr::Task(repetitionLabel + i * 3 + 1, &taskBfc);
-      auto taskC = new taskr::Task(repetitionLabel + i * 3 + 2, &taskCfc);
+      auto taskA = new taskr::Task(repetitionTaskId + i * 3 + 0, &taskAfc);
+      auto taskB = new taskr::Task(repetitionTaskId + i * 3 + 1, &taskBfc);
+      auto taskC = new taskr::Task(repetitionTaskId + i * 3 + 2, &taskCfc);
 
       // Creating dependencies
       if (i > 0) taskA->addDependency(prevTaskC);
