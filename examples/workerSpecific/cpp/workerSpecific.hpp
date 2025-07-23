@@ -21,7 +21,7 @@
 
 void workFc(taskr::Task *currentTask)
 {
-  auto taskId    = currentTask->getTaskId();
+  auto taskId       = currentTask->getTaskId();
   int  currentCPUId = sched_getcpu();
 
   ////// First launched on even cpus
