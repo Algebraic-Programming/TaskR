@@ -29,7 +29,7 @@
   #include <lpf/mpi.h>
   #include <mpi.h>
   #include <hicr/backends/lpf/communicationManager.hpp>
-  #include <hicr/backends/hwloc/instanceManager.hpp>
+  #include <hicr/backends/mpi/instanceManager.hpp>
   #include <hicr/backends/lpf/memoryManager.hpp>
 #endif
 
@@ -48,53 +48,6 @@
 #include "grid.hpp"
 #include "task.hpp"
 #include "jacobi3d.hpp"
-
-#ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
-
-// flag needed when using MPI to launch
-const int LPF_MPI_AUTO_INITIALIZE = 0;
-
-  /**
- * #DEFAULT_MEMSLOTS The memory slots used by LPF
- * in lpf_resize_memory_register . This value is currently
- * guessed as sufficiently large for a program
- */
-  #define DEFAULT_MEMSLOTS 100
-
-  /**
- * #DEFAULT_MSGSLOTS The message slots used by LPF
- * in lpf_resize_message_queue . This value is currently
- * guessed as sufficiently large for a program
- */
-  #define DEFAULT_MSGSLOTS 100
-
-// Global pointer to the
-HiCR::InstanceManager *instanceManager;
-
-void spmd(lpf_t lpf, lpf_pid_t pid, lpf_pid_t nprocs, lpf_args_t args)
-{
-  // Initializing LPF
-  CHECK(lpf_resize_message_queue(lpf, DEFAULT_MSGSLOTS));
-  CHECK(lpf_resize_memory_register(lpf, DEFAULT_MEMSLOTS));
-  CHECK(lpf_sync(lpf, LPF_SYNC_DEFAULT));
-
-  // Creating HWloc topology object
-  hwloc_topology_t topology;
-
-  // Reserving memory for hwloc
-  hwloc_topology_init(&topology);
-
-  // Initializing host (CPU) topology manager
-  HiCR::backend::hwloc::TopologyManager tm(&topology);
-
-  // Creating memory and communication managers
-  HiCR::backend::lpf::MemoryManager        mm(lpf);
-  HiCR::backend::lpf::CommunicationManager cc(nprocs, pid, lpf);
-
-  // Running the remote memcpy example
-  jaccobiDriver(instanceManager, &mm, &cc);
-}
-#endif
 
 // Setting default values (globali)
 size_t  gDepth = 1;
@@ -168,9 +121,55 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // running the Jacobi3D example
   jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
 
-  // Finalizing instances
-  instanceManager->finalize();
+  
 }
+
+#ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
+
+// flag needed when using MPI to launch
+const int LPF_MPI_AUTO_INITIALIZE = 0;
+
+  /**
+ * #DEFAULT_MEMSLOTS The memory slots used by LPF
+ * in lpf_resize_memory_register . This value is currently
+ * guessed as sufficiently large for a program
+ */
+  #define DEFAULT_MEMSLOTS 100
+
+  /**
+ * #DEFAULT_MSGSLOTS The message slots used by LPF
+ * in lpf_resize_message_queue . This value is currently
+ * guessed as sufficiently large for a program
+ */
+  #define DEFAULT_MSGSLOTS 100
+
+// Global pointer to the
+HiCR::InstanceManager *instanceManager;
+
+void spmd(lpf_t lpf, lpf_pid_t pid, lpf_pid_t nprocs, lpf_args_t args)
+{
+  // Initializing LPF
+  CHECK(lpf_resize_message_queue(lpf, DEFAULT_MSGSLOTS));
+  CHECK(lpf_resize_memory_register(lpf, DEFAULT_MEMSLOTS));
+  CHECK(lpf_sync(lpf, LPF_SYNC_DEFAULT));
+
+  // Creating HWloc topology object
+  hwloc_topology_t topology;
+
+  // Reserving memory for hwloc
+  hwloc_topology_init(&topology);
+
+  // Initializing host (CPU) topology manager
+  HiCR::backend::hwloc::TopologyManager tm(&topology);
+
+  // Creating memory and communication managers
+  std::unique_ptr<HiCR::CommunicationManager> communicationManager = std::make_unique<HiCR::backend::lpf::CommunicationManager>(nprocs, pid, lpf);
+  std::unique_ptr<HiCR::MemoryManager> memoryManager = std::make_unique<HiCR::backend::lpf::MemoryManager>(lpf);
+
+  // Running the remote memcpy example
+  jacobiDriver(instanceManager, communicationManager.get(), memoryManager.get());
+}
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -219,4 +218,7 @@ int main(int argc, char *argv[])
   // Running the remote memcpy example
   jacobiDriver(instanceManager.get(), communicationManager.get(), &memoryManager.get());
 #endif
+
+  // Finalizing instances
+  instanceManager->finalize();
 }
