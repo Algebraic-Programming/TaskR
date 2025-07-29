@@ -55,7 +55,7 @@ PYBIND11_MODULE(taskr, m)
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
-    .def(py::init<Function *, const workerId_t>(), py::arg("fc"), py::arg("workerAffinity") = -1)
+    .def(py::init<Function *, const workerId_t>(), py::arg("taskfc"), py::arg("workerAffinity") = -1)
     .def(py::init<const taskId_t, Function *, const workerId_t>(), py::arg("taskId"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
     .def("getTaskId", &Task::getTaskId)
     .def("setTaskId", &Task::setTaskId)

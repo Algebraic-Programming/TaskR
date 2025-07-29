@@ -29,10 +29,10 @@ def simple(runtime):
   for i in range(NTASKS):
     runtime.addTask(taskr.Task(i, taskfc))
 
-  # Running taskr for the current repetition
+  # Running the tasks
   runtime.run()
 
-  # Waiting current repetition to end
+  # Waiting until all tasks finished
   runtime.wait()
 
   # Finalizing taskr
