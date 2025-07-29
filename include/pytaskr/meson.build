@@ -4,7 +4,7 @@
 
 python_mod = import('python')
 
-py = python_mod.find_installation(pure: false)
+py = python_mod.find_installation('/usr/bin/python3.13-nogil', pure: false)
 
 if not py.found()
   py = python_mod.find_installation('/usr/bin/python3', pure: false)

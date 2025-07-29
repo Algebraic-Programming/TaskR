@@ -15,14 +15,16 @@
 """
 
 import taskr
-from matmul import matmul_cpp_Driver, matmul_numpy_Driver
+from matmul import matmul_cpp_Driver, matmul_python_Driver
 
 def main():
     # Initialize taskr with the wanted compute manager backend and number of PUs
     t = taskr.create(backend="nosv", num_workers=2)
 
     # Running matmul example
-    matmul_cpp_Driver(t)
+    # matmul_cpp_Driver(t)
+
+    matmul_python_Driver(t)
 
     # matmul_numpy_Driver(t)
 

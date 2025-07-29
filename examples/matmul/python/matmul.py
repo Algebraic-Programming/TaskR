@@ -43,27 +43,64 @@ def matmul_cpp_Driver(runtime):
   runtime.finalize()
 
 
+# def matmul_numpy_Driver(runtime):
+#   import numpy as np
+#   # Initializing taskr
+#   runtime.initialize()
 
-def matmul_numpy_Driver(runtime):
-  import numpy as np
+#   def matmul_numpy(task):
+#     N = 1000
+#     A = np.empty((N,N))
+#     B = np.empty((N,N))
+#     C = np.empty((N,N))
+
+#     for i in range(N):
+#       for j in range(N):
+#         B[i, j] = 1.0/(i + 1)
+#         C[i, j] = 1.0/(j + 1)
+
+#     B += task.getTaskId()+1
+#     C += task.getTaskId()+1
+    
+#     A = B @ C
+
+#   taskfc = taskr.Function(matmul_numpy)
+
+#   # Adding to tasks to taskr
+#   for i in range(NTASKS):
+#     runtime.addTask(taskr.Task(i, taskfc))
+
+#   # Running taskr for the current repetition
+#   t_start = time.time()
+#   runtime.run()
+
+#   # Waiting current repetition to end
+#   runtime.wait()
+#   print(f"total time: {time.time() - t_start}")
+
+#   # Finalizing taskr
+#   runtime.finalize()
+
+
+def matmul_python_Driver(runtime):
   # Initializing taskr
   runtime.initialize()
 
   def matmul_numpy(task):
-    N = 1000
-    A = np.empty((N,N))
-    B = np.empty((N,N))
-    C = np.empty((N,N))
+    N = 100
+    A = N*N*[0]
+    B = N*N*[0]
+    C = N*N*[0]
 
     for i in range(N):
       for j in range(N):
-        B[i, j] = 1.0/(i + 1)
-        C[i, j] = 1.0/(j + 1)
-
-    B += task.getTaskId()+1
-    C += task.getTaskId()+1
+        B[N*i + j] = 1.0/(i + 1) + task.getTaskId() + 1
+        C[N*i + j] = 1.0/(j + 1) + task.getTaskId() + 1
     
-    A = B @ C
+    for i in range(N):
+      for j in range(N):
+        for k in range(N):
+          A[i * N + j] += B[i * N + k] * C[k * N + j]
 
   taskfc = taskr.Function(matmul_numpy)
 
