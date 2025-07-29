@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <vector>
 #include <cstdint>
 #include <string>
@@ -28,8 +30,8 @@
 #include <hicr/frontends/channel/fixedSize/mpsc/locking/consumer.hpp>
 
 #define CHANNEL_DEPTH 10
-const int BLOCKZ = 96;
-const int BLOCKY = 64;
+constexpr int BLOCKZ = 96;
+constexpr int BLOCKY = 64;
 
 extern std::unordered_map<size_t, size_t> taskid_hashmap;
 

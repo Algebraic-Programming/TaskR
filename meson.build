@@ -50,7 +50,6 @@ if meson.is_subproject() == false
   HiCRProject = subproject('hicr', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends), 'frontends=tasking' ])
   HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')
   taskrDependencies += HiCRBuildDep
-
 endif
 
 ####### Creating TaskR dependency

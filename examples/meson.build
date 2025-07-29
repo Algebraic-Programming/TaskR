@@ -1,16 +1,4 @@
-# Handling distributed engine options
-if distributedEngine == 'mpi'
-TaskRDistributedCppFlag = '-D_TASKR_DISTRIBUTED_ENGINE_MPI'
-endif
-
-if distributedEngine == 'lpf'
-TaskRDistributedCppFlag = '-D_TASKR_DISTRIBUTED_ENGINE_LPF'
-endif
-
-if distributedEngine == 'none'
-TaskRDistributedCppFlag = '-D_TASKR_DISTRIBUTED_ENGINE_NONE'
-endif
-
+# distributed
 subdir('jacobi3d')
 
 # local
@@ -28,4 +16,3 @@ subdir('manyParallel')
 subdir('suspend')
 subdir('simple')
 subdir('matmul')
-subdir('sleepsort')
