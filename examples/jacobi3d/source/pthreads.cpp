@@ -134,14 +134,14 @@ const int LPF_MPI_AUTO_INITIALIZE = 0;
  * in lpf_resize_memory_register . This value is currently
  * guessed as sufficiently large for a program
  */
-  #define DEFAULT_MEMSLOTS 100
+  #define DEFAULT_MEMSLOTS 10000
 
   /**
  * #DEFAULT_MSGSLOTS The message slots used by LPF
  * in lpf_resize_message_queue . This value is currently
  * guessed as sufficiently large for a program
  */
-  #define DEFAULT_MSGSLOTS 100
+  #define DEFAULT_MSGSLOTS 10000
 
 // Global pointer to the
 HiCR::InstanceManager *instanceManager;

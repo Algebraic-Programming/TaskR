@@ -13,6 +13,7 @@ if distributedEngine == 'mpi'
 		endif
 	endif
 
+	# TODO: deadlocking (even for mpirun -n 1)
 	if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processingUnitType')
 		nosv = executable('nosv', [ 'source/nosv.cpp', 'source/grid.cpp' ], dependencies: [ TaskRBuildDep ], cpp_args: [ TaskRDistributedCppFlag ] )
 		
@@ -34,6 +35,7 @@ elif distributedEngine == 'lpf'
 		endif
 	endif
 
+	
 	if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processingUnitType')
 		nosv = executable('nosv', [ 'source/nosv.cpp', 'source/grid.cpp' ], dependencies: [ TaskRBuildDep ], cpp_args: [ TaskRDistributedCppFlag ] )
 
