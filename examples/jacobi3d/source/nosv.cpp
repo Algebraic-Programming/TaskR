@@ -96,7 +96,29 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Updating the compute resource list
   auto computeResources = numaDomain->getComputeResourceList();
-  printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
+
+  // Compute resources to use
+  HiCR::Device::computeResourceList_t cr;
+
+  // Adding it to the list
+  auto itr      = computeResources.begin();
+  for (size_t i = 0; i < 2ul; i++)
+  {
+    // Getting up-casted pointer for the processing unit
+    auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+
+    // Checking whether the execution unit passed is compatible with this backend
+    if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+
+    // Getting the logical processor ID of the compute resource
+    auto pid = c->getProcessorId();
+
+    printf("numaDomainId: %lu has PID: %u\n", numaDomainId, pid); fflush(stdout);
+    cr.push_back(*itr);
+    itr++;
+  }
+
+  // printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Initializing nosv-based compute manager to run tasks in parallel
   HiCR::backend::nosv::ComputeManager computeManager;
@@ -104,7 +126,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(&computeManager, &computeManager, computeResources, taskrConfig);
+  taskr::Runtime taskr(&computeManager, &computeManager, cr, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });

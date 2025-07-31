@@ -30,9 +30,6 @@ void jacobi3d(HiCR::InstanceManager *instanceManager,
               D3                     pt     = D3({.x = 1, .y = 1, .z = 1}),
               D3                     lt     = D3({.x = 1, .y = 1, .z = 1}))
 {
-  // Initializing TaskR
-  taskr.initialize();
-
   // Getting distributed instance information
   const auto instanceCount  = instanceManager->getInstances().size();
   const auto myInstanceId   = instanceManager->getCurrentInstance()->getId();
@@ -69,7 +66,8 @@ void jacobi3d(HiCR::InstanceManager *instanceManager,
         taskr.addTask(resetTask);
       }
 
-  
+  // Initializing TaskR
+  taskr.initialize();
 
   printf("Start running\n"); fflush(stdout);
 
