@@ -55,10 +55,10 @@ PYBIND11_MODULE(taskr, m)
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")
-    .def(py::init<Function *, const workerId_t>(), py::arg("fc"), py::arg("workerAffinity") = -1)
-    .def(py::init<const label_t, Function *, const workerId_t>(), py::arg("ID"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
-    .def("getLabel", &Task::getLabel)
-    .def("setLabel", &Task::setLabel)
+    .def(py::init<Function *, const workerId_t>(), py::arg("taskfc"), py::arg("workerAffinity") = -1)
+    .def(py::init<const taskId_t, Function *, const workerId_t>(), py::arg("taskId"), py::arg("taskfc"), py::arg("workerAffinity") = -1)
+    .def("getTaskId", &Task::getTaskId)
+    .def("setTaskId", &Task::setTaskId)
     .def("getWorkerAffinity", &Task::getWorkerAffinity)
     .def("setWorkerAffinity", &Task::setWorkerAffinity)
     .def("addDependency", &Task::addDependency)
@@ -91,8 +91,8 @@ PYBIND11_MODULE(taskr, m)
          py::call_guard<py::gil_scoped_release>(),
          "cv waitFor with condition")
     .def("waitFor", py::overload_cast<Task *, Mutex &, size_t>(&ConditionVariable::waitFor), py::call_guard<py::gil_scoped_release>(), "cv waitFor")
-    .def("notifyOne", &ConditionVariable::notifyOne) // Not sure if I need to release the GIL here as this function also uses the intern mutex lock
-    .def("notifyAll", &ConditionVariable::notifyAll) // Same here
+    .def("notifyOne", &ConditionVariable::notifyOne)
+    .def("notifyAll", &ConditionVariable::notifyAll)
     .def("getWaitingTaskCount", &ConditionVariable::getWaitingTaskCount);
 }
 

@@ -70,11 +70,11 @@ class Task : public HiCR::tasking::Task
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    *
-   * @param[in] label The unique label to assign to this task
+   * @param[in] taskId The unique identifier to assign to this task
    * @param[in] fc Specifies the TaskR-formatted function to use
    * @param[in] workerAffinity The worker affinity to set from the start. Default -1 indicates no affinity.
    */
-  Task(const label_t label, Function *fc, const workerId_t workerAffinity = -1);
+  Task(const taskId_t taskId, Function *fc, const workerId_t workerAffinity = -1);
 
   /**
    * Returns the task/worker affinity
@@ -91,18 +91,18 @@ class Task : public HiCR::tasking::Task
   __INLINE__ void setWorkerAffinity(const workerId_t workerAffinity) { _workerAffinity = workerAffinity; };
 
   /**
-   * Function to obtain the task's label
+   * Function to obtain the task's ID
    * 
-   * @return The task's label
+   * @return The task's ID
    */
-  __INLINE__ label_t getLabel() const { return _label; }
+  __INLINE__ taskId_t getTaskId() const { return _taskId; }
 
   /**
-   * Function to set the task's label
+   * Function to set the task's ID
    * 
-   * @param[in] label The label to set
+   * @param[in] taskId The taskId to set
    */
-  __INLINE__ void setLabel(const label_t label) { _label = label; }
+  __INLINE__ void setTaskId(const taskId_t taskId) { _taskId = taskId; }
 
   /**
    * Adds one pending operation on the current task
@@ -169,7 +169,7 @@ class Task : public HiCR::tasking::Task
   /**
    * Unique identifier for the task
    */
-  label_t _label;
+  taskId_t _taskId;
 
   /**
    * Represents the affinity to a given worker, if specified. -1 if not specified.
