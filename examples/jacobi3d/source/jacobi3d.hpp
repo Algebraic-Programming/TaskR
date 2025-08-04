@@ -69,12 +69,8 @@ void jacobi3d(HiCR::InstanceManager *instanceManager,
   // Initializing TaskR
   taskr.initialize();
 
-  printf("Start running\n"); fflush(stdout);
-
   // Running Taskr initially
   taskr.run();
-
-  printf("Now awaiting\n"); fflush(stdout);
 
   // Waiting for Taskr to finish
   taskr.await();

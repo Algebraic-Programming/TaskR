@@ -61,6 +61,15 @@ D3      lt     = D3({.x = 1, .y = 1, .z = 1});
 
 void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationManager *communicationManager, HiCR::MemoryManager *memoryManager)
 {
+  // Initialize nosv
+  check(nosv_init());
+
+  // nosv task instance for the main thread
+  nosv_task_t mainTask;
+
+  // Attaching the main thread
+  check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
+  
   // Creating (local host) topology manager
   const auto topologyManager = HiCR::backend::hwloc::TopologyManager::createDefault();
 
@@ -101,22 +110,22 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   HiCR::Device::computeResourceList_t cr;
 
   // Adding it to the list
-  auto itr      = computeResources.begin();
-  for (size_t i = 0; i < 2ul; i++)
-  {
-    // Getting up-casted pointer for the processing unit
-    auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+  // auto itr      = computeResources.begin();
+  // for (size_t i = 0; i < 2ul; i++)
+  // {
+  //   // Getting up-casted pointer for the processing unit
+  //   auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
 
-    // Checking whether the execution unit passed is compatible with this backend
-    if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+  //   // Checking whether the execution unit passed is compatible with this backend
+  //   if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
 
-    // Getting the logical processor ID of the compute resource
-    auto pid = c->getProcessorId();
+  //   // Getting the logical processor ID of the compute resource
+  //   auto pid = c->getProcessorId();
 
-    printf("numaDomainId: %lu has PID: %u\n", numaDomainId, pid); fflush(stdout);
-    cr.push_back(*itr);
-    itr++;
-  }
+  //   printf("numaDomainId: %lu has PID: %u\n", numaDomainId, pid); fflush(stdout);
+  //   cr.push_back(*itr);
+  //   itr++;
+  // }
 
   // printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
@@ -126,7 +135,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(&computeManager, &computeManager, cr, taskrConfig);
+  taskr::Runtime taskr(&computeManager, &computeManager, computeResources, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
@@ -143,6 +152,12 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // running the Jacobi3D example
   jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
 
+  // Detaching the main thread
+  check(nosv_detach(NOSV_DETACH_NONE));
+
+  // Shutdown nosv
+  check(nosv_shutdown());
+
   // Finalizing instances
   instanceManager->finalize();
 }
@@ -158,14 +173,14 @@ const int LPF_MPI_AUTO_INITIALIZE = 0;
  * in lpf_resize_memory_register . This value is currently
  * guessed as sufficiently large for a program
  */
-  #define DEFAULT_MEMSLOTS 100
+  #define DEFAULT_MEMSLOTS 10000
 
   /**
  * #DEFAULT_MSGSLOTS The message slots used by LPF
  * in lpf_resize_message_queue . This value is currently
  * guessed as sufficiently large for a program
  */
-  #define DEFAULT_MSGSLOTS 100
+  #define DEFAULT_MSGSLOTS 10000
 
 // Global pointer to the
 HiCR::InstanceManager *instanceManager;
@@ -198,16 +213,15 @@ void spmd(lpf_t lpf, lpf_pid_t pid, lpf_pid_t nprocs, lpf_args_t args)
 
 int main(int argc, char *argv[])
 {
-  // Initialize nosv
-  check(nosv_init());
-
-  // nosv task instance for the main thread
-  nosv_task_t mainTask;
-
-  // Attaching the main thread
-  check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
+  
 
   //// Instantiating distributed execution machinery
+
+  
+#ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
+  // Initializing instance manager
+  auto im         = HiCR::backend::mpi::InstanceManager::createDefault(&argc, &argv);
+  instanceManager = im.get();
 
   // Parsing user inputs
   for (int i = 0; i < argc; i++)
@@ -222,10 +236,6 @@ int main(int argc, char *argv[])
     if (!strcmp(argv[i], "-i")) nIters = atoi(argv[++i]);
   }
 
-#ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
-  // Initializing instance manager
-  auto im         = HiCR::backend::mpi::InstanceManager::createDefault(&argc, &argv);
-  instanceManager = im.get();
 
   lpf_init_t init;
   lpf_args_t args;
@@ -240,6 +250,19 @@ int main(int argc, char *argv[])
   std::unique_ptr<HiCR::CommunicationManager> communicationManager = std::make_unique<HiCR::backend::mpi::CommunicationManager>();
   std::unique_ptr<HiCR::MemoryManager>        memoryManager        = std::make_unique<HiCR::backend::mpi::MemoryManager>();
 
+  // Parsing user inputs
+  for (int i = 0; i < argc; i++)
+  {
+    if (!strcmp(argv[i], "-px")) pt.x = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-py")) pt.y = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-pz")) pt.z = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-lx")) lt.x = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-ly")) lt.y = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-lz")) lt.z = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-n")) N = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-i")) nIters = atoi(argv[++i]);
+  }
+
   // Running the remote memcpy example
   jacobiDriver(instanceManager.get(), communicationManager.get(), memoryManager.get());
 #endif
@@ -249,13 +272,20 @@ int main(int argc, char *argv[])
   std::unique_ptr<HiCR::CommunicationManager> communicationManager = std::make_unique<HiCR::backend::pthreads::CommunicationManager>();
   std::unique_ptr<HiCR::MemoryManager>        memoryManager        = HiCR::backend::hwloc::MemoryManager::createDefault();
 
+  // Parsing user inputs
+  for (int i = 0; i < argc; i++)
+  {
+    if (!strcmp(argv[i], "-px")) pt.x = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-py")) pt.y = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-pz")) pt.z = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-lx")) lt.x = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-ly")) lt.y = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-lz")) lt.z = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-n")) N = atoi(argv[++i]);
+    if (!strcmp(argv[i], "-i")) nIters = atoi(argv[++i]);
+  }
+
   // Running the remote memcpy example
   jacobiDriver(instanceManager.get(), communicationManager.get(), &memoryManager.get());
 #endif
-
-  // Detaching the main thread
-  check(nosv_detach(NOSV_DETACH_NONE));
-
-  // Shutdown nosv
-  check(nosv_shutdown());
 }
