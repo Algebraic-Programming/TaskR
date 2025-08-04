@@ -311,15 +311,15 @@ class Runtime
     size_t taskWorkerId = 0;
     for (size_t computeResourceId = _serviceWorkerCount; computeResourceId < _computeResources.size(); computeResourceId++)
     {
-      // Getting up-casted pointer for the processing unit
-      auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(_computeResources[computeResourceId]);
+      // // Getting up-casted pointer for the processing unit
+      // auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(_computeResources[computeResourceId]);
 
-      // Checking whether the execution unit passed is compatible with this backend
-      if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+      // // Checking whether the execution unit passed is compatible with this backend
+      // if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
 
-      // Getting the logical processor ID of the compute resource
-      auto pid = c->getProcessorId();
-      printf("activating PU with PID: %d\n", pid);
+      // // Getting the logical processor ID of the compute resource
+      // auto pid = c->getProcessorId();
+      // printf("activating PU with PID: %d\n", pid);
       
       // Creating new task worker
       auto taskWorker = std::make_shared<taskr::Worker>(
