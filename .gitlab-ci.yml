@@ -29,8 +29,10 @@ build:
     EOF
   - export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$(pwd)/mock_install/share/pkgconfig"
 
+  # Return to project root
+  - cd "$CI_PROJECT_DIR"
+  
   # TaskR build process
-  - cd ../../../..
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
   - echo "Building TaskR..."
