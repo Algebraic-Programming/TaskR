@@ -7,6 +7,30 @@ build:
   - x86
   - infiniband 
   script:
+  # Build Pybind11
+  - sudo apt-get update
+  - sudo apt-get install -y python3-pytest
+  - /usr/bin/python3 -m pip install --upgrade pip pytest
+  - cd extern/pybind11
+  - mkdir -p build
+  - cd build
+  - cmake .. -DPython_EXECUTABLE=/usr/bin/python3
+  - make check -j"$(nproc)"
+  - mkdir -p mock_install/share/pkgconfig
+  - |
+    cat <<EOF > mock_install/share/pkgconfig/pybind11.pc
+    prefix=$(pwd)/..
+    includedir=\${prefix}/include
+
+    Name: pybind11
+    Description: Seamless operability between C++11 and Python
+    Version: 2.13.6
+    Cflags: -I\${includedir}
+    EOF
+  - export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$(pwd)/mock_install/share/pkgconfig"
+
+  # TaskR build process
+  - cd ../../../..
   - export HOME=/home/hicr
   - source /home/hicr/.hicr-env.sh
   - echo "Building TaskR..."
