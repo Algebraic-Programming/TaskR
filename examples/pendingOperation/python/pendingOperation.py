@@ -19,7 +19,7 @@ import taskr
 
 def heavyTask(currentTask):
   # Printing starting message
-  print(f"Task {currentTask.getLabel()} -- Starting 1 second-long operation.")
+  print(f"Task {currentTask.getTaskId()} -- Starting 1 second-long operation.")
 
   # Getting initial time
   t0 = time.time()
@@ -46,7 +46,7 @@ def heavyTask(currentTask):
   currentTask.suspend()
 
   # Printing finished message
-  print(f"Task {currentTask.getLabel()} - operation finished")
+  print(f"Task {currentTask.getTaskId()} - operation finished")
 
 
 def pendingOperation(runtime):

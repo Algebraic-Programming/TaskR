@@ -22,17 +22,17 @@ def simple(runtime):
   runtime.initialize()
 
   # Create tasks
-  fc = lambda task : print(f"Hello, I am task {task.getLabel()}")
+  fc = lambda task : print(f"Hello, I am task {task.getTaskId()}")
   taskfc = taskr.Function(fc)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):
     runtime.addTask(taskr.Task(i, taskfc))
 
-  # Running taskr for the current repetition
+  # Running the tasks
   runtime.run()
 
-  # Waiting current repetition to end
+  # Waiting until all tasks finished
   runtime.wait()
 
   # Finalizing taskr
