@@ -56,6 +56,8 @@ ssize_t nIters = 100;
 D3      pt     = D3({.x = 1, .y = 1, .z = 1});
 D3      lt     = D3({.x = 1, .y = 1, .z = 1});
 
+std::mutex mpi_mutex;
+
 void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationManager *communicationManager, HiCR::MemoryManager *memoryManager)
 {
   // Creating (local host) topology manager
@@ -104,6 +106,8 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   {
     cr.push_back(computeResources[(myInstanceId*size+i)%(computeResources.size())]);
   }
+
+  // cr.push_back(numaDomains[0]->getComputeResourceList()[0]);
   
   for (int i = 0; i < size; ++i) {
     if (myInstanceId == (size_t)i) {
@@ -138,7 +142,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, cr, taskrConfig);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
@@ -154,8 +158,6 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // running the Jacobi3D example
   jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
-
-  
 }
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF

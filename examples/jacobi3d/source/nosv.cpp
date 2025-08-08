@@ -108,25 +108,39 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
+  int size;
+  MPI_Comm_size( MPI_COMM_WORLD, &size);
 
-  // Adding it to the list
-  // auto itr      = computeResources.begin();
-  // for (size_t i = 0; i < 2ul; i++)
-  // {
-  //   // Getting up-casted pointer for the processing unit
-  //   auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+  for(size_t i = 0; i < (size_t)(lt.x * lt.y * lt.z); i++)
+  {
+    cr.push_back(computeResources[(myInstanceId*size+i)%(computeResources.size())]);
+  }
 
-  //   // Checking whether the execution unit passed is compatible with this backend
-  //   if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+  // cr.push_back(numaDomains[0]->getComputeResourceList()[0]);
+  
+  for (int i = 0; i < size; ++i) {
+    if (myInstanceId == (size_t)i) {
+      auto itr      = cr.begin();
+      for (size_t i = 0; i < cr.size(); i++)
+      {
+        // Getting up-casted pointer for the processing unit
+        auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
 
-  //   // Getting the logical processor ID of the compute resource
-  //   auto pid = c->getProcessorId();
+        // Checking whether the execution unit passed is compatible with this backend
+        if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
 
-  //   printf("numaDomainId: %lu has PID: %u\n", numaDomainId, pid); fflush(stdout);
-  //   cr.push_back(*itr);
-  //   itr++;
-  // }
+        // Getting the logical processor ID of the compute resource
+        auto pid = c->getProcessorId();
 
+        printf("%u ", pid); fflush(stdout);
+
+        itr++;
+        // cr.push_back(*itr);
+      }
+      printf("]\n"); fflush(stdout);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
   // printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Initializing nosv-based compute manager to run tasks in parallel
