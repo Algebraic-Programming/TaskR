@@ -272,7 +272,8 @@ jobs:
 
       - name: Build Pybind11
         run: |
-          /usr/bin/python3 -m pip install --upgrade pip pytest
+          sudo apt-get update
+          sudo apt-get install -y python3-pytest
 
           cd extern/pybind11
           mkdir -p build

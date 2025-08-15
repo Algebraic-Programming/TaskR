@@ -1,20 +1,17 @@
-CFLAGS = -O3 -g -Wfatal-errors 
-LIBS = 
-MPICXX = mpicxx
+CXX = g++
+CXXFLAGS = -O3 -g -Wfatal-errors
+INCLUDES = -I/usr/local/include
+LIBS = -L/usr/local/lib -lmpi
 
-.SECONDARY: 
+.SECONDARY:
 BINARIES = jacobi
 
-.PHONY: all stage
+.PHONY: all clean
+
 all: $(BINARIES)
 
 jacobi: jacobi.cpp grid.cpp
-	$(MPICXX) $(CFLAGS) $(LIBS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@ $(LIBS)
 
-.PHONY: clean
 clean:
-	$(RM) $(BINARIES) *.o 
-
-
-	
- 
+	$(RM) $(BINARIES) *.o

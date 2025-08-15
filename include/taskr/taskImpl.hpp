@@ -42,9 +42,9 @@ __INLINE__ Task::Task(Function *fc, const workerId_t workerAffinity)
    * Constructor for the TaskR task class. It requires a user-defined function to execute
    * The task is considered finished when the function runs to completion.
    */
-__INLINE__ Task::Task(const label_t label, Function *fc, const workerId_t workerAffinity)
+__INLINE__ Task::Task(const taskId_t taskId, Function *fc, const workerId_t workerAffinity)
   : HiCR::tasking::Task(fc->getExecutionUnit(), nullptr),
-    _label(label),
+    _taskId(taskId),
     _workerAffinity(workerAffinity)
 {}
 

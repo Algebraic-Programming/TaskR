@@ -20,7 +20,7 @@ import mutex
 def main():
 
     # Initialize taskr with the wanted compute manager backend and number of PUs
-    t = taskr.create("threading")
+    t = taskr.create("nosv")
 
     # Running mutex example
     mutex.mutex(t)

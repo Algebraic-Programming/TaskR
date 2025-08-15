@@ -60,8 +60,8 @@ def matmul_numpy_Driver(runtime):
         B[i, j] = 1.0/(i + 1)
         C[i, j] = 1.0/(j + 1)
 
-    B += task.getLabel()+1
-    C += task.getLabel()+1
+    B += task.getTaskId()+1
+    C += task.getTaskId()+1
     
     A = B @ C
 

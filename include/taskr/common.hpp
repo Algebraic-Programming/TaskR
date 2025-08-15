@@ -49,9 +49,9 @@ namespace taskr
 {
 
 /**
- * A unique identifier (label) for an object
+ * A unique identifier for an object (task)
  */
-typedef HiCR::tasking::uniqueId_t label_t;
+typedef HiCR::tasking::uniqueId_t taskId_t;
 
 /**
  * Type for a locally-unique worker identifier
