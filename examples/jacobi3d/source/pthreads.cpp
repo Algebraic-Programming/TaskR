@@ -56,10 +56,12 @@ ssize_t nIters = 100;
 D3      pt     = D3({.x = 1, .y = 1, .z = 1});
 D3      lt     = D3({.x = 1, .y = 1, .z = 1});
 
-std::mutex mpi_mutex;
-
 void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationManager *communicationManager, HiCR::MemoryManager *memoryManager)
 {
+  int rank, size;
+  MPI_Comm_rank( MPI_COMM_WORLD, &rank);
+  MPI_Comm_size( MPI_COMM_WORLD, &size);
+
   // Creating (local host) topology manager
   const auto topologyManager = HiCR::backend::hwloc::TopologyManager::createDefault();
 
@@ -86,10 +88,20 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Getting NUMA Domain information
   const auto &numaDomains = t.getDevices();
-  printf("NUMA Domains per Node: %lu\n", numaDomains.size());
+  // printf("NUMA Domains per Node: %lu\n", numaDomains.size());
 
   // Assuming one process per numa domain
-  size_t numaDomainId = myInstanceId % numaDomains.size();
+  // Looking for Domains that are not zero (Slurm non --exclusive issue)
+  size_t numaDomainId;
+  for(size_t i = 0; i < numaDomains.size(); ++i)
+  {
+    numaDomainId = (myInstanceId + i) % numaDomains.size();
+    if(numaDomains[numaDomainId]->getComputeResourceList().size() > 0)
+    {
+      break;
+    }
+  }
+
   auto   numaDomain   = numaDomains[numaDomainId];
   printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
 
@@ -99,8 +111,6 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
-  int size;
-  MPI_Comm_size( MPI_COMM_WORLD, &size);
 
   for(size_t i = 0; i < (size_t)(lt.x * lt.y * lt.z); i++)
   {
