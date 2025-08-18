@@ -176,14 +176,14 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // running the Jacobi3D example
   jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
 
+  // Finalizing instances
+  instanceManager->finalize();
+
   // Detaching the main thread
   check(nosv_detach(NOSV_DETACH_NONE));
 
   // Shutdown nosv
-  check(nosv_shutdown());
-
-  // Finalizing instances
-  instanceManager->finalize();
+  // check(nosv_shutdown());
 }
 
 
