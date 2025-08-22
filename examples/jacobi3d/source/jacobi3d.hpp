@@ -183,7 +183,8 @@ void jacobi3d(HiCR::InstanceManager *instanceManager,
 
     for (size_t i = 0; i < instanceCount - 1; i++)
     {
-      while (g->residualConsumerChannel->isEmpty());
+      while (g->residualConsumerChannel->isEmpty())
+        ;
       double *residualPtr = (double *)g->residualConsumerChannel->getTokenBuffer()->getSourceLocalMemorySlot()->getPointer() + g->residualConsumerChannel->peek(0);
       g->residualConsumerChannel->pop();
       globalRes += *residualPtr;

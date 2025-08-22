@@ -51,7 +51,6 @@
 #include "task.hpp"
 #include "jacobi3d.hpp"
 
-
 // Setting default values (globali)
 size_t  gDepth = 1;
 size_t  N      = 128;
@@ -69,7 +68,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Attaching the main thread
   check(nosv_attach(&mainTask, NULL, NULL, NOSV_ATTACH_NONE));
-  
+
   // Creating (local host) topology manager
   const auto topologyManager = HiCR::backend::hwloc::TopologyManager::createDefault();
 
@@ -101,16 +100,13 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Assuming one process per numa domain
   // Looking for Domains that are not zero (Slurm non --exclusive issue)
   size_t numaDomainId;
-  for(size_t i = 0; i < numaDomains.size(); ++i)
+  for (size_t i = 0; i < numaDomains.size(); ++i)
   {
     numaDomainId = (myInstanceId + i) % numaDomains.size();
-    if(numaDomains[numaDomainId]->getComputeResourceList().size() > 0)
-    {
-      break;
-    }
+    if (numaDomains[numaDomainId]->getComputeResourceList().size() > 0) { break; }
   }
 
-  auto   numaDomain   = numaDomains[numaDomainId];
+  auto numaDomain = numaDomains[numaDomainId];
   printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
 
   // Updating the compute resource list
@@ -118,8 +114,8 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
-  int size;
-  MPI_Comm_size( MPI_COMM_WORLD, &size);
+  int                                 size;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   // for(size_t i = 0; i < (size_t)(lt.x * lt.y * lt.z); i++)
   // {
@@ -127,10 +123,12 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // }
 
   // cr.push_back(numaDomains[0]->getComputeResourceList()[0]);
-  
-  for (int i = 0; i < size; ++i) {
-    if (myInstanceId == (size_t)i) {
-      auto itr      = computeResources.begin();
+
+  for (int i = 0; i < size; ++i)
+  {
+    if (myInstanceId == (size_t)i)
+    {
+      auto itr = computeResources.begin();
       for (size_t i = 0; i < computeResources.size(); i++)
       {
         // Getting up-casted pointer for the processing unit
@@ -142,15 +140,17 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
         // Getting the logical processor ID of the compute resource
         auto pid = c->getProcessorId();
 
-        if(pid != 21 && pid != 43 && pid != 65 && pid != 87)
+        if (pid != 21 && pid != 43 && pid != 65 && pid != 87)
         {
-          printf("%u ", pid); fflush(stdout);
-  
+          printf("%u ", pid);
+          fflush(stdout);
+
           cr.push_back(*itr);
         }
         itr++;
       }
-      printf("]\n"); fflush(stdout);
+      printf("]\n");
+      fflush(stdout);
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
@@ -188,7 +188,6 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Shutdown nosv
   // check(nosv_shutdown());
 }
-
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
 
@@ -230,21 +229,17 @@ void spmd(lpf_t lpf, lpf_pid_t pid, lpf_pid_t nprocs, lpf_args_t args)
 
   // Creating memory and communication managers
   std::unique_ptr<HiCR::CommunicationManager> communicationManager = std::make_unique<HiCR::backend::lpf::CommunicationManager>(nprocs, pid, lpf);
-  std::unique_ptr<HiCR::MemoryManager> memoryManager = std::make_unique<HiCR::backend::lpf::MemoryManager>(lpf);
+  std::unique_ptr<HiCR::MemoryManager>        memoryManager        = std::make_unique<HiCR::backend::lpf::MemoryManager>(lpf);
 
   // Running the remote memcpy example
   jacobiDriver(instanceManager, communicationManager.get(), memoryManager.get());
 }
 #endif
 
-
 int main(int argc, char *argv[])
 {
-  
-
   //// Instantiating distributed execution machinery
 
-  
 #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF
   // Initializing instance manager
   auto im         = HiCR::backend::mpi::InstanceManager::createDefault(&argc, &argv);
@@ -262,7 +257,6 @@ int main(int argc, char *argv[])
     if (!strcmp(argv[i], "-n")) N = atoi(argv[++i]);
     if (!strcmp(argv[i], "-i")) nIters = atoi(argv[++i]);
   }
-
 
   lpf_init_t init;
   lpf_args_t args;

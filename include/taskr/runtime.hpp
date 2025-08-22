@@ -320,7 +320,7 @@ class Runtime
       // // Getting the logical processor ID of the compute resource
       // auto pid = c->getProcessorId();
       // printf("activating PU with PID: %d\n", pid);
-      
+
       // Creating new task worker
       auto taskWorker = std::make_shared<taskr::Worker>(
         taskWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
