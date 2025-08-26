@@ -57,8 +57,7 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
     {
       printf("Thread 1: I wait (forever) for the value to turn 2\n");
       mutex.lock(task);
-      bool wasNotified = cv.waitFor(
-        task, mutex, [&]() { return value == 2; }, forever);
+      bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 2; }, forever);
       mutex.unlock(task);
       if (wasNotified == false)
       {
@@ -73,8 +72,7 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
       printf("Thread 1: I wait (with timeout) for the value to turn 3 (won't happen)\n");
       mutex.lock(task);
       auto startTime   = std::chrono::high_resolution_clock::now();
-      bool wasNotified = cv.waitFor(
-        task, mutex, [&]() { return value == 3; }, timeoutTimeUs);
+      bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 3; }, timeoutTimeUs);
       auto currentTime = std::chrono::high_resolution_clock::now();
       auto elapsedTime = (size_t)std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count();
       mutex.unlock(task);
@@ -101,8 +99,7 @@ void conditionVariableWaitForCondition(taskr::Runtime &taskr)
     // Waiting for the other thread to set the first value
     printf("Thread 2: First, I'll wait for the value to become 1\n");
     mutex.lock(task);
-    bool wasNotified = cv.waitFor(
-      task, mutex, [&]() { return value == 1; }, forever);
+    bool wasNotified = cv.waitFor(task, mutex, [&]() { return value == 1; }, forever);
     mutex.unlock(task);
     if (wasNotified == false)
     {
