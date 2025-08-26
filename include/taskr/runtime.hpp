@@ -436,10 +436,7 @@ class Runtime
    * 
    * @param[in] service The service (function) to add
    */
-  __INLINE__ void addService(taskr::service_t *service)
-  { 
-    _serviceQueue->push(service); 
-  }
+  __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
 
   private:
 
