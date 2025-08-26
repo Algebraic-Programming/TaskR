@@ -103,7 +103,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Assuming one process per numa domain
   // Looking for Domains that are not zero (Slurm non --exclusive issue)
-  size_t numaDomainId;
+  size_t numaDomainId = 0;
   for (size_t i = 0; i < numaDomains.size(); ++i)
   {
     numaDomainId = (myInstanceId + i) % numaDomains.size();
