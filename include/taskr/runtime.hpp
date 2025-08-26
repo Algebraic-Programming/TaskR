@@ -128,7 +128,6 @@ class Runtime
       _computeResources(computeResources)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // This is to check if ovni has been already initialized by nOS-V
     bool external_init_ = (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? true : false;
 
@@ -145,7 +144,6 @@ class Runtime
     thread_idx.suspending = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GRAY, "suspended");
     thread_idx.resuming   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GREEN, "resumed");
     thread_idx.finished   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_YELLOW, "finished");
-
 #endif
 
     // Creating internal tasks
@@ -438,7 +436,10 @@ class Runtime
    * 
    * @param[in] service The service (function) to add
    */
-  __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
+  __INLINE__ void addService(taskr::service_t *service)
+  { 
+    _serviceQueue->push(service); 
+  }
 
   private:
 
