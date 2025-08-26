@@ -386,10 +386,8 @@ class Runtime
     _state = state_t::initialized;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of the main thread being finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
-
 #endif
   }
 
@@ -411,10 +409,8 @@ class Runtime
     _state = state_t::uninitialized;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR stop tracing
     INSTRUMENTATION_END();
-
 #endif
   }
 
@@ -449,10 +445,8 @@ class Runtime
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
-
 #endif
 
     // Getting worker pointer
@@ -471,10 +465,8 @@ class Runtime
     if (service != nullptr)
     {
 #ifdef ENABLE_INSTRUMENTATION
-
       // TraCR set trace of thread executing a service
       INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-
 #endif
 
       // Running service
@@ -491,10 +483,8 @@ class Runtime
   __INLINE__ taskr::Task *taskWorkerLoop(const workerId_t taskWorkerId)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
-
 #endif
 
     // The worker is once again active
@@ -513,10 +503,8 @@ class Runtime
       if (service != nullptr)
       {
 #ifdef ENABLE_INSTRUMENTATION
-
         // TraCR set trace of thread executing a service
         INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-
 #endif
 
         // Running service
@@ -669,10 +657,8 @@ class Runtime
   __INLINE__ void onWorkerStartCallback(HiCR::tasking::Worker *const worker)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR initialize the thread
     INSTRUMENTATION_THREAD_INIT();
-
 #endif
 
     // Getting TaskR worker pointer
@@ -688,10 +674,8 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread suspended
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.suspending);
-
 #endif
 
     // If defined, trigger user-defined event
@@ -704,10 +688,8 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread resumed
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.resuming);
-
 #endif
 
     // If defined, trigger user-defined event
@@ -720,13 +702,11 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // Set the marker of this thread to be finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
     INSTRUMENTATION_THREAD_END();
-
 #endif
 
     // If defined, trigger user-defined event
