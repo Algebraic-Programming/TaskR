@@ -441,14 +441,10 @@ class Runtime
    */
   __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
 
-
   /**
    * Funtion to force termination in case the application does not have its own termination logic
    */
-  __INLINE__ void forceTermination()
-  {
-    _forceTerminate = true;
-  }
+  __INLINE__ void forceTermination() { _forceTerminate = true; }
 
   private:
 
@@ -461,7 +457,7 @@ class Runtime
 
     // Getting worker pointer
     auto worker = _serviceWorkers[serviceWorkerId];
-    
+
     // Checking for termination
     auto terminated = checkTermination(worker.get());
 
@@ -507,16 +503,16 @@ class Runtime
     if (_forceTerminate == true)
     {
       while (_commonReadyTaskQueue->wasEmpty() == false)
-      { 
+      {
         auto task = _commonReadyTaskQueue->pop();
         if (task != nullptr) _activeTaskCount--;
-      } 
+      }
 
       while (worker->getReadyTaskQueue()->wasEmpty() == false)
-      { 
+      {
         auto task = worker->getReadyTaskQueue()->pop();
         if (task != nullptr) _activeTaskCount--;
-      } 
+      }
     }
 
     // If required, perform a service task
@@ -738,8 +734,6 @@ class Runtime
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerTerminate);
   }
-
-
 
   /**
    * Flag to indicate whether execution must be forcibly terminated. It is discouraged to use this if the application
