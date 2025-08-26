@@ -109,13 +109,6 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
 
-  // for(size_t i = 0; i < (size_t)(lt.x * lt.y * lt.z); i++)
-  // {
-  //   cr.push_back(computeResources[(i+2)%(computeResources.size())]);
-  // }
-
-  // cr.push_back(numaDomains[0]->getComputeResourceList()[0]);
-
   for (int i = 0; i < size; ++i)
   {
     if (myInstanceId == (size_t)i)
@@ -132,13 +125,10 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
         // Getting the logical processor ID of the compute resource
         auto pid = c->getProcessorId();
 
-        if (pid != 21 && pid != 43 && pid != 65 && pid != 87) //21,43,65,87 are broken for nOS-V
-        {
-          printf("%u ", pid);
-          fflush(stdout);
+        printf("%u ", pid);
+        fflush(stdout);
 
-          cr.push_back(*itr);
-        }
+        cr.push_back(*itr);
 
         itr++;
       }
@@ -147,7 +137,6 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
-  // printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::ComputeManager boostComputeManager;
