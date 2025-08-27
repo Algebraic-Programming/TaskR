@@ -99,53 +99,59 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Getting NUMA Domain information
   const auto &numaDomains = t.getDevices();
-  printf("NUMA Domains per Node: %lu\n", numaDomains.size());
-
-  // Assuming one process per numa domain
-  // Looking for Domains that are not zero (Slurm non --exclusive issue)
-  size_t numaDomainId = 0;
-  for (size_t i = 0; i < numaDomains.size(); ++i)
-  {
-    numaDomainId = (myInstanceId + i) % numaDomains.size();
-    if (numaDomains[numaDomainId]->getComputeResourceList().size() > 0) { break; }
-  }
-
-  auto numaDomain = numaDomains[numaDomainId];
-  printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
-
-  // Updating the compute resource list
-  auto computeResources = numaDomain->getComputeResourceList();
+  // printf("NUMA Domains per Node: %lu\n", numaDomains.size());
 
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
-
-  for (int i = 0; i < size; ++i)
+  
+  for (size_t numaDomainId = 0; numaDomainId <numaDomains.size(); ++numaDomainId)
   {
-    if (myInstanceId == (size_t)i)
+    auto numaDomain = numaDomains[numaDomainId];
+    printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
+  
+    // Updating the compute resource list
+    auto computeResources = numaDomain->getComputeResourceList();
+    printf("NUMA Domain %lu: #PUs %lu and has PID [", numaDomainId, computeResources.size());
+    for (int i = 0; i < size; ++i)
     {
-      auto itr = computeResources.begin();
-      for (size_t i = 0; i < computeResources.size(); i++)
+      if (myInstanceId == (size_t)i)
       {
-        // Getting up-casted pointer for the processing unit
-        auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+        auto itr = computeResources.begin();
+        for (size_t i = 0; i < computeResources.size(); i++)
+        {
+          // Getting up-casted pointer for the processing unit
+          auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
 
-        // Checking whether the execution unit passed is compatible with this backend
-        if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+          // Checking whether the execution unit passed is compatible with this backend
+          if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
 
-        // Getting the logical processor ID of the compute resource
-        auto pid = c->getProcessorId();
+          // Getting the logical processor ID of the compute resource
+          auto pid = c->getProcessorId();
+          
+          if(rank % 2 == 0)
+          {
+            if(pid < 22 || (pid > 43 && pid < 66)){
+              printf("%u ", pid);
+              fflush(stdout);
+    
+              cr.push_back(*itr);
+            }
+          } else {
+            if(!(pid < 22 || (pid > 43 && pid < 66))){
+              printf("%u ", pid);
+              fflush(stdout);
+    
+              cr.push_back(*itr);
+            }
+          }
 
-        printf("%u ", pid);
-        fflush(stdout);
-
-        cr.push_back(*itr);
-
-        itr++;
+          itr++;
+        }
       }
       printf("]\n");
       fflush(stdout);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
-    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   // Initializing nosv-based compute manager to run tasks in parallel
