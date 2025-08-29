@@ -89,58 +89,14 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Getting NUMA Domain information
   const auto &numaDomains = t.getDevices();
   
-  // Compute resources to use
-  HiCR::Device::computeResourceList_t cr;
-  
-  for (size_t numaDomainId = 0; numaDomainId <numaDomains.size(); ++numaDomainId)
-  {
-    auto numaDomain = numaDomains[numaDomainId];
-    printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
-  
-    // Updating the compute resource list
-    auto computeResources = numaDomain->getComputeResourceList();
-    printf("NUMA Domain %lu: #PUs %lu and has PID [", numaDomainId, computeResources.size());
-    for (int i = 0; i < size; ++i)
-    {
-      if (myInstanceId == (size_t)i)
-      {
-        auto itr = computeResources.begin();
-        for (size_t i = 0; i < computeResources.size(); i++)
-        {
-          // Getting up-casted pointer for the processing unit
-          auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+  // Assuming one process per numa domain
+  size_t numaDomainId = myInstanceId % numaDomains.size();
+  auto   numaDomain   = numaDomains[numaDomainId];
+  printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
 
-          // Checking whether the execution unit passed is compatible with this backend
-          if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
-
-          // Getting the logical processor ID of the compute resource
-          auto pid = c->getProcessorId();
-          
-          if(rank == 0)
-          {
-            if(pid < 22 || (pid > 43 && pid < 66)){
-              printf("%u ", pid);
-              fflush(stdout);
-    
-              cr.push_back(*itr);
-            }
-          } else {
-            if(!(pid < 22 || (pid > 43 && pid < 66))){
-              printf("%u ", pid);
-              fflush(stdout);
-    
-              cr.push_back(*itr);
-            }
-          }
-
-          itr++;
-        }
-      }
-      printf("]\n");
-      fflush(stdout);
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
-  }
+  // Updating the compute resource list
+  auto computeResources = numaDomain->getComputeResourceList();
+  printf("PUs Per NUMA Domain: %lu\n", computeResources.size());
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::ComputeManager boostComputeManager;
@@ -151,7 +107,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // Creating taskr object
   nlohmann::json taskrConfig;
   taskrConfig["Remember Finished Objects"] = true;
-  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, cr, taskrConfig);
+  taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, computeResources, taskrConfig);
 
   // Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
