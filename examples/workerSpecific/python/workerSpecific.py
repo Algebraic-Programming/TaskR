@@ -24,16 +24,16 @@ import sys
 import taskr
 
 def workFc(currentTask):
-  taskLabel = currentTask.getLabel()
+  taskId = currentTask.getTaskId()
   currentCPUId = libc.sched_getcpu()
 
   #### First launched on even cpus
 
-  print(f"Task {taskLabel} first run running on CPU {currentCPUId}")
+  print(f"Task {taskId} first run running on CPU {currentCPUId}")
 
   # Sanity check
-  if int(2 * taskLabel) != currentCPUId:
-    sys.stderr.write(f"Task label ({taskLabel}) does not coincide with the current CPU id! ({currentCPUId})")
+  if int(2 * taskId) != currentCPUId:
+    sys.stderr.write(f"Task ID ({taskId}) does not coincide with the current CPU id! ({currentCPUId})")
     sys.exit(1)
 
   # Changing to odd cpus
@@ -45,11 +45,11 @@ def workFc(currentTask):
   #### Now launched in odd cpus
 
   currentCPUId = libc.sched_getcpu()
-  print(f"Task {taskLabel} second run running on CPU {currentCPUId}")
+  print(f"Task {taskId} second run running on CPU {currentCPUId}")
 
   # Sanity check
-  if int(2 * taskLabel) + 1 != currentCPUId:
-    sys.stderr.write(f"Task label ({taskLabel}) + 1 does not coincide with the current CPU id! ({currentCPUId})")
+  if int(2 * taskId) + 1 != currentCPUId:
+    sys.stderr.write(f"Task ID ({taskId}) + 1 does not coincide with the current CPU id! ({currentCPUId})")
     sys.exit(1)
 
 

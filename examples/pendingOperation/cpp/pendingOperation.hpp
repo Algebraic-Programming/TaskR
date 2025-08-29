@@ -23,7 +23,7 @@
 void heavyTask(taskr::Task *currentTask)
 {
   // Printing starting message
-  printf("Task %lu -- Starting 1 second-long operation.\n", currentTask->getLabel());
+  printf("Task %lu -- Starting 1 second-long operation.\n", currentTask->getTaskId());
 
   // Getting initial time
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -50,7 +50,7 @@ void heavyTask(taskr::Task *currentTask)
   currentTask->suspend();
 
   // Printing finished message
-  printf("Task %lu - operation finished\n", currentTask->getLabel());
+  printf("Task %lu - operation finished\n", currentTask->getTaskId());
 }
 
 void pendingOperation(taskr::Runtime &taskr)

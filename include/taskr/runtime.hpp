@@ -128,7 +128,6 @@ class Runtime
       _computeResources(computeResources)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // This is to check if ovni has been already initialized by nOS-V
     bool external_init_ = (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? true : false;
 
@@ -145,7 +144,6 @@ class Runtime
     thread_idx.suspending = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GRAY, "suspended");
     thread_idx.resuming   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_LIGHT_GREEN, "resumed");
     thread_idx.finished   = INSTRUMENTATION_THREAD_MARK_ADD(MARK_COLOR_YELLOW, "finished");
-
 #endif
 
     // Creating internal tasks
@@ -311,6 +309,16 @@ class Runtime
     size_t taskWorkerId = 0;
     for (size_t computeResourceId = _serviceWorkerCount; computeResourceId < _computeResources.size(); computeResourceId++)
     {
+      // // Getting up-casted pointer for the processing unit
+      // auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(_computeResources[computeResourceId]);
+
+      // // Checking whether the execution unit passed is compatible with this backend
+      // if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+
+      // // Getting the logical processor ID of the compute resource
+      // auto pid = c->getProcessorId();
+      // printf("activating PU with PID: %d\n", pid);
+
       // Creating new task worker
       auto taskWorker = std::make_shared<taskr::Worker>(
         taskWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
@@ -379,10 +387,8 @@ class Runtime
     _state = state_t::initialized;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of the main thread being finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
-
 #endif
   }
 
@@ -404,18 +410,16 @@ class Runtime
     _state = state_t::uninitialized;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR stop tracing
     INSTRUMENTATION_END();
-
 #endif
   }
 
   /**
-   * This function informs TaskR that a certain task (with a given unique label) has finished
+   * This function informs TaskR that a certain task (with a given unique ID) has finished
    * If this task the last remaining dependency for a given task, now the task may be scheduled for execution.
    * 
-   * @param[in] task Label of the task to report as finished
+   * @param[in] task The task to report as finished
    */
   __INLINE__ void setFinishedTask(taskr::Task *const task)
   {
@@ -437,29 +441,23 @@ class Runtime
    */
   __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
 
-
   /**
    * Funtion to force termination in case the application does not have its own termination logic
    */
-  __INLINE__ void forceTermination()
-  {
-    _forceTerminate = true;
-  }
+  __INLINE__ void forceTermination() { _forceTerminate = true; }
 
   private:
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
-
 #endif
 
     // Getting worker pointer
     auto worker = _serviceWorkers[serviceWorkerId];
-    
+
     // Checking for termination
     auto terminated = checkTermination(worker.get());
 
@@ -473,10 +471,8 @@ class Runtime
     if (service != nullptr)
     {
 #ifdef ENABLE_INSTRUMENTATION
-
       // TraCR set trace of thread executing a service
       INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-
 #endif
 
       // Running service
@@ -493,10 +489,8 @@ class Runtime
   __INLINE__ taskr::Task *taskWorkerLoop(const workerId_t taskWorkerId)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread polling
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.polling);
-
 #endif
 
     // The worker is once again active
@@ -509,16 +503,16 @@ class Runtime
     if (_forceTerminate == true)
     {
       while (_commonReadyTaskQueue->wasEmpty() == false)
-      { 
+      {
         auto task = _commonReadyTaskQueue->pop();
         if (task != nullptr) _activeTaskCount--;
-      } 
+      }
 
       while (worker->getReadyTaskQueue()->wasEmpty() == false)
-      { 
+      {
         auto task = worker->getReadyTaskQueue()->pop();
         if (task != nullptr) _activeTaskCount--;
-      } 
+      }
     }
 
     // If required, perform a service task
@@ -531,10 +525,8 @@ class Runtime
       if (service != nullptr)
       {
 #ifdef ENABLE_INSTRUMENTATION
-
         // TraCR set trace of thread executing a service
         INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-
 #endif
 
         // Running service
@@ -687,10 +679,8 @@ class Runtime
   __INLINE__ void onWorkerStartCallback(HiCR::tasking::Worker *const worker)
   {
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR initialize the thread
     INSTRUMENTATION_THREAD_INIT();
-
 #endif
 
     // Getting TaskR worker pointer
@@ -706,10 +696,8 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread suspended
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.suspending);
-
 #endif
 
     // If defined, trigger user-defined event
@@ -722,10 +710,8 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // TraCR set trace of thread resumed
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.resuming);
-
 #endif
 
     // If defined, trigger user-defined event
@@ -738,20 +724,16 @@ class Runtime
     auto taskrWorker = (taskr::Worker *)worker;
 
 #ifdef ENABLE_INSTRUMENTATION
-
     // Set the marker of this thread to be finished
     INSTRUMENTATION_THREAD_MARK_SET(thread_idx.finished);
 
     // TraCR end thread (only if backend is not nOS-V)
     INSTRUMENTATION_THREAD_END();
-
 #endif
 
     // If defined, trigger user-defined event
     this->_workerCallbackMap.trigger(taskrWorker, HiCR::tasking::Worker::callback_t::onWorkerTerminate);
   }
-
-
 
   /**
    * Flag to indicate whether execution must be forcibly terminated. It is discouraged to use this if the application

@@ -6,9 +6,9 @@ ITERATIONS = 100
 def abcTasks(runtime):
 
    # Create the taskr Tasks
-  taskAfc = taskr.Function(lambda task : print(f"Task A {task.getLabel()}"))
-  taskBfc = taskr.Function(lambda task : print(f"Task B {task.getLabel()}"))
-  taskCfc = taskr.Function(lambda task : print(f"Task C {task.getLabel()}"))
+  taskAfc = taskr.Function(lambda task : print(f"Task A {task.getTaskId()}"))
+  taskBfc = taskr.Function(lambda task : print(f"Task B {task.getTaskId()}"))
+  taskCfc = taskr.Function(lambda task : print(f"Task C {task.getTaskId()}"))
 
   # Initializing taskr
   runtime.initialize()
@@ -19,13 +19,13 @@ def abcTasks(runtime):
   # Creating the execution units (functions that the tasks will run)
   for r in range(REPETITIONS):
     # Calculating the base task id for this repetition
-    repetitionLabel = r * ITERATIONS * 3
+    repetitionTaskId = r * ITERATIONS * 3
 
     for i in range(ITERATIONS):
 
-      taskA = taskr.Task(repetitionLabel + i * 3 + 0, taskAfc)
-      taskB = taskr.Task(repetitionLabel + i * 3 + 1, taskBfc)
-      taskC = taskr.Task(repetitionLabel + i * 3 + 2, taskCfc)
+      taskA = taskr.Task(repetitionTaskId + i * 3 + 0, taskAfc)
+      taskB = taskr.Task(repetitionTaskId + i * 3 + 1, taskBfc)
+      taskC = taskr.Task(repetitionTaskId + i * 3 + 2, taskCfc)
 
       # Creating dependencies
       if i > 0: taskA.addDependency(prevTaskC)
