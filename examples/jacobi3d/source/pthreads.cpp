@@ -88,7 +88,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Getting NUMA Domain information
   const auto &numaDomains = t.getDevices();
-  
+
   // Assuming one process per numa domain
   size_t numaDomainId = myInstanceId % numaDomains.size();
   auto   numaDomain   = numaDomains[numaDomainId];
