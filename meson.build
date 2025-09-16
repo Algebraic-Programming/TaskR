@@ -3,7 +3,8 @@ project('TaskR', [ 'cpp', 'c'],
   default_options : [
   'cpp_std=c++20',
   'buildtype=release'
-  ]
+  ],
+  version: '1.0.0'
 )
 
 ####### Storage for TaskR dependencies
@@ -40,12 +41,14 @@ if meson.is_subproject() == false
   endif
 
   # Getting selected distributed engine
-  distributedEngine = get_option('distributedEngine')
+  distributedEngines = get_option('distributedEngines')
 
   # If, selected, adding the dependency for the distributed engine
-  if distributedEngine != 'none'
-    HiCRBackends += distributedEngine
-  endif
+  foreach engine : distributedEngines
+    if engine != 'none' and engine not in HiCRBackends
+      HiCRBackends += engine
+    endif
+  endforeach
 
   HiCRProject = subproject('HiCR', required: true, default_options: [ 'backends=' + ','.join(HiCRBackends), 'frontends=tasking' ])
   HiCRBuildDep = HiCRProject.get_variable('hicrBuildDep')

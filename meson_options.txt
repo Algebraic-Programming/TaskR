@@ -1,7 +1,7 @@
-option('distributedEngine', type : 'combo',
+option('distributedEngines', type : 'array',
        choices : [ 'mpi', 'lpf', 'none' ], 
-       description : 'Specifies which engine (if any) to use for distributed computing examples',
-       value: 'none'
+       description : 'Specifies which engines (if any) to use for distributed computing examples',
+       value: ['none']
        )
 
 option('executionStateType', type : 'array',
