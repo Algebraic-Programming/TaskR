@@ -63,9 +63,12 @@ jobs:
           EOF
 
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/mock_install/share/pkgconfig" >> $GITHUB_ENV
-        
+     
+      - name: Dry-run compilation
+        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi,lpf,none -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads -DbuildPyTaskR=true && meson compile -C build
+      
       - name: Setup
-        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi,lpf,none -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads -DbuildPyTaskR=true
+        run: source /home/hicr/.bashrc && meson setup build -Dbuildtype=debug -Db_coverage=true -DdistributedEngine=mpi,none -DbuildTests=true -DbuildExamples=true -DcompileWarningsAsErrors=true -DexecutionStateType=nosv,boost -DprocessingUnitType=nosv,pthreads -DbuildPyTaskR=true
 
       - name: Compile
         run: source /home/hicr/.bashrc && meson compile -C build
