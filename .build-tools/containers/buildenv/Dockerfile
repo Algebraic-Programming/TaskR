@@ -23,5 +23,5 @@ COPY requirements.txt $HOME
 RUN source $HOME/.venv/bin/activate && pip install --upgrade pip && pip install -r $HOME/requirements.txt && rm $HOME/requirements.txt
 
 RUN sudo sed -i '/^\[instrumentation\]/,/^\[/{s/version *= *"ovni"/version = "none"/}' /usr/local/share/nosv.toml 
-
+RUN echo 'export LD_PRELOAD=/usr/local/lib/libnosv.so:$LD_PRELOAD' >> $HOME/.hicr-env.sh
 WORKDIR $HOME
