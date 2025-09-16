@@ -4,15 +4,15 @@
 
 python_mod = import('python')
 
-py = python_mod.find_installation(pure: false)
+py = python_mod.find_installation(pure: true)
 
 if not py.found()
-  py = python_mod.find_installation('/usr/bin/python3', pure: false)
+  py = python_mod.find_installation('/usr/bin/python3', pure: false, required: true)
 endif
 
 pybind11_dep = dependency('pybind11', required: true)
 
-message('Python binary: ' + py.path())
+message('Python binary: ' + py.full_path())
 message('Python install dir: ' + py.get_install_dir())
 
 py.extension_module('taskr',

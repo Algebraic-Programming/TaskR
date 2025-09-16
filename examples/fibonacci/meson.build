@@ -4,7 +4,7 @@ if 'boost' in get_option('executionStateType') and 'pthreads' in get_option('pro
 	threading = executable('threading', [ 'cpp/pthreads.cpp'], dependencies: [ TaskRBuildDep ])
 
 	if get_option('buildTests')
-		test('threading', threading, args : [ '15' ], suite: testSuite, workdir: threading.path() + '.p' )
+		test('threading', threading, args : [ '15' ], suite: testSuite, workdir: threading.full_path() + '.p' )
 	endif
 endif
 
@@ -12,7 +12,7 @@ if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processi
 	nosv = executable('nosv', [ 'cpp/nosv.cpp'], dependencies: [ TaskRBuildDep ])
 
 	if get_option('buildTests')
-		test('nosv', nosv, args : [ '15' ], is_parallel : false, suite: testSuite, workdir: nosv.path() + '.p' )
+		test('nosv', nosv, args : [ '15' ], is_parallel : false, suite: testSuite, workdir: nosv.full_path() + '.p' )
 	endif
 endif
 

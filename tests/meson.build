@@ -31,5 +31,5 @@ if get_option('buildPyTaskR')
   testSuite = ['tests', 'pyruntime']
 	pyruntime = executable('pyruntime_test', [ 'pyruntime_test.cpp'], dependencies: [ TaskRBuildDep ])
 
-	test('pyruntime_test', pyruntime, args : [ ], suite: testSuite, workdir: pyruntime.path() + '.p' )
+	test('pyruntime_test', pyruntime, args : [ ], suite: testSuite, workdir: pyruntime.full_path() + '.p' )
 endif
