@@ -7,7 +7,7 @@ python_mod = import('python')
 py = python_mod.find_installation(pure: true)
 
 if not py.found()
-  py = python_mod.find_installation('/usr/bin/python3', pure: false, required: true)
+  py = python_mod.find_installation('python3', pure: false, required: true)
 endif
 
 pybind11_dep = dependency('pybind11', required: true)

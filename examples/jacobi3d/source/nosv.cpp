@@ -133,8 +133,10 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   // running the Jacobi3D example
   jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
 
+#ifdef _TASKR_DISTRIBUTED_ENGINE_MPI
   // Finalizing instances
   instanceManager->finalize();
+#endif
 
   // Detaching the main thread
   check(nosv_detach(NOSV_DETACH_NONE));
@@ -242,7 +244,7 @@ int main(int argc, char *argv[])
   jacobiDriver(instanceManager.get(), communicationManager.get(), memoryManager.get());
 #endif
 
-#ifdef _TASKR_DISTRIBUTED_ENGINE_NONE // This one segfaults (check why)
+#ifdef _TASKR_DISTRIBUTED_ENGINE_NONE // TODO: This one segfaults (check why)
   std::unique_ptr<HiCR::InstanceManager>      instanceManager      = std::make_unique<HiCR::backend::hwloc::InstanceManager>();
   std::unique_ptr<HiCR::CommunicationManager> communicationManager = std::make_unique<HiCR::backend::pthreads::CommunicationManager>();
   std::unique_ptr<HiCR::MemoryManager>        memoryManager        = HiCR::backend::hwloc::MemoryManager::createDefault();
