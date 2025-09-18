@@ -22,7 +22,7 @@ import suspend
 def main():
     # Getting arguments, if provided
     taskCount = 2
-    branchCount = 100
+    branchCount = 10
     if len(sys.argv) > 1: taskCount = int(sys.argv[1])
     if len(sys.argv) > 2: branchCount = int(sys.argv[2])
 
