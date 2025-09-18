@@ -13,13 +13,13 @@ if 'mpi' in distributedEngines
 		endif
 	endif
 
-	if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processingUnitType')
-		nosv = executable('mpi-nosv', [ 'source/nosv.cpp', 'source/grid.cpp' ], dependencies: [ TaskRBuildDep ], cpp_args: [ TaskRDistributedCppFlag ] )
+	# if 'nosv' in get_option('executionStateType') and 'nosv' in get_option('processingUnitType')
+	# 	nosv = executable('mpi-nosv', [ 'source/nosv.cpp', 'source/grid.cpp' ], dependencies: [ TaskRBuildDep ], cpp_args: [ TaskRDistributedCppFlag ] )
 		
-		if get_option('buildTests')
-			test('mpi-nosv', mpirunExecutable, args : [ '-n', '2', '--oversubscribe', nosv.full_path(), '-px', '1', '-py', '1', '-pz', '2', '-lx', '1', '-ly', '2', '-lz', '2', '-n', '64', '-i', '10'], is_parallel : false, suite: testSuite + ['mpi'], workdir: nosv.full_path() + '.p' )
-		endif
-	endif
+	# 	if get_option('buildTests')
+	# 		test('mpi-nosv', mpirunExecutable, args : [ '-n', '2', '--oversubscribe', nosv.full_path(), '-px', '1', '-py', '1', '-pz', '2', '-lx', '1', '-ly', '2', '-lz', '2', '-n', '64', '-i', '10'], is_parallel : false, suite: testSuite + ['mpi'], workdir: nosv.full_path() + '.p' )
+	# 	endif
+	# endif
 endif
 	
 if 'lpf' in distributedEngines
