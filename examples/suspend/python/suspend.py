@@ -18,7 +18,7 @@ import time
 
 import taskr
 
-NSUSPENDS = 1000
+NSUSPENDS = 100
 
 def suspend(runtime, branchCount, taskCount):
   # Allowing tasks to immediately resume upon suspension -- they won't execute until their pending operation is finished

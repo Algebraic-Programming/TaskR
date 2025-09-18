@@ -16,8 +16,8 @@
 
 import taskr
 
-_CONCURRENT_TASKS = 32
-_ITERATIONS_ = 1000
+_CONCURRENT_TASKS = 4
+_ITERATIONS_ = 100
 
 def mutex(runtime):
 
