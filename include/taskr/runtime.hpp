@@ -42,8 +42,11 @@
 #include "taskImpl.hpp"
 #include "worker.hpp"
 
+namespace taskr
+{
+
 /**
- * thread indices for the TraCR thread markers 
+ * Thread indices for the TraCR thread markers 
  */
 struct ThreadIndices
 {
@@ -78,8 +81,6 @@ struct ThreadIndices
   size_t finished;
 };
 
-namespace taskr
-{
 
 /**
  * Enumeration of states in which the TaskR runtime can be in
