@@ -25,6 +25,13 @@
  * second size_t: taskid
  */
 std::unordered_map<size_t, size_t> taskid_hashmap;
+#define CHANNEL_X0_TAG_OFFSET 0
+#define CHANNEL_X1_TAG_OFFSET 100000
+#define CHANNEL_Y0_TAG_OFFSET 200000
+#define CHANNEL_Y1_TAG_OFFSET 300000
+#define CHANNEL_Z0_TAG_OFFSET 400000
+#define CHANNEL_Z1_TAG_OFFSET 500000
+
 
 bool Grid::initialize()
 {
@@ -147,13 +154,9 @@ bool Grid::initialize()
   auto consumerTokenBufferSizeY = HiCR::channel::fixedSize::Base::getTokenBufferSize(sizeof(double) * bufferSizeY, CHANNEL_DEPTH);
   auto consumerTokenBufferSizeZ = HiCR::channel::fixedSize::Base::getTokenBufferSize(sizeof(double) * bufferSizeZ, CHANNEL_DEPTH);
 
-  const HiCR::GlobalMemorySlot::tag_t channelTagX0 = 0;
-  const HiCR::GlobalMemorySlot::tag_t channelTagX1 = 1;
-  const HiCR::GlobalMemorySlot::tag_t channelTagY0 = 2;
-  const HiCR::GlobalMemorySlot::tag_t channelTagY1 = 3;
-  const HiCR::GlobalMemorySlot::tag_t channelTagZ0 = 4;
-  const HiCR::GlobalMemorySlot::tag_t channelTagZ1 = 5;
+  const HiCR::GlobalMemorySlot::tag_t channelTag   = 0;
 
+  std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTags;
   std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX0Tags;
   std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagX1Tags;
   std::vector<HiCR::CommunicationManager::globalKeyMemorySlotPair_t> channelTagY0Tags;
@@ -212,46 +215,41 @@ bool Grid::initialize()
         const HiCR::GlobalMemorySlot::globalKey_t localProducerBufferKey     = 3 * (processId * lt.z * lt.y * lt.x + i * lt.y * lt.x + j * lt.x + k) + 2;
 
         channelTagX0Tags.insert(channelTagX0Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotX0},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferX0},
-                                 {localProducerBufferKey, localProducerCoordinationBufferX0}});
+                                {{localTokenBufferKey + CHANNEL_X0_TAG_OFFSET, consumerTokenBufferSlotX0},
+                                 {localCoordinationBufferKey + CHANNEL_X0_TAG_OFFSET, localConsumerCoordinationBufferX0},
+                                 {localProducerBufferKey + CHANNEL_X0_TAG_OFFSET, localProducerCoordinationBufferX0}});
         channelTagX1Tags.insert(channelTagX1Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotX1},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferX1},
-                                 {localProducerBufferKey, localProducerCoordinationBufferX1}});
+                                {{localTokenBufferKey + CHANNEL_X1_TAG_OFFSET, consumerTokenBufferSlotX1},
+                                 {localCoordinationBufferKey + CHANNEL_X1_TAG_OFFSET, localConsumerCoordinationBufferX1},
+                                 {localProducerBufferKey + CHANNEL_X1_TAG_OFFSET, localProducerCoordinationBufferX1}});
         channelTagY0Tags.insert(channelTagY0Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotY0},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferY0},
-                                 {localProducerBufferKey, localProducerCoordinationBufferY0}});
+                                {{localTokenBufferKey + CHANNEL_Y0_TAG_OFFSET, consumerTokenBufferSlotY0},
+                                 {localCoordinationBufferKey + CHANNEL_Y0_TAG_OFFSET, localConsumerCoordinationBufferY0},
+                                 {localProducerBufferKey + CHANNEL_Y0_TAG_OFFSET, localProducerCoordinationBufferY0}});
         channelTagY1Tags.insert(channelTagY1Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotY1},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferY1},
-                                 {localProducerBufferKey, localProducerCoordinationBufferY1}});
+                                {{localTokenBufferKey + CHANNEL_Y1_TAG_OFFSET, consumerTokenBufferSlotY1},
+                                 {localCoordinationBufferKey + CHANNEL_Y1_TAG_OFFSET, localConsumerCoordinationBufferY1},
+                                 {localProducerBufferKey + CHANNEL_Y1_TAG_OFFSET, localProducerCoordinationBufferY1}});
         channelTagZ0Tags.insert(channelTagZ0Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotZ0},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferZ0},
-                                 {localProducerBufferKey, localProducerCoordinationBufferZ0}});
+                                {{localTokenBufferKey + CHANNEL_Z0_TAG_OFFSET, consumerTokenBufferSlotZ0},
+                                 {localCoordinationBufferKey + CHANNEL_Z0_TAG_OFFSET, localConsumerCoordinationBufferZ0},
+                                 {localProducerBufferKey + CHANNEL_Z0_TAG_OFFSET, localProducerCoordinationBufferZ0}});
         channelTagZ1Tags.insert(channelTagZ1Tags.begin(),
-                                {{localTokenBufferKey, consumerTokenBufferSlotZ1},
-                                 {localCoordinationBufferKey, localConsumerCoordinationBufferZ1},
-                                 {localProducerBufferKey, localProducerCoordinationBufferZ1}});
+                                {{localTokenBufferKey + CHANNEL_Z1_TAG_OFFSET, consumerTokenBufferSlotZ1},
+                                 {localCoordinationBufferKey + CHANNEL_Z1_TAG_OFFSET, localConsumerCoordinationBufferZ1},
+                                 {localProducerBufferKey + CHANNEL_Z1_TAG_OFFSET, localProducerCoordinationBufferZ1}});
+
+        channelTags.insert(channelTags.end(), channelTagX0Tags.begin(), channelTagX0Tags.end());
+        channelTags.insert(channelTags.end(), channelTagX1Tags.begin(), channelTagX1Tags.end());
+        channelTags.insert(channelTags.end(), channelTagY0Tags.begin(), channelTagY0Tags.end());
+        channelTags.insert(channelTags.end(), channelTagY1Tags.begin(), channelTagY1Tags.end());
+        channelTags.insert(channelTags.end(), channelTagZ0Tags.begin(), channelTagZ0Tags.end());
+        channelTags.insert(channelTags.end(), channelTagZ1Tags.begin(), channelTagZ1Tags.end());
       }
 
   // Exchanging local memory slots to become global for them to be used by the remote end
-  _communicationManager->exchangeGlobalMemorySlots(channelTagX0, channelTagX0Tags);
-  _communicationManager->exchangeGlobalMemorySlots(channelTagX1, channelTagX1Tags);
-  _communicationManager->exchangeGlobalMemorySlots(channelTagY0, channelTagY0Tags);
-  _communicationManager->exchangeGlobalMemorySlots(channelTagY1, channelTagY1Tags);
-  _communicationManager->exchangeGlobalMemorySlots(channelTagZ0, channelTagZ0Tags);
-  _communicationManager->exchangeGlobalMemorySlots(channelTagZ1, channelTagZ1Tags);
-
-  // Synchronizing so that all actors have finished registering their global memory slots
-  _communicationManager->fence(channelTagX0);
-  _communicationManager->fence(channelTagX1);
-  _communicationManager->fence(channelTagY0);
-  _communicationManager->fence(channelTagY1);
-  _communicationManager->fence(channelTagZ0);
-  _communicationManager->fence(channelTagZ1);
+  _communicationManager->exchangeGlobalMemorySlots(channelTag, channelTags);
+  _communicationManager->fence(channelTag);
 
   // Mapping for local tasks
   localRankCount = lt.x * lt.y * lt.z;
@@ -383,13 +381,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.X0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + lt.x - 1) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX0, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX0, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX0, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.X0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
@@ -413,13 +411,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.X1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + t.lPos.y * lt.x + 0) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX0, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX0, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagX1, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX1, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagX0, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X1_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_X0_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.X1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
@@ -443,13 +441,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Y0.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (lt.y - 1) * lt.x + t.lPos.x) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY0, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY0, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY0, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.Y0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
@@ -473,13 +471,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Y1.processId * lt.z * lt.y * lt.x + t.lPos.z * lt.y * lt.x + (0) * lt.x + t.lPos.x) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY0, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY0, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagY1, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY1, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagY0, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y1_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Y0_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.Y1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
@@ -503,13 +501,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Z0.processId * lt.z * lt.y * lt.x + (lt.z - 1) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ0, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ0, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ0, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.Z0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
@@ -533,13 +531,13 @@ bool Grid::initialize()
       const HiCR::GlobalMemorySlot::globalKey_t remoteCoordinationBufferKey = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 1;
       const HiCR::GlobalMemorySlot::globalKey_t remoteProducerBufferKey     = 3 * (t.Z1.processId * lt.z * lt.y * lt.x + (0) * lt.y * lt.x + t.lPos.y * lt.x + t.lPos.x) + 2;
 
-      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ0, remoteTokenBufferKey);
-      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ0, remoteCoordinationBufferKey);
-      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, localProducerBufferKey);
+      auto sendGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + remoteTokenBufferKey);
+      auto sendConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + remoteCoordinationBufferKey);
+      auto sendProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + localProducerBufferKey);
 
-      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTagZ1, localTokenBufferKey);
-      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ1, localCoordinationBufferKey);
-      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTagZ0, remoteProducerBufferKey);
+      auto recvGlobalTokenBufferSlot      = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + localTokenBufferKey);
+      auto recvConsumerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z1_TAG_OFFSET + localCoordinationBufferKey);
+      auto recvProducerCoordinationBuffer = _communicationManager->getGlobalMemorySlot(channelTag, CHANNEL_Z0_TAG_OFFSET + remoteProducerBufferKey);
 
       // Creating producer and consumer channels
       t.Z1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,

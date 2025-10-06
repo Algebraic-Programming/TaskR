@@ -88,59 +88,93 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
 
   // Getting NUMA Domain information
   const auto &numaDomains = t.getDevices();
-  
+
   // Compute resources to use
   HiCR::Device::computeResourceList_t cr;
-  
-  for (size_t numaDomainId = 0; numaDomainId <numaDomains.size(); ++numaDomainId)
+
+  std::set<unsigned int> numaDomain00 = { 0,   1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
+  std::set<unsigned int> numaDomain01 = { 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65};
+  std::set<unsigned int> numaDomain10 = { 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43};
+  std::set<unsigned int> numaDomain11 = { 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87};
+
+  for (size_t numaDomainIdx = 0; numaDomainIdx < numaDomains.size(); numaDomainIdx++)
   {
-    auto numaDomain = numaDomains[numaDomainId];
-    printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
-  
-    // Updating the compute resource list
-    auto computeResources = numaDomain->getComputeResourceList();
-    printf("NUMA Domain %lu: #PUs %lu and has PID [", numaDomainId, computeResources.size());
-    for (int i = 0; i < size; ++i)
+    // printf("Numa Domain Idx: %lu\n", numaDomainIdx);
+    const auto& numaDomain = numaDomains.at(numaDomainIdx);
+    const auto& processingUnits = numaDomain->getComputeResourceList();
+    
+    for (const auto& processingUnitPtr : processingUnits)
     {
-      if (myInstanceId == (size_t)i)
+      const auto& processingUnit = *((HiCR::backend::hwloc::ComputeResource*)processingUnitPtr.get());
+      const auto logicalId = processingUnit.getProcessorId();
+      //printf(" + Processing Unit: %u / %u\n", physicalId, logicalId);
+
+      if (myInstanceId % 2 == 0)
       {
-        auto itr = computeResources.begin();
-        for (size_t i = 0; i < computeResources.size(); i++)
-        {
-          // Getting up-casted pointer for the processing unit
-          auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
-
-          // Checking whether the execution unit passed is compatible with this backend
-          if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
-
-          // Getting the logical processor ID of the compute resource
-          auto pid = c->getProcessorId();
-          
-          if(rank == 0)
-          {
-            if(pid < 22 || (pid > 43 && pid < 66)){
-              printf("%u ", pid);
-              fflush(stdout);
-    
-              cr.push_back(*itr);
-            }
-          } else {
-            if(!(pid < 22 || (pid > 43 && pid < 66))){
-              printf("%u ", pid);
-              fflush(stdout);
-    
-              cr.push_back(*itr);
-            }
-          }
-
-          itr++;
-        }
+        if (numaDomain00.contains(logicalId)) cr.push_back(processingUnitPtr);
+        if (numaDomain01.contains(logicalId)) cr.push_back(processingUnitPtr);
       }
-      printf("]\n");
-      fflush(stdout);
-      MPI_Barrier(MPI_COMM_WORLD);
+      
+      if (myInstanceId % 2 == 1)
+      {
+        if (numaDomain10.contains(logicalId)) cr.push_back(processingUnitPtr);
+        if (numaDomain11.contains(logicalId)) cr.push_back(processingUnitPtr);
+      }
     }
   }
+
+  // instanceManager->finalize();
+  // exit(0);
+
+  // for (size_t numaDomainId = 0; numaDomainId <numaDomains.size(); ++numaDomainId)
+  // {
+  //   auto numaDomain = numaDomains[numaDomainId];
+  //   printf("Instance %lu - Using NUMA domain: %lu\n", myInstanceId, numaDomainId);
+  
+  //   // Updating the compute resource list
+  //   auto computeResources = numaDomain->getComputeResourceList();
+  //   printf("NUMA Domain %lu: #PUs %lu and has PID [", numaDomainId, computeResources.size());
+  //   for (int i = 0; i < size; ++i)
+  //   {
+  //     if (myInstanceId == (size_t)i)
+  //     {
+  //       auto itr = computeResources.begin();
+  //       for (size_t i = 0; i < computeResources.size(); i++)
+  //       {
+  //         // Getting up-casted pointer for the processing unit
+  //         auto c = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(*itr);
+
+  //         // Checking whether the execution unit passed is compatible with this backend
+  //         if (c == nullptr) HICR_THROW_LOGIC("The passed compute resource is not supported by this processing unit type\n");
+
+  //         // Getting the logical processor ID of the compute resource
+  //         auto pid = c->getProcessorId();
+          
+  //         if(rank == 0)
+  //         {
+  //           if(pid < 22 || (pid > 43 && pid < 66)){
+  //             printf("%u ", pid);
+  //             fflush(stdout);
+    
+  //             cr.push_back(*itr);
+  //           }
+  //         } else {
+  //           if(!(pid < 22 || (pid > 43 && pid < 66))){
+  //             printf("%u ", pid);
+  //             fflush(stdout);
+    
+  //             cr.push_back(*itr);
+  //           }
+  //         }
+
+  //         itr++;
+  //       }
+  //     }
+  //     printf("]\n");
+  //     fflush(stdout);
+  //     MPI_Barrier(MPI_COMM_WORLD);
+  //   }
+  // }
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::ComputeManager boostComputeManager;

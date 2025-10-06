@@ -58,9 +58,4 @@ typedef HiCR::tasking::uniqueId_t taskId_t;
  */
 typedef ssize_t workerId_t;
 
-/**
- * The type of a service
- */
-typedef std::function<void()> service_t;
-
 } // namespace taskr
