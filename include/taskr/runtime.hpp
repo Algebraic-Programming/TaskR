@@ -41,6 +41,7 @@
 #include "task.hpp"
 #include "taskImpl.hpp"
 #include "worker.hpp"
+#include "service.hpp"
 
 namespace taskr
 {
@@ -80,7 +81,6 @@ struct ThreadIndices
    */
   size_t finished;
 };
-
 
 /**
  * Enumeration of states in which the TaskR runtime can be in
@@ -149,7 +149,7 @@ class Runtime
 
     // Creating internal tasks
     _commonReadyTaskQueue = std::make_unique<HiCR::concurrent::Queue<taskr::Task>>(__TASKR_DEFAULT_MAX_COMMON_ACTIVE_TASKS);
-    _serviceQueue         = std::make_unique<HiCR::concurrent::Queue<taskr::service_t>>(__TASKR_DEFAULT_MAX_SERVICES);
+    _serviceQueue         = std::make_unique<HiCR::concurrent::Queue<taskr::Service>>(__TASKR_DEFAULT_MAX_SERVICES);
 
     // Setting task callback functions
     _hicrTaskCallbackMap.setCallback(HiCR::tasking::Task::callback_t::onTaskExecute, [this](HiCR::tasking::Task *task) { this->onTaskExecuteCallback(task); });
@@ -440,7 +440,7 @@ class Runtime
    * 
    * @param[in] service The service (function) to add
    */
-  __INLINE__ void addService(taskr::service_t *service) { _serviceQueue->push(service); }
+  __INLINE__ void addService(taskr::Service *service) { _serviceQueue->push(service); }
 
   /**
    * Funtion to force termination in case the application does not have its own termination logic
@@ -448,6 +448,21 @@ class Runtime
   __INLINE__ void forceTermination() { _forceTerminate = true; }
 
   private:
+
+  __INLINE__ void tryRunService(Service* service)
+  {
+    // Checking if service is active (or inactive -- waiting for its wait interval to pass)
+    if (service->isActive())
+    {
+      // TraCR set trace of thread executing a service
+      #ifdef ENABLE_INSTRUMENTATION
+            INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
+      #endif
+
+      // Now run service
+      service->run();
+    } 
+  }
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)
   {
@@ -471,13 +486,8 @@ class Runtime
     // If found run it, and put it back into the queue
     if (service != nullptr)
     {
-#ifdef ENABLE_INSTRUMENTATION
-      // TraCR set trace of thread executing a service
-      INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-#endif
-
-      // Running service
-      (*service)();
+      // Try to run service
+      tryRunService(service);
 
       // Putting it back into the queue
       _serviceQueue->push(service);
@@ -525,13 +535,8 @@ class Runtime
       // If found run it, and put it back into the queue
       if (service != nullptr)
       {
-#ifdef ENABLE_INSTRUMENTATION
-        // TraCR set trace of thread executing a service
-        INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-#endif
-
-        // Running service
-        (*service)();
+        // Try to run service
+        tryRunService(service);
 
         // Putting it back into the queue
         _serviceQueue->push(service);
@@ -832,7 +837,7 @@ class Runtime
   /**
    * Common lock-free queue for services.
    */
-  std::unique_ptr<HiCR::concurrent::Queue<taskr::service_t>> _serviceQueue;
+  std::unique_ptr<HiCR::concurrent::Queue<taskr::Service>> _serviceQueue;
 
   //////// Configuration Elements
 
