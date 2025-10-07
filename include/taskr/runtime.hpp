@@ -449,19 +449,23 @@ class Runtime
 
   private:
 
-  __INLINE__ void tryRunService(Service* service)
+  __INLINE__ void tryRunService(Service* const service)
   {
-    // Checking if service is active (or inactive -- waiting for its wait interval to pass)
-    if (service->isActive())
+    // Checking if service is enabled
+    if (service->isEnabled())
     {
-      // TraCR set trace of thread executing a service
-      #ifdef ENABLE_INSTRUMENTATION
-            INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-      #endif
+      // Checking if service is active (or inactive, i.e.,  waiting for its wait interval to pass)
+      if (service->isActive())
+      {
+        // TraCR set trace of thread executing a service
+        #ifdef ENABLE_INSTRUMENTATION
+              INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
+        #endif
 
-      // Now run service
-      service->run();
-    } 
+        // Now run service
+        service->run();
+      } 
+    }
   }
 
   __INLINE__ taskr::Task *serviceWorkerLoop(const workerId_t serviceWorkerId)

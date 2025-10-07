@@ -61,6 +61,22 @@ class Service
    */
   Service(serviceFc_t fc, const size_t interval = 0) : _fc(fc), _interval(interval) { }
 
+  /**
+   * Function to enable the execution of the service at runtime
+   */
+  __INLINE__ void enable() { _enabled = true; }
+
+  /**
+   * Function to disable the execution of the service at runtime
+   */
+  __INLINE__ void disable() { _enabled = false; }
+
+  /**
+   * Function to check whether the service is enabled
+   * 
+   * @return True, if it is enabled; false, otherwise
+   */
+  __INLINE__ bool isEnabled() const { return _enabled; }
   /** 
    * This function indicates whether the minimum interval has passed between the last execution.
    * 
@@ -105,6 +121,11 @@ class Service
    * The interval between consecutive executions
    */
   size_t _interval;
+
+  /**
+   * Value that indicates whether the service is enabled or disabled
+   */
+  bool _enabled = true;
 
   /**
    * Time point storing the last time this service was executed
