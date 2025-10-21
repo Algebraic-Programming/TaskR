@@ -175,6 +175,7 @@ class Runtime
     _minimumActiveTaskWorkers        = 1;     // Guarantee that there is at least one active task worker
     _serviceWorkerCount              = 0;     // No service workers (Typical setting for HPC applications)
     _makeTaskWorkersRunServices      = false; // Since no service workers are created by default, have task workers check on services
+    _finishOnLastTask                = true;  // Indicates that taskR must finish when the last task has finished
 
     // Parsing configuration
     if (config.contains("Task Worker Inactivity Time (Ms)")) _taskWorkerInactivityTimeMs = hicr::json::getNumber<ssize_t>(config, "Task Worker Inactivity Time (Ms)");
@@ -182,6 +183,7 @@ class Runtime
     if (config.contains("Minimum Active Task Workers")) _minimumActiveTaskWorkers = hicr::json::getNumber<size_t>(config, "Minimum Active Task Workers");
     if (config.contains("Service Worker Count")) _serviceWorkerCount = hicr::json::getNumber<size_t>(config, "Service Worker Count");
     if (config.contains("Make Task Workers Run Services")) _makeTaskWorkersRunServices = hicr::json::getBoolean(config, "Make Task Workers Run Services");
+    if (config.contains("Finish on Last Task")) _finishOnLastTask = hicr::json::getBoolean(config, "Finish On Last Task");
   }
 
   // Destructor
@@ -447,6 +449,11 @@ class Runtime
    */
   __INLINE__ void forceTermination() { _forceTerminate = true; }
 
+  /**
+   * Function to toggle the finish on last task condition
+   */
+  __INLINE__ void setFinishOnLastTask(const bool value = true) { _finishOnLastTask = value; }
+
   private:
 
   __INLINE__ void tryRunService(Service* const service)
@@ -600,8 +607,8 @@ class Runtime
 
   __INLINE__ bool checkTermination(taskr::Worker *const worker)
   {
-    // If all tasks finished, then terminate execution immediately
-    if (_activeTaskCount == 0)
+    // If all tasks finished and the runtime is set to finish on that condition, then terminate execution immediately
+    if (_finishOnLastTask == true && _activeTaskCount == 0)
     {
       // Terminating worker.
       worker->terminate();
@@ -869,6 +876,11 @@ class Runtime
    * Whether the task workers also check the service queue (adds overhead but improves real-time event handling)
    */
   bool _makeTaskWorkersRunServices;
+
+  /**
+   * Indicates whether taskR must finish when the last task has finished
+   */
+  bool _finishOnLastTask;
 
   /**
    * TraCR thread indices
