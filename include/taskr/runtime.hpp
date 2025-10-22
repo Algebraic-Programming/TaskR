@@ -453,6 +453,11 @@ class Runtime
    * Function to toggle the finish on last task condition
    */
   __INLINE__ void setFinishOnLastTask(const bool value = true) { _finishOnLastTask = value; }
+  
+  /**
+   * Function to check whether there are active tasks remaining
+   */
+  __INLINE__ size_t getActiveTaskCounter() const { return _activeTaskCount; }
 
   private:
 
