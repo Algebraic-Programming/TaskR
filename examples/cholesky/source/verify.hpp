@@ -34,7 +34,7 @@ bool areMatrixEqual(double *__restrict__ expected, double *__restrict__ actual, 
 
   for (uint32_t i = 0; i < matrixSize; i++)
   {
-    auto executionUnit = new taskr::Function([=, &equal](taskr::Task *task) {
+    auto executionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=, &equal](taskr::Task *task) {
       for (uint32_t j = 0; j <= i; j++)
       {
         if (equal.load() == false) { break; }

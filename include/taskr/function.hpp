@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <hicr/backends/pthreads/computeManager.hpp>
+#include <hicr/core/computeManager.hpp>
 #include "common.hpp"
 #include "task.hpp"
 
@@ -49,11 +49,11 @@ class Function
 
   /**
    * Constructor for the TaskR funciton class. It requires a user-defined function to execute
-   *
+   * @param[in] computeManager Specifies the compute manager to use to create the execution unit
    * @param[in] fc Specifies the function to execute.
    */
-  __INLINE__ Function(const function_t fc)
-    : _executionUnit(HiCR::backend::pthreads::ComputeManager::createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
+  __INLINE__ Function(HiCR::ComputeManager *computeManager, const function_t fc)
+    : _executionUnit(computeManager -> createExecutionUnit([fc](void *task) { fc(static_cast<taskr::Task *>(static_cast<HiCR::tasking::Task *>(task))); }))
   {}
 
   /**

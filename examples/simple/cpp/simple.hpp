@@ -29,7 +29,7 @@ void simple(taskr::Runtime *taskr)
   auto fc = [](taskr::Task *task) { printf("Hello, I am task %ld\n", task->getTaskId()); };
 
   // Create the taskr Tasks
-  auto taskfc = taskr::Function(fc);
+  auto taskfc = taskr::Function(taskr->getTaskComputeManager(), fc);
 
   // Creating the execution units (functions that the tasks will run)
   for (int i = 0; i < 1; ++i)

@@ -32,7 +32,7 @@ void conditionVariableWait(taskr::Runtime &taskr)
   taskr::ConditionVariable cv;
 
   // Creating task functions
-  auto waitFc = taskr::Function([&](taskr::Task *task) {
+  auto waitFc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) {
     // Waiting for the other task's notification
     printf("Thread 1: I wait for a notification\n");
     mutex.lock(task);
@@ -42,7 +42,7 @@ void conditionVariableWait(taskr::Runtime &taskr)
     printf("Thread 1: I have been notified\n");
   });
 
-  auto notifyFc = taskr::Function([&](taskr::Task *task) {
+  auto notifyFc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) {
     // Notifying the other task
     printf("Thread 2: Notifying anybody interested\n");
     while (value != 1)

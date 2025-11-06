@@ -29,7 +29,7 @@ void suspend(taskr::Runtime &taskr, const size_t branchCount, const size_t taskC
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = taskr::Function([](taskr::Task *task) {
+  auto taskfc = taskr::Function(taskr.getTaskComputeManager(), [](taskr::Task *task) {
     for (size_t i = 0; i < NSUSPENDS; i++) task->suspend();
   });
 

@@ -85,10 +85,10 @@ int main(int argc, char **argv)
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Creating task work function
-  auto workFunction = taskr::Function([&iterations](taskr::Task *task) { workFc(iterations); });
+  auto workFunction = taskr::Function(taskr.getTaskComputeManager(), [&iterations](taskr::Task *task) { workFc(iterations); });
 
   // Creating task wait function
-  auto waitFunction = taskr::Function([&taskr, &secondsDelay](taskr::Task *task) { waitFc(&taskr, secondsDelay); });
+  auto waitFunction = taskr::Function(taskr.getTaskComputeManager(), [&taskr, &secondsDelay](taskr::Task *task) { waitFc(&taskr, secondsDelay); });
 
   // Creating a single wait task that suspends all workers except for one
   auto waitTask1 = new taskr::Task(0, &waitFunction);

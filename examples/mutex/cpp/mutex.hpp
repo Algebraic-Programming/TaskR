@@ -33,7 +33,7 @@ void mutex(taskr::Runtime *taskr)
   taskr::Mutex m;
 
   // Creating task function
-  auto taskfc = taskr::Function([&](taskr::Task *task) {
+  auto taskfc = taskr::Function(taskr->getTaskComputeManager(), [&](taskr::Task *task) {
     for (size_t i = 0; i < _ITERATIONS_; i++)
     {
       m.lock(task);

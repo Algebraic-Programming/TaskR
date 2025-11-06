@@ -59,7 +59,10 @@ class Service
    * @param[in] fc Specifies the TaskR-formatted function to use
    * @param[in] interval The minimum interval in ms between two executions of the service. Specify 0 for no minimum interval.
    */
-  Service(serviceFc_t fc, const size_t interval = 0) : _fc(fc), _interval(interval) { }
+  Service(serviceFc_t fc, const size_t interval = 0)
+    : _fc(fc),
+      _interval(interval)
+  {}
 
   /**
    * Function to enable the execution of the service at runtime
@@ -85,7 +88,8 @@ class Service
   */
   __INLINE__ bool isActive() const
   {
-    const auto timeElapsedSinceLastExecution = (double)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - _lastExecutionTime).count();
+    const auto timeElapsedSinceLastExecution =
+      (double)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - _lastExecutionTime).count();
     if (timeElapsedSinceLastExecution >= _interval) return true;
     return false;
   }
@@ -101,9 +105,20 @@ class Service
     _fc();
     _lastExecutionTime = std::chrono::high_resolution_clock::now();
   }
-  
+
+  /**
+   * Gets the interval of time that needs to pass between consecutive executions of this service
+   * 
+   * @return The time interval in ms
+   */
   __INLINE__ const size_t getInterval() const { return _interval; }
-  __INLINE__ void setInterval(const size_t interval)  { _interval = interval; }
+
+  /**
+   * Sets the interval of time that needs to pass between consecutive executions of this service
+   *
+   * @param[in] interval The time interval in ms
+   */
+  __INLINE__ void setInterval(const size_t interval) { _interval = interval; }
 
   private:
 

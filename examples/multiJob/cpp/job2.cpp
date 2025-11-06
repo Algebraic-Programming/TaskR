@@ -26,9 +26,9 @@ void job2(taskr::Runtime &taskr)
   std::vector<taskr::Task *> tasks(3 * ITERATIONS);
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskAfc = taskr::Function([&](taskr::Task *task) { printf("Job 2 - Task A %lu\n", task->getTaskId()); });
-  auto taskBfc = taskr::Function([&](taskr::Task *task) { printf("Job 2 - Task B %lu\n", task->getTaskId()); });
-  auto taskCfc = taskr::Function([&](taskr::Task *task) { printf("Job 2 - Task C %lu\n", task->getTaskId()); });
+  auto taskAfc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) { printf("Job 2 - Task A %lu\n", task->getTaskId()); });
+  auto taskBfc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) { printf("Job 2 - Task B %lu\n", task->getTaskId()); });
+  auto taskCfc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) { printf("Job 2 - Task C %lu\n", task->getTaskId()); });
 
   // Now creating tasks
   for (size_t i = 0; i < ITERATIONS; i++)

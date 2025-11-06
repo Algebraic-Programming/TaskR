@@ -1049,6 +1049,7 @@ RECURSIVE              = YES
 
 EXCLUDE                = ../include/hicr/common/atomic_queue \
                          ../include/taskr/extern \
+                         ../include/pytaskr \
 			 ../include/hicr/common/parallel_hashmap \
 			 ../include/hicr/common/atomic_queue 
 

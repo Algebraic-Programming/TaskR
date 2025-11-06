@@ -24,7 +24,7 @@ void manyParallel(taskr::Runtime &taskr, const size_t branchCount, const size_t 
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskFinish, [&taskr](taskr::Task *task) { delete task; });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = taskr::Function([](taskr::Task *task) {});
+  auto taskfc = taskr::Function(taskr.getTaskComputeManager(), [](taskr::Task *task) {});
 
   // Initializing taskr
   taskr.initialize();

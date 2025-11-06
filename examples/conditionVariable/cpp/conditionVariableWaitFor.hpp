@@ -38,7 +38,7 @@ void conditionVariableWaitFor(taskr::Runtime &taskr)
   constexpr size_t forever = 1000 * 1000 * 1000;
 
   // Creating task functions
-  auto waitFc = taskr::Function([&](taskr::Task *task) {
+  auto waitFc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) {
     // Waiting for the other task's notification
     printf("Thread 1: I wait for a notification (Waiting for an hour) \n");
     {
@@ -78,7 +78,7 @@ void conditionVariableWaitFor(taskr::Runtime &taskr)
     }
   });
 
-  auto notifyFc = taskr::Function([&](taskr::Task *task) {
+  auto notifyFc = taskr::Function(taskr.getTaskComputeManager(), [&](taskr::Task *task) {
     // Notifying the other task
     printf("Thread 2: Notifying anybody interested (only once)\n");
     while (value != 1)

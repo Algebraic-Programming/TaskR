@@ -80,7 +80,7 @@ int main(int argc, char **argv)
   taskr::Runtime taskr(&boostComputeManager, &pthreadsComputeManager, selectedComputeResources);
 
   // Creating task function
-  auto taskFunction = taskr::Function([&iterations](taskr::Task *task) { work(iterations); });
+  auto taskFunction = taskr::Function(taskr.getTaskComputeManager(), [&iterations](taskr::Task *task) { work(iterations); });
 
   // Adding multiple compute tasks
   printf("Running %lu work tasks with %lu processing units...\n", workTaskCount, coreSubset.size());

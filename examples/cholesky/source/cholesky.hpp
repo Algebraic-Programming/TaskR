@@ -92,7 +92,7 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
   {
     // Diagonal Block factorization
     pointer0                = (double *)blockMatrix[i][i]->getPointer();
-    auto potrfExecutionUnit = new taskr::Function([=](taskr::Task *task) { potrf(pointer0, blockSize, blockSize); });
+    auto potrfExecutionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) { potrf(pointer0, blockSize, blockSize); });
     auto potrfTask          = new taskr::Task(_taskCounter->fetch_add(1), potrfExecutionUnit);
     addTaskDependency(potrfTask, i, i);
     updateDependencyGrid(potrfTask, i, i);
@@ -103,7 +103,7 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
     {
       pointer0               = (double *)blockMatrix[i][i]->getPointer();
       pointer1               = (double *)blockMatrix[i][j]->getPointer();
-      auto trsmExecutionUnit = new taskr::Function([=](taskr::Task *task) { trsm(pointer0, pointer1, blockSize, blockSize); });
+      auto trsmExecutionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) { trsm(pointer0, pointer1, blockSize, blockSize); });
       auto trsmTask          = new taskr::Task(_taskCounter->fetch_add(1), trsmExecutionUnit);
       addTaskDependency(trsmTask, i, i);
       addTaskDependency(trsmTask, i, j);
@@ -119,7 +119,7 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
         pointer0               = (double *)blockMatrix[i][k]->getPointer();
         pointer1               = (double *)blockMatrix[i][j]->getPointer();
         pointer2               = (double *)blockMatrix[k][j]->getPointer();
-        auto gemmExecutionUnit = new taskr::Function([=](taskr::Task *task) { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
+        auto gemmExecutionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) { gemm(pointer0, pointer1, pointer2, blockSize, blockSize); });
         auto gemmTask          = new taskr::Task(_taskCounter->fetch_add(1), gemmExecutionUnit);
         addTaskDependency(gemmTask, i, j);
         addTaskDependency(gemmTask, i, k);
@@ -130,7 +130,7 @@ void cholesky(taskr::Runtime &taskr, std::vector<std::vector<std::shared_ptr<HiC
 
       pointer0               = (double *)blockMatrix[i][j]->getPointer();
       pointer1               = (double *)blockMatrix[j][j]->getPointer();
-      auto syrkExecutionUnit = new taskr::Function([=](taskr::Task *task) { syrk(pointer0, pointer1, blockSize, blockSize); });
+      auto syrkExecutionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) { syrk(pointer0, pointer1, blockSize, blockSize); });
       auto syrkTask          = new taskr::Task(_taskCounter->fetch_add(1), syrkExecutionUnit);
       addTaskDependency(syrkTask, i, j);
       addTaskDependency(syrkTask, j, j);

@@ -38,7 +38,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension)
   // Get randomized numbers
   for (int i = 0; i < n; i++)
   {
-    auto executionUnit = new taskr::Function([=](taskr::Task *task) { dlarnv_(&intONE, (int32_t *)&ISEED[0], &n, &matrix[i * n]); });
+    auto executionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) { dlarnv_(&intONE, (int32_t *)&ISEED[0], &n, &matrix[i * n]); });
     auto task          = new taskr::Task(_taskCounter->fetch_add(1), executionUnit);
     _taskr->addTask(task);
   }
@@ -48,7 +48,7 @@ void initMatrix(double *__restrict__ matrix, uint32_t dimension)
 
   for (int i = 0; i < n; i++)
   {
-    auto executionUnit = new taskr::Function([=](taskr::Task *task) {
+    auto executionUnit = new taskr::Function(_taskr->getTaskComputeManager(), [=](taskr::Task *task) {
       for (int j = 0; j <= i; j++)
       {
         // Make the matrix simmetrical

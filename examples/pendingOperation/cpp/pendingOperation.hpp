@@ -62,7 +62,7 @@ void pendingOperation(taskr::Runtime &taskr)
   taskr.setTaskCallbackHandler(HiCR::tasking::Task::callback_t::onTaskSuspend, [&taskr](taskr::Task *task) { taskr.resumeTask(task); });
 
   // Creating the execution units (functions that the tasks will run)
-  auto taskfc = taskr::Function([](taskr::Task *task) { heavyTask(task); });
+  auto taskfc = taskr::Function(taskr.getTaskComputeManager(), [](taskr::Task *task) { heavyTask(task); });
 
   // Now creating heavy many tasks task
   for (size_t i = 0; i < 100; i++) taskr.addTask(new taskr::Task(i, &taskfc));

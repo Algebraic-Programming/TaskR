@@ -115,22 +115,22 @@ class Runtime
   /**
    * Constructor of the TaskR Runtime.
    * 
-   * @param[in] executionStateComputeManager A backend's compute manager to initialize and run the task's execution states.
-   * @param[in] processingUnitComputeManager A backend's compute manager to initialize and run processing units
+   * @param[in] taskComputeManager A backend's compute manager to initialize and run the task's execution states.
+   * @param[in] workerComputeManager A backend's compute manager to initialize and run processing units
    * @param[in] computeResources The compute resources to use to drive the workers
    * @param[in] config Optional configuration parameters passed in JSON format
    */
-  Runtime(HiCR::ComputeManager *const               executionStateComputeManager,
-          HiCR::ComputeManager *const               processingUnitComputeManager,
+  Runtime(HiCR::ComputeManager *const               taskComputeManager,
+          HiCR::ComputeManager *const               workerComputeManager,
           const HiCR::Device::computeResourceList_t computeResources,
           nlohmann::json                            config = nlohmann::json())
-    : _executionStateComputeManager(executionStateComputeManager),
-      _processingUnitComputeManager(processingUnitComputeManager),
+    : _taskComputeManager(taskComputeManager),
+      _workerComputeManager(workerComputeManager),
       _computeResources(computeResources)
   {
 #ifdef ENABLE_INSTRUMENTATION
     // This is to check if ovni has been already initialized by nOS-V
-    bool external_init_ = (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_processingUnitComputeManager) == nullptr) ? true : false;
+    bool external_init_ = (dynamic_cast<HiCR::backend::pthreads::ComputeManager *>(_workerComputeManager) == nullptr) ? true : false;
 
     // TraCR start tracing
     INSTRUMENTATION_START(external_init_);
@@ -293,13 +293,13 @@ class Runtime
     {
       // Creating new service worker
       auto serviceWorker = std::make_shared<taskr::Worker>(
-        serviceWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
+        serviceWorkerId, _taskComputeManager, _workerComputeManager, [this, serviceWorkerId]() -> taskr::Task * { return serviceWorkerLoop(serviceWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       serviceWorker->setCallbackMap(&_serviceWorkerCallbackMap);
 
       // Assigning resource to the thread
-      serviceWorker->addProcessingUnit(_processingUnitComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
+      serviceWorker->addProcessingUnit(_workerComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding worker to the service worker set
       _serviceWorkers.push_back(serviceWorker);
@@ -323,8 +323,8 @@ class Runtime
       // printf("activating PU with PID: %d\n", pid);
 
       // Creating new task worker
-      auto taskWorker = std::make_shared<taskr::Worker>(
-        taskWorkerId, _executionStateComputeManager, _processingUnitComputeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
+      auto taskWorker =
+        std::make_shared<taskr::Worker>(taskWorkerId, _taskComputeManager, _workerComputeManager, [this, taskWorkerId]() -> taskr::Task * { return taskWorkerLoop(taskWorkerId); });
 
       // Making sure the worker has its callback map correctly assigned
       taskWorker->setCallbackMap(&_taskWorkerCallbackMap);
@@ -336,7 +336,7 @@ class Runtime
       taskWorker->setSuspendInterval(_taskWorkerSuspendIntervalTimeMs);
 
       // Assigning resource to the thread
-      taskWorker->addProcessingUnit(_processingUnitComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
+      taskWorker->addProcessingUnit(_workerComputeManager->createProcessingUnit(_computeResources[computeResourceId]));
 
       // Finally adding task worker to the task worker vector
       _taskWorkers.push_back(taskWorker);
@@ -451,17 +451,35 @@ class Runtime
 
   /**
    * Function to toggle the finish on last task condition
+   * 
+   * @param[in] value True, if taskr must finish when the last active task finishes; false, if it needs to continue running otherwise
    */
   __INLINE__ void setFinishOnLastTask(const bool value = true) { _finishOnLastTask = value; }
-  
+
   /**
    * Function to check whether there are active tasks remaining
+   * 
+   * @return The number of tasks current active (running or pending)
    */
   __INLINE__ size_t getActiveTaskCounter() const { return _activeTaskCount; }
 
+  /**
+   * Function to get the compute manager specified for the creation of execution states (tasks)
+   * 
+   * @return The compute manager assigned for the creation of task states
+   */
+  __INLINE__ HiCR::ComputeManager *getTaskComputeManager() const { return _taskComputeManager; }
+
+  /**
+   * Function to get the compute manager specified for the creation of processing units (workers)
+   * 
+   * @return The compute manager assigned for the management of workers
+   */
+  __INLINE__ HiCR::ComputeManager *getWorkerComputeManager() const { return _workerComputeManager; }
+
   private:
 
-  __INLINE__ void tryRunService(Service* const service)
+  __INLINE__ void tryRunService(Service *const service)
   {
     // Checking if service is enabled
     if (service->isEnabled())
@@ -469,14 +487,14 @@ class Runtime
       // Checking if service is active (or inactive, i.e.,  waiting for its wait interval to pass)
       if (service->isActive())
       {
-        // TraCR set trace of thread executing a service
-        #ifdef ENABLE_INSTRUMENTATION
-              INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
-        #endif
+// TraCR set trace of thread executing a service
+#ifdef ENABLE_INSTRUMENTATION
+        INSTRUMENTATION_THREAD_MARK_SET(thread_idx.exec_serv);
+#endif
 
         // Now run service
         service->run();
-      } 
+      }
     }
   }
 
@@ -771,12 +789,12 @@ class Runtime
   /**
    * Compute manager to use to instantiate task's execution states
    */
-  HiCR::ComputeManager *const _executionStateComputeManager;
+  HiCR::ComputeManager *const _taskComputeManager;
 
   /**
    * Compute manager to use to instantiate processing units
    */
-  HiCR::ComputeManager *const _processingUnitComputeManager;
+  HiCR::ComputeManager *const _workerComputeManager;
 
   /**
    * Type definition for the task's callback map
