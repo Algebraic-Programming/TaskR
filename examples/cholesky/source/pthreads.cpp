@@ -19,12 +19,12 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
+#include <hicr/backends/pthreads/core.hpp>
 #include <hicr/backends/pthreads/communicationManager.hpp>
 #include <hicr/backends/pthreads/computeManager.hpp>
 #include <hicr/backends/boost/computeManager.hpp>
 #include <hicr/backends/hwloc/memoryManager.hpp>
 #include <hicr/backends/hwloc/topologyManager.hpp>
-#include <hicr/backends/pthreads/computeManager.hpp>
 
 #include "cholesky.hpp"
 
@@ -71,7 +71,10 @@ int main(int argc, char **argv)
   auto computeResources = (*t.getDevices().begin())->getComputeResourceList();
 
   // Initializing communication manager to handle data motion
-  HiCR::backend::pthreads::CommunicationManager communicationManager;
+  HiCR::backend::pthreads::Core core(computeResources.size());
+
+  // Initializing communication manager to handle data motion
+  HiCR::backend::pthreads::CommunicationManager communicationManager(core);
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
   HiCR::backend::boost::ComputeManager boostComputeManager;
