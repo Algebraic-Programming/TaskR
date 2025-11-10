@@ -1,7 +1,7 @@
 project('TaskR', [ 'cpp', 'c'],
   subproject_dir : 'extern',
   default_options : [
-  'cpp_std=c++20',
+  'cpp_std=c++17',
   'buildtype=release'
   ],
   version: '1.0.0'

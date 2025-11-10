@@ -184,6 +184,9 @@ class Runtime
     if (config.contains("Service Worker Count")) _serviceWorkerCount = hicr::json::getNumber<size_t>(config, "Service Worker Count");
     if (config.contains("Make Task Workers Run Services")) _makeTaskWorkersRunServices = hicr::json::getBoolean(config, "Make Task Workers Run Services");
     if (config.contains("Finish on Last Task")) _finishOnLastTask = hicr::json::getBoolean(config, "Finish On Last Task");
+
+    // Initial state
+    _activeTaskCount = 0;
   }
 
   // Destructor
@@ -856,7 +859,7 @@ class Runtime
   /**
    * Counter for the current number of active tasks. Execution finishes when this counter reaches zero
    */
-  std::atomic<size_t> _activeTaskCount = 0;
+  std::atomic<size_t> _activeTaskCount;
 
   /**
    * Common lock-free queue for ready tasks.

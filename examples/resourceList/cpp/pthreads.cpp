@@ -64,10 +64,10 @@ int main(int argc, char **argv)
     for (auto computeResource : computeResourceList)
     {
       // Interpreting compute resource as core
-      auto core = dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(computeResource);
+      auto core = std::dynamic_pointer_cast<HiCR::backend::hwloc::ComputeResource>(computeResource);
 
       // If the core affinity is included in the list, Add it to the list
-      if (coreSubset.contains(core->getProcessorId())) selectedComputeResources.push_back(computeResource);
+      if (coreSubset.find(core->getProcessorId()) != coreSubset.end()) selectedComputeResources.push_back(computeResource);
     }
 
   // Initializing Boost-based compute manager to instantiate suspendable coroutines
