@@ -355,6 +355,9 @@ class Runtime
     if (_state == state_t::uninitialized) HICR_THROW_LOGIC("Trying to run TaskR, but it was not initialized");
     if (_state == state_t::running) HICR_THROW_LOGIC("Trying to run TaskR, but it is currently running");
 
+    // Set state to running
+    _state = state_t::running;
+
     // Initializing workers
     for (auto &w : _serviceWorkers) w->initialize();
     for (auto &w : _taskWorkers) w->initialize();
@@ -362,9 +365,6 @@ class Runtime
     // Starting workers
     for (auto &w : _serviceWorkers) w->start();
     for (auto &w : _taskWorkers) w->start();
-
-    // Set state to running
-    _state = state_t::running;
   }
 
   /**
@@ -372,6 +372,7 @@ class Runtime
    */
   __INLINE__ void await()
   {
+
     // Verify taskr is correctly running
     if (_state != state_t::running) HICR_THROW_LOGIC("Trying to wait for TaskR, but it was not running");
 
@@ -587,7 +588,7 @@ class Runtime
         const auto result = pendingOperation();
 
         // If not satisfied, return task to the appropriate queue, set it task as nullptr (no task), and break cycle
-        if (result == false) [[likely]]
+        if (result == false)
         {
           resumeTask(task);
           task = nullptr;
