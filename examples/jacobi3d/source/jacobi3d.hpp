@@ -42,16 +42,19 @@ void jacobi3d(HiCR::InstanceManager *instanceManager,
   if (success == false) instanceManager->abort(-1);
 
   // Creating grid processing functions
-  g->resetFc = std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->reset(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k); });
-  g->computeFc =
-    std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->compute(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->receiveFc =
-    std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->receive(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->unpackFc = std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->unpack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->packFc   = std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->pack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->sendFc   = std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->send(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
-  g->localResidualFc = std::make_unique<taskr::Function>(computeManager,
-    [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->resetFc   = std::make_unique<taskr::Function>(computeManager, [&g](taskr::Task *task) { g->reset(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k); });
+  g->computeFc = std::make_unique<taskr::Function>(
+    computeManager, [&g](taskr::Task *task) { g->compute(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->receiveFc = std::make_unique<taskr::Function>(
+    computeManager, [&g](taskr::Task *task) { g->receive(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->unpackFc        = std::make_unique<taskr::Function>(computeManager,
+                                                  [&g](taskr::Task *task) { g->unpack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->packFc          = std::make_unique<taskr::Function>(computeManager,
+                                                [&g](taskr::Task *task) { g->pack(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->sendFc          = std::make_unique<taskr::Function>(computeManager,
+                                                [&g](taskr::Task *task) { g->send(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
+  g->localResidualFc = std::make_unique<taskr::Function>(
+    computeManager, [&g](taskr::Task *task) { g->calculateLocalResidual(task, ((Task *)task)->i, ((Task *)task)->j, ((Task *)task)->k, ((Task *)task)->iteration); });
 
   // Task map
   std::map<taskr::taskId_t, std::shared_ptr<taskr::Task>> _taskMap;

@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
   // Initializing Pthreads-based compute manager to run tasks in parallel
   HiCR::backend::nosv::ComputeManager           computeManager;
-  auto core = HiCR::backend::pthreads::Core(computeResources.size());
+  auto                                          core = HiCR::backend::pthreads::Core(computeResources.size());
   HiCR::backend::pthreads::CommunicationManager communicationManager(core);
 
   // Creating taskr object
