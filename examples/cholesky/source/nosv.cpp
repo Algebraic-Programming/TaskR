@@ -19,6 +19,7 @@
 #include <hwloc.h>
 #include <chrono>
 #include <pthread.h>
+#include <hicr/backends/pthreads/core.hpp>
 #include <hicr/backends/pthreads/communicationManager.hpp>
 #include <hicr/backends/hwloc/memoryManager.hpp>
 #include <hicr/backends/hwloc/topologyManager.hpp>
@@ -82,7 +83,8 @@ int main(int argc, char **argv)
 
   // Initializing Pthreads-based compute manager to run tasks in parallel
   HiCR::backend::nosv::ComputeManager           computeManager;
-  HiCR::backend::pthreads::CommunicationManager communicationManager;
+  auto core = HiCR::backend::pthreads::Core(computeResources.size());
+  HiCR::backend::pthreads::CommunicationManager communicationManager(core);
 
   // Creating taskr object
   nlohmann::json taskrConfig;

@@ -28,6 +28,7 @@
 #include <memory>
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
 #include <hicr/core/device.hpp>
 #include <hicr/core/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>

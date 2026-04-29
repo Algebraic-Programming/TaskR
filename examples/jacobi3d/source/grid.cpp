@@ -393,12 +393,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.X0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeX,
                                                                                    CHANNEL_DEPTH);
       t.X0RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -423,12 +425,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.X1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeX,
                                                                                    CHANNEL_DEPTH);
       t.X1RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -453,12 +457,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.Y0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeY,
                                                                                    CHANNEL_DEPTH);
       t.Y0RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -483,12 +489,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.Y1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeY,
                                                                                    CHANNEL_DEPTH);
       t.Y1RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -513,12 +521,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.Z0SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeZ,
                                                                                    CHANNEL_DEPTH);
       t.Z0RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -543,12 +553,14 @@ bool Grid::initialize()
 
       // Creating producer and consumer channels
       t.Z1SendChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Producer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    sendGlobalTokenBufferSlot,
                                                                                    sendProducerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    sendConsumerCoordinationBuffer,
                                                                                    sizeof(double) * bufferSizeZ,
                                                                                    CHANNEL_DEPTH);
       t.Z1RecvChannel = std::make_unique<HiCR::channel::fixedSize::SPSC::Consumer>(*_communicationManager,
+                                                                                   *_communicationManager,
                                                                                    recvGlobalTokenBufferSlot,
                                                                                    recvConsumerCoordinationBuffer->getSourceLocalMemorySlot(),
                                                                                    recvProducerCoordinationBuffer,
@@ -582,11 +594,21 @@ bool Grid::initialize()
 
     // Creating channel
     if (processId == 0)
-      residualConsumerChannel = std::make_unique<HiCR::channel::fixedSize::MPSC::locking::Consumer>(
-        *_communicationManager, residualGlobalTokenBufferSlot, residualCoordinationBufferSlot, residualGlobalCoordinationBufferSlot, sizeof(double), processCount);
+      residualConsumerChannel = std::make_unique<HiCR::channel::fixedSize::MPSC::locking::Consumer>(*_communicationManager,
+                                                                                                    *_communicationManager,
+                                                                                                    residualGlobalTokenBufferSlot,
+                                                                                                    residualCoordinationBufferSlot,
+                                                                                                    residualGlobalCoordinationBufferSlot,
+                                                                                                    sizeof(double),
+                                                                                                    processCount);
     if (processId != 0)
-      residualProducerChannel = std::make_unique<HiCR::channel::fixedSize::MPSC::locking::Producer>(
-        *_communicationManager, residualGlobalTokenBufferSlot, residualCoordinationBufferSlot, residualGlobalCoordinationBufferSlot, sizeof(double), processCount);
+      residualProducerChannel = std::make_unique<HiCR::channel::fixedSize::MPSC::locking::Producer>(*_communicationManager,
+                                                                                                    *_communicationManager,
+                                                                                                    residualGlobalTokenBufferSlot,
+                                                                                                    residualCoordinationBufferSlot,
+                                                                                                    residualGlobalCoordinationBufferSlot,
+                                                                                                    sizeof(double),
+                                                                                                    processCount);
   }
 
   free(globalRankX);
