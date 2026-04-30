@@ -28,7 +28,7 @@ def suspend(runtime, branchCount, taskCount):
     for _ in range(NSUSPENDS): task.suspend()
 
   # Creating the execution units (functions that the tasks will run)
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.Function(runtime, fc)
 
   # Initializing taskr
   runtime.initialize()

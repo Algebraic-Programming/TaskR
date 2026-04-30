@@ -41,7 +41,7 @@ def main():
     t = taskr.create("threading", coreSubset)
 
     # Creating task function
-    taskFunction = taskr.Function(lambda task : workTask.work(iterations))
+    taskFunction = taskr.Function(t, lambda task : workTask.work(iterations))
 
     # Adding multiple compute tasks
     print(f"Running {workTaskCount} work tasks with {len(coreSubset)} processing units...")

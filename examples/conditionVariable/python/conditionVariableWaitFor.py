@@ -71,7 +71,7 @@ def conditionVariableWaitFor(runtime):
     print(f"Thread 1: I've exited by timeout (as expected in {elapsedTime}us >= {timeoutTimeUs}us)")
 
   # Creating task functions
-  waitFc = taskr.Function(fc)
+  waitFc = taskr.Function(runtime, fc)
 
   def fc(task):
     nonlocal  value
@@ -82,7 +82,7 @@ def conditionVariableWaitFor(runtime):
       cv.notifyOne(task)
       task.suspend()
 
-  notifyFc = taskr.Function(fc)
+  notifyFc = taskr.Function(runtime, fc)
 
   task1 = taskr.Task(0, waitFc)
   task2 = taskr.Task(1, notifyFc)

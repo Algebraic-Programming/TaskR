@@ -43,7 +43,7 @@ def main():
 
         sorted_array.append(value)
 
-    taskfc = taskr.Function(fc)
+    taskfc = taskr.Function(t, fc)
 
     for i in range(n):
         t.addTask(taskr.Task(i, taskfc))

@@ -51,7 +51,10 @@ PYBIND11_MODULE(taskr, m)
     .def("addService", &PyRuntime::addService);
 
   // TaskR's Function class
-  py::class_<Function>(m, "Function").def(py::init<const function_t>(), py::arg("fc"));
+  py::class_<Function>(m, "Function")
+    .def(py::init([](PyRuntime &runtime, function_t fc) { return std::make_unique<Function>(runtime.getExecutionStateComputeManager(), std::move(fc)); }),
+         py::arg("runtime"),
+         py::arg("fc"));
 
   // TaskR's Task class
   py::class_<Task>(m, "Task")

@@ -86,7 +86,7 @@ def conditionVariableWaitForCondition(runtime):
     mutex.unlock(task)
 
   # Creating task functions
-  thread1Fc = taskr.Function(fc)
+  thread1Fc = taskr.Function(runtime, fc)
 
   def fc(task):
     nonlocal  value
@@ -115,7 +115,7 @@ def conditionVariableWaitForCondition(runtime):
       task.suspend()
     
 
-  thread2Fc = taskr.Function(fc)
+  thread2Fc = taskr.Function(runtime, fc)
 
   task1 = taskr.Task(0, thread1Fc)
   task2 = taskr.Task(1, thread2Fc)

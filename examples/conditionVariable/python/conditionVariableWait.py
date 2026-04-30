@@ -40,7 +40,7 @@ def conditionVariableWait(runtime):
     print("Thread 1: I have been notified")
 
   # Creating task functions
-  waitFc = taskr.Function(fc)
+  waitFc = taskr.Function(runtime, fc)
 
   def fc(task):
     nonlocal  value
@@ -53,7 +53,7 @@ def conditionVariableWait(runtime):
       task.suspend()
       print("task.suspend()", flush=True)
 
-  notifyFc = taskr.Function(fc)
+  notifyFc = taskr.Function(runtime, fc)
 
   task1 = taskr.Task(0, waitFc)
   task2 = taskr.Task(1, notifyFc)

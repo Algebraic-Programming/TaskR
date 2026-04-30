@@ -57,7 +57,7 @@ def pendingOperation(runtime):
   fc = lambda task : heavyTask(task)
 
   # Create the taskr Tasks
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.Function(runtime, fc)
 
   # Now creating heavy many tasks task
   for i in range(100):

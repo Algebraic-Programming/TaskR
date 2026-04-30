@@ -19,7 +19,7 @@ endif
 if get_option('buildPyTaskR') and get_option('buildTests')
 	test('pyTaskR', 
 			py,
-			args : [ 'python/main.py'],
+			args : [ meson.current_source_dir() / 'python/main.py'],
 			is_parallel : false, 
 			env: ['PYTHONPATH=' + meson.project_build_root() + '/include/pytaskr/'],
 			suite: testSuite, 
