@@ -43,8 +43,8 @@ def fibonacci(currentTask, x):
     nonlocal result2
     result2 = fibonacci(task, x - 2)
 
-  fibFc1  = taskr.Function(Fc1)
-  fibFc2  = taskr.Function(Fc2)
+  fibFc1  = taskr.Function(_runtime, Fc1)
+  fibFc2  = taskr.Function(_runtime, Fc2)
 
   # Creating two new tasks
   subTask1 = taskr.Task(_taskCounter, fibFc1)
@@ -83,7 +83,7 @@ def fibonacciDriver(initialValue, runtime):
     nonlocal result
     result = fibonacci(task, initialValue)
 
-  initialFc = taskr.Function(Fc)
+  initialFc = taskr.Function(runtime, Fc)
 
   # Now creating tasks and their dependency graph
   initialTask = taskr.Task(_taskCounter, initialFc)

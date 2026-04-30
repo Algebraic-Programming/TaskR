@@ -28,6 +28,7 @@
 #include <memory>
 #include <nlohmann_json/json.hpp>
 #include <nlohmann_json/parser.hpp>
+#include <hicr/backends/pthreads/computeManager.hpp>
 #include <hicr/core/device.hpp>
 #include <hicr/core/computeManager.hpp>
 #include <hicr/frontends/tasking/common.hpp>
@@ -372,7 +373,6 @@ class Runtime
    */
   __INLINE__ void await()
   {
-
     // Verify taskr is correctly running
     if (_state != state_t::running) HICR_THROW_LOGIC("Trying to wait for TaskR, but it was not running");
 

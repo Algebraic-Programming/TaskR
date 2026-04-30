@@ -25,7 +25,7 @@ def matmul_cpp_Driver(runtime):
   # Initializing taskr
   runtime.initialize()
 
-  taskfc = taskr.Function(cpp_matmul.cpp_matmul)
+  taskfc = taskr.Function(runtime, cpp_matmul.cpp_matmul)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):
@@ -65,7 +65,7 @@ def matmul_numpy_Driver(runtime):
     
     A = B @ C
 
-  taskfc = taskr.Function(matmul_numpy)
+  taskfc = taskr.Function(runtime, matmul_numpy)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):

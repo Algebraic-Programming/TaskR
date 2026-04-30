@@ -122,7 +122,7 @@ void jacobiDriver(HiCR::InstanceManager *instanceManager, HiCR::CommunicationMan
   auto g = std::make_unique<Grid>(myInstanceId, N, nIters, gDepth, pt, lt, &taskr, memoryManager, topologyManager.get(), communicationManager);
 
   // running the Jacobi3D example
-  jacobi3d(instanceManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
+  jacobi3d(instanceManager, &boostComputeManager, taskr, g.get(), gDepth, N, nIters, pt, lt);
 }
 
 #ifdef _TASKR_DISTRIBUTED_ENGINE_LPF

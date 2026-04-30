@@ -58,7 +58,7 @@ def workerSpecific(runtime, workerCount):
   runtime.setTaskCallbackHandler(taskr.TaskCallback.onTaskSuspend, lambda task : runtime.resumeTask(task))
 
   # Creating the execution units (functions that the tasks will run)
-  workTaskfc = taskr.Function(lambda task : workFc(task))
+  workTaskfc = taskr.Function(runtime, lambda task : workFc(task))
 
   # Initializing taskr
   runtime.initialize()

@@ -36,7 +36,7 @@ def mutex(runtime):
       m.unlock(task)
 
   # Create the taskr Tasks
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.Function(runtime, fc)
 
   # Creating the execution units (functions that the tasks will run)
   for i in range(_CONCURRENT_TASKS):

@@ -259,7 +259,11 @@ class PyRuntime
   /**
    * 
    */
-  __INLINE__ void addService(taskr::service_t *service) { _runtime->addService(service); }
+  __INLINE__ void addService(taskr::Service *service) { _runtime->addService(service); }
+
+  __INLINE__ HiCR::ComputeManager *getExecutionStateComputeManager() { return _executionStateComputeManager.get(); }
+
+  __INLINE__ HiCR::ComputeManager *getProcessingUnitComputeManager() { return _processingUnitComputeManager.get(); }
 
   private:
 

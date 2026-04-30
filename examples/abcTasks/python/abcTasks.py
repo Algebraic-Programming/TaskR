@@ -6,9 +6,9 @@ ITERATIONS = 100
 def abcTasks(runtime):
 
    # Create the taskr Tasks
-  taskAfc = taskr.Function(lambda task : print(f"Task A {task.getTaskId()}"))
-  taskBfc = taskr.Function(lambda task : print(f"Task B {task.getTaskId()}"))
-  taskCfc = taskr.Function(lambda task : print(f"Task C {task.getTaskId()}"))
+  taskAfc = taskr.Function(runtime, lambda task : print(f"Task A {task.getTaskId()}"))
+  taskBfc = taskr.Function(runtime, lambda task : print(f"Task B {task.getTaskId()}"))
+  taskCfc = taskr.Function(runtime, lambda task : print(f"Task C {task.getTaskId()}"))
 
   # Initializing taskr
   runtime.initialize()

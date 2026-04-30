@@ -31,10 +31,10 @@ def waitFc(taskr, secondsDelay):
 
 def energySaver(runtime, workTaskCount, secondsDelay, iterations):
   # Creating task work function
-  workFunction = taskr.Function(lambda task : workFc(iterations))
+  workFunction = taskr.Function(runtime, lambda task : workFc(iterations))
 
   # Creating task wait function
-  waitFunction = taskr.Function(lambda task : waitFc(runtime, secondsDelay))
+  waitFunction = taskr.Function(runtime, lambda task : waitFc(runtime, secondsDelay))
 
   # Creating a single wait task that suspends all workers except for one
   waitTask1 = taskr.Task(0, waitFunction)

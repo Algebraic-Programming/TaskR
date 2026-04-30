@@ -19,7 +19,7 @@ import taskr
 
 def manyParallel(runtime, branchCount, taskCount):
   # Creating the execution units (functions that the tasks will run)
-  taskfc = taskr.Function(lambda task : None)
+  taskfc = taskr.Function(runtime, lambda task : None)
 
   # Initializing taskr
   runtime.initialize()

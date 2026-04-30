@@ -23,7 +23,7 @@ def simple(runtime):
 
   # Create tasks
   fc = lambda task : print(f"Hello, I am task {task.getTaskId()}")
-  taskfc = taskr.Function(fc)
+  taskfc = taskr.Function(runtime, fc)
 
   # Adding to tasks to taskr
   for i in range(NTASKS):
